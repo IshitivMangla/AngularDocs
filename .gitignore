@@ -11,5 +11,5 @@ html-docs/
 .DS_Store
 Thumbs.db
 
-# Markdown notes
-*.md
+# # Markdown notes
+# *.md
