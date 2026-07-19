@@ -93,26 +93,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const mainContent = document.querySelector('.main-content');
         if (mainContent) mainContent.classList.add('loading');
 
+        // Update URL immediately so it always reflects where we are
+        if (pushHistory) {
+            history.pushState({}, '', url);
+            currentPathname = window.location.pathname;
+        }
+
         try {
-            // Fetch the new page
+            // Fetch the new page using its absolute URL
             const response = await fetch(url);
-            if (!response.ok) throw new Error('Page not found');
+            if (!response.ok) throw new Error(`Page not found: ${url}`);
             const html = await response.text();
 
             // Parse the HTML
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
 
-            // Replace content
+            // Replace only the main content area - sidebar stays untouched
             const newContent = doc.querySelector('.main-content');
             if (newContent && mainContent) {
                 mainContent.innerHTML = newContent.innerHTML;
             }
 
-            // Update title
+            // Update page title
             document.title = doc.title;
 
-            // Re-initialize anchor links for the new content
+            // Re-initialize TOC anchor links for the newly injected content
             initAnchorLinks();
 
             // Close sidebar on mobile after navigation
@@ -120,30 +126,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 sidebar.classList.remove('open');
             }
 
-            // Update URL and History
-            if (pushHistory) {
-                history.pushState({}, '', url);
-                currentPathname = window.location.pathname;
-            }
-            
             // Scroll to top or specific hash
             const hash = new URL(url, window.location.origin).hash;
             if (hash) {
                 const target = document.getElementById(hash.substring(1));
-                if (target) {
-                    target.scrollIntoView();
-                }
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
             } else {
                 window.scrollTo(0, 0);
             }
 
-            // Update Sidebar
+            // Update active sidebar link highlight
             updateActiveSidebarLink(url);
 
         } catch (error) {
-            console.error('Error loading page:', error);
-            // Fallback to normal navigation
-            window.location.href = url;
+            // Log the error but do NOT fall back to a full page reload -
+            // that would cause the sidebar to flash/reload.
+            console.error('SPA navigation error:', error);
         } finally {
             if (mainContent) mainContent.classList.remove('loading');
         }
@@ -164,14 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Only handle .html files for SPA navigation
         if (href.endsWith('.html') || href.includes('.html#')) {
-            // Check if protocol is file: SPA won't work locally due to CORS
-            if (window.location.protocol === 'file:') {
-                // Fallback to normal navigation, scroll state is saved via sessionStorage
-                return;
-            }
+            // Skip SPA on file:// protocol (local disk) - fetch is blocked by CORS
+            if (window.location.protocol === 'file:') return;
 
             e.preventDefault();
-            // construct absolute url to safely parse
+            // Build absolute URL relative to current page
             const absoluteUrl = new URL(href, window.location.href).href;
             loadPage(absoluteUrl);
         }
