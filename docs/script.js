@@ -1,6 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.getElementById('mobile-nav-toggle');
     const sidebar = document.getElementById('sidebar');
+    const sidebarNav = document.querySelector('.sidebar-nav');
+
+    // Restore sidebar scroll position (helpful for file:/// fallback)
+    if (sidebarNav) {
+        const savedScroll = sessionStorage.getItem('sidebarScroll');
+        if (savedScroll) {
+            sidebarNav.scrollTop = parseInt(savedScroll, 10);
+        }
+        
+        // Save scroll position on scroll
+        sidebarNav.addEventListener('scroll', () => {
+            sessionStorage.setItem('sidebarScroll', sidebarNav.scrollTop);
+        });
+    }
 
     toggle.addEventListener('click', () => {
         sidebar.classList.toggle('open');
@@ -150,6 +164,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Only handle .html files for SPA navigation
         if (href.endsWith('.html') || href.includes('.html#')) {
+            // Check if protocol is file: SPA won't work locally due to CORS
+            if (window.location.protocol === 'file:') {
+                // Fallback to normal navigation, scroll state is saved via sessionStorage
+                return;
+            }
+
             e.preventDefault();
             // construct absolute url to safely parse
             const absoluteUrl = new URL(href, window.location.href).href;
@@ -159,6 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle back/forward buttons
     window.addEventListener('popstate', (e) => {
+        if (window.location.protocol === 'file:') return;
+
         if (window.location.pathname !== currentPathname) {
             currentPathname = window.location.pathname;
             loadPage(window.location.href, false);
