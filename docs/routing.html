@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Routing, Navigation API & URL Strategies - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item active">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-routing-navigation-api-url-strategies">Angular: Routing, Navigation API & URL Strategies</h1>
+<blockquote>
+<p><strong>Goal</strong>: Master Angular&#39;s router to build multi-page SPAs with lazy loading, nested routes, programmatic navigation, and route-based data flow — all essential for scalable apps.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-how-the-router-works">How the Router Works</a></li>
+<li><a href="#2-route-configuration-patterns">Route Configuration Patterns</a></li>
+<li><a href="#3-lazy-loading">Lazy Loading with <code>loadComponent</code> &amp; <code>loadChildren</code></a></li>
+<li><a href="#4-route-parameters--query-params">Route Parameters &amp; Query Params</a></li>
+<li><a href="#5-the-navigation-api">The Navigation API</a></li>
+<li><a href="#6-nested-routes--named-outlets">Nested Routes &amp; Named Outlets</a></li>
+<li><a href="#7-router-events--progress-indicators">Router Events &amp; Progress Indicators</a></li>
+<li><a href="#8-location-strategies">Location Strategies: HTML5 vs Hash</a></li>
+<li><a href="#9-route-data">Route Data: <code>data</code> &amp; <code>resolve</code></a></li>
+<li><a href="#10-routerlink-directive-deep-dive"><code>RouterLink</code> Directive Deep Dive</a></li>
+<li><a href="#11-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#12-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#13-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-how-the-router-works">1. How the Router Works</h2>
+<p>When the user types or clicks a URL, Angular&#39;s router:</p>
+<ol>
+<li><strong>Receives the URL</strong> from the address bar or a <code>router.navigate()</code> call</li>
+<li><strong>Matches</strong> the URL against the <code>routes</code> array <strong>top-to-bottom</strong></li>
+<li><strong>Runs guards</strong> (<code>canActivate</code>, <code>canMatch</code>) — can block or redirect</li>
+<li><strong>Runs resolvers</strong> — fetches data before rendering</li>
+<li><strong>Instantiates components</strong> and inserts them into <code>&lt;router-outlet&gt;</code></li>
+<li><strong>Updates the browser URL</strong> and history</li>
+</ol>
+<pre><code>URL Change → Route Matching → Guards → Resolvers → Component Activation → Render
+</code></pre>
+<h3 id="route-matching-strategies">Route Matching Strategies</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Default?</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>prefix</code></td>
+<td>✅ Yes</td>
+<td>Matches if URL <strong>starts with</strong> the path. <code>path: &#39;&#39;</code> matches EVERYTHING.</td>
+</tr>
+<tr>
+<td><code>full</code></td>
+<td>❌ No</td>
+<td>Matches only if the URL is <strong>exactly</strong> the path.</td>
+</tr>
+</tbody></table>
+<pre><code class="language-typescript">export const routes: Routes = [
+  // ❌ DANGER: pathMatch defaults to &#39;prefix&#39;, so &#39;&#39; matches every URL!
+  // This creates an infinite redirect loop.
+  { path: &#39;&#39;, redirectTo: &#39;home&#39; },                           // BROKEN
+
+  // ✅ CORRECT: &#39;full&#39; means &quot;only redirect if the path is exactly &#39;&#39;&quot;
+  { path: &#39;&#39;, redirectTo: &#39;home&#39;, pathMatch: &#39;full&#39; },        // FIXED
+
+  { path: &#39;home&#39;, component: HomeComponent },
+  { path: &#39;users/:id&#39;, component: UserDetailComponent },
+
+  // ✅ Wildcard MUST be last — it matches everything not matched above
+  { path: &#39;**&#39;, component: NotFoundComponent }
+];
+</code></pre>
+<hr>
+<h2 id="2-route-configuration-patterns">2. Route Configuration Patterns</h2>
+<h3 id="full-scalable-route-configuration">Full Scalable Route Configuration</h3>
+<pre><code class="language-typescript">// src/app/app.routes.ts
+import { Routes } from &#39;@angular/router&#39;;
+import { authGuard } from &#39;./core/guards/auth.guard&#39;;
+import { adminGuard } from &#39;./core/guards/admin.guard&#39;;
+import { userProfileResolver } from &#39;./features/users/resolvers/user-profile.resolver&#39;;
+
+export const routes: Routes = [
+  // Root redirect
+  { path: &#39;&#39;, redirectTo: &#39;dashboard&#39;, pathMatch: &#39;full&#39; },
+
+  // Public routes — no auth required
+  {
+    path: &#39;auth&#39;,
+    loadChildren: () =&gt; import(&#39;./features/auth/auth.routes&#39;).then(m =&gt; m.AUTH_ROUTES)
+  },
+
+  // Protected routes — require authentication
+  {
+    path: &#39;dashboard&#39;,
+    loadComponent: () =&gt; import(&#39;./features/dashboard/dashboard.component&#39;)
+                           .then(m =&gt; m.DashboardComponent),
+    canActivate: [authGuard],
+    // Static data available to the component via @Input(&#39;title&#39;) or ActivatedRoute
+    data: { title: &#39;Dashboard&#39;, breadcrumb: &#39;Home&#39; }
+  },
+
+  // Feature with nested routes
+  {
+    path: &#39;users&#39;,
+    canActivate: [authGuard],
+    loadChildren: () =&gt; import(&#39;./features/users/users.routes&#39;).then(m =&gt; m.USERS_ROUTES)
+  },
+
+  // Admin-only section — uses multiple guards (all must pass)
+  {
+    path: &#39;admin&#39;,
+    canActivate: [authGuard, adminGuard],
+    loadChildren: () =&gt; import(&#39;./features/admin/admin.routes&#39;).then(m =&gt; m.ADMIN_ROUTES)
+  },
+
+  // 404 page
+  {
+    path: &#39;**&#39;,
+    loadComponent: () =&gt; import(&#39;./shared/components/not-found/not-found.component&#39;)
+                           .then(m =&gt; m.NotFoundComponent)
+  }
+];
+</code></pre>
+<hr>
+<h2 id="3-lazy-loading">3. Lazy Loading</h2>
+<p>Lazy loading is the #1 performance technique for Angular apps. Code for a feature is only downloaded when the user actually navigates to it.</p>
+<h3 id="loadcomponent-lazy-load-a-single-component">`loadComponent` — Lazy-load a Single Component</h3>
+<pre><code class="language-typescript">// Best for simple routes with one component
+{
+  path: &#39;about&#39;,
+  loadComponent: () =&gt; import(&#39;./pages/about/about.component&#39;)
+                         .then(m =&gt; m.AboutComponent)
+}
+</code></pre>
+<h3 id="loadchildren-lazy-load-an-entire-feature-multiple-routes">`loadChildren` — Lazy-load an Entire Feature (Multiple Routes)</h3>
+<pre><code class="language-typescript">// Parent route file
+{
+  path: &#39;products&#39;,
+  loadChildren: () =&gt; import(&#39;./features/products/products.routes&#39;)
+                         .then(m =&gt; m.PRODUCTS_ROUTES)
+}
+</code></pre>
+<pre><code class="language-typescript">// src/app/features/products/products.routes.ts
+import { Routes } from &#39;@angular/router&#39;;
+
+export const PRODUCTS_ROUTES: Routes = [
+  // &#39;&#39; matches &#39;products&#39; from the parent
+  {
+    path: &#39;&#39;,
+    loadComponent: () =&gt; import(&#39;./list/products-list.component&#39;)
+                           .then(m =&gt; m.ProductsListComponent)
+  },
+  {
+    path: &#39;:id&#39;,
+    loadComponent: () =&gt; import(&#39;./detail/product-detail.component&#39;)
+                           .then(m =&gt; m.ProductDetailComponent),
+    resolve: { product: productResolver }
+  },
+  {
+    path: &#39;:id/edit&#39;,
+    loadComponent: () =&gt; import(&#39;./edit/product-edit.component&#39;)
+                           .then(m =&gt; m.ProductEditComponent),
+    canDeactivate: [unsavedChangesGuard]
+  }
+];
+</code></pre>
+<h3 id="preloading-strategies">Preloading Strategies</h3>
+<pre><code class="language-typescript">// app.config.ts — choose your preloading strategy
+import { provideRouter, withPreloading, PreloadAllModules, QuicklinkStrategy } from &#39;@angular/router&#39;;
+
+export const appConfig = {
+  providers: [
+    provideRouter(
+      routes,
+      // Option 1: Preload all lazy modules when browser is idle (after initial load)
+      withPreloading(PreloadAllModules),
+
+      // Option 2: Only preload routes that have a [routerLink] visible on screen
+      // Requires: npm install ngx-quicklink
+      // withPreloading(QuicklinkStrategy)
+    )
+  ]
+};
+</code></pre>
+<hr>
+<h2 id="4-route-parameters-query-params">4. Route Parameters & Query Params</h2>
+<h3 id="the-modern-way-component-input-binding-angular-v16">The Modern Way: Component Input Binding (Angular v16+)</h3>
+<p>When <code>withComponentInputBinding()</code> is set up in <code>app.config.ts</code>, the router automatically maps URL data to component inputs. <strong>No need to inject <code>ActivatedRoute</code>!</strong></p>
+<pre><code class="language-typescript">// app.config.ts
+provideRouter(routes, withComponentInputBinding())
+</code></pre>
+<pre><code class="language-typescript">// For URL: /products/42?sort=price&amp;order=asc
+// Route: { path: &#39;products/:id&#39;, ... }
+
+import { Component, input, OnInit, inject } from &#39;@angular/core&#39;;
+import { ProductService } from &#39;../product.service&#39;;
+import { Product } from &#39;../product.model&#39;;
+import { signal } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-product-detail&#39;,
+  standalone: true,
+  template: `
+    @if (product(); as p) {
+      &lt;h1&gt;{{ p.name }}&lt;/h1&gt;
+      &lt;p&gt;Sorted by: {{ sort() }}, Order: {{ order() }}&lt;/p&gt;
+    }
+  `
+})
+export class ProductDetailComponent implements OnInit {
+  // ✅ Route param :id → automatically bound to &#39;id&#39; input
+  id = input.required&lt;string&gt;();
+
+  // ✅ Query param ?sort=price → automatically bound to &#39;sort&#39; input
+  sort = input&lt;string&gt;(&#39;name&#39;);  // Default to &#39;name&#39; if not present in URL
+
+  // ✅ Query param ?order=asc → automatically bound to &#39;order&#39; input
+  order = input&lt;string&gt;(&#39;asc&#39;);
+
+  // ✅ Static route data { data: { breadcrumb: &#39;Product&#39; } } → bound to &#39;breadcrumb&#39; input
+  breadcrumb = input&lt;string&gt;(&#39;&#39;);
+
+  private productService = inject(ProductService);
+  product = signal&lt;Product | null&gt;(null);
+
+  ngOnInit() {
+    // Now use the id input to fetch data
+    this.productService.getById(this.id()).subscribe(p =&gt; this.product.set(p));
+  }
+}
+</code></pre>
+<h3 id="the-traditional-way-activatedroute">The Traditional Way: `ActivatedRoute`</h3>
+<p>Useful when you need to react to <strong>parameter changes</strong> while staying on the same component (e.g., navigating from product/1 to product/2 without destroying the component).</p>
+<pre><code class="language-typescript">import { Component, inject, OnInit, signal, DestroyRef } from &#39;@angular/core&#39;;
+import { ActivatedRoute } from &#39;@angular/router&#39;;
+import { takeUntilDestroyed } from &#39;@angular/core/rxjs-interop&#39;;
+import { switchMap } from &#39;rxjs&#39;;
+
+@Component({ ... })
+export class ProductDetailComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private productService = inject(ProductService);
+  private destroyRef = inject(DestroyRef);
+  product = signal&lt;Product | null&gt;(null);
+
+  ngOnInit() {
+    // paramMap is an Observable that emits every time :id changes in the URL
+    this.route.paramMap.pipe(
+      switchMap(params =&gt; {
+        const id = params.get(&#39;id&#39;)!;
+        return this.productService.getById(+id); // Cancel previous request automatically
+      }),
+      takeUntilDestroyed(this.destroyRef)  // Auto-unsubscribe on destroy
+    ).subscribe(product =&gt; this.product.set(product));
+
+    // Reading query params
+    this.route.queryParamMap.subscribe(params =&gt; {
+      const sort = params.get(&#39;sort&#39;) ?? &#39;name&#39;;
+      const page = Number(params.get(&#39;page&#39;) ?? 1);
+      console.log(`Sort: ${sort}, Page: ${page}`);
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="5-the-navigation-api">5. The Navigation API</h2>
+<h3 id="navigate-vs-navigatebyurl">`navigate()` vs `navigateByUrl()`</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Input</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>router.navigate()</code></td>
+<td>Array of segments</td>
+<td>Preferred. Supports relative navigation. Handles encoding.</td>
+</tr>
+<tr>
+<td><code>router.navigateByUrl()</code></td>
+<td>Absolute string</td>
+<td>Simple absolute URL navigation.</td>
+</tr>
+</tbody></table>
+<pre><code class="language-typescript">import { Component, inject } from &#39;@angular/core&#39;;
+import { Router, ActivatedRoute } from &#39;@angular/router&#39;;
+
+@Component({ ... })
+export class OrderFormComponent {
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  async onSubmitSuccess(orderId: number) {
+    // 1. Navigate to absolute path (builds URL: /orders/123)
+    await this.router.navigate([&#39;/orders&#39;, orderId]);
+
+    // 2. Navigate with query params (builds URL: /orders?status=new&amp;page=1)
+    await this.router.navigate([&#39;/orders&#39;], {
+      queryParams: { status: &#39;new&#39;, page: 1 }
+    });
+
+    // 3. Relative navigation — if currently on /dashboard/orders,
+    //    &#39;..&#39; goes up to /dashboard, then adds /settings
+    await this.router.navigate([&#39;../settings&#39;], { relativeTo: this.route });
+
+    // 4. String-based (simple cases only)
+    await this.router.navigateByUrl(&#39;/home&#39;);
+  }
+}
+</code></pre>
+<h3 id="navigation-extras-advanced-options">Navigation Extras — Advanced Options</h3>
+<pre><code class="language-typescript">this.router.navigate([&#39;/dashboard&#39;], {
+  // Replace current URL in browser history instead of pushing a new entry.
+  // Effect: If user clicks Back, they skip this navigation.
+  // Use case: After login — user shouldn&#39;t be able to go back to the login page.
+  replaceUrl: true,
+
+  // The URL in the address bar will NOT change, but the component WILL change.
+  // Use case: Displaying a &quot;maintenance mode&quot; view without breaking bookmarked URLs.
+  skipLocationChange: false,
+
+  // Pass hidden state that is NOT visible in the URL.
+  // Available on the next page via: history.state.orderId
+  // WARNING: This data is LOST on page refresh!
+  state: {
+    fromCheckout: true,
+    orderId: &#39;ORD-12345&#39;,
+    paymentConfirmed: true
+  },
+
+  // Keep existing query params when navigating
+  queryParamsHandling: &#39;merge&#39;,    // &#39;merge&#39; | &#39;preserve&#39; | &#39;&#39;
+
+  // Fragment for in-page anchoring (adds #section to URL)
+  fragment: &#39;confirmation-section&#39;
+});
+</code></pre>
+<h3 id="reading-navigation-state">Reading Navigation State</h3>
+<pre><code class="language-typescript">// In the destination component — reads the hidden state
+import { Component, inject } from &#39;@angular/core&#39;;
+import { Router } from &#39;@angular/router&#39;;
+
+@Component({ ... })
+export class OrderConfirmationComponent {
+  private router = inject(Router);
+
+  constructor() {
+    // Read the hidden state — will be null if user refreshed the page!
+    const state = this.router.getCurrentNavigation()?.extras.state;
+    if (state?.[&#39;fromCheckout&#39;]) {
+      console.log(&#39;Order ID:&#39;, state[&#39;orderId&#39;]);
+    }
+  }
+}
+</code></pre>
+<hr>
+<h2 id="6-nested-routes-named-outlets">6. Nested Routes & Named Outlets</h2>
+<h3 id="nested-routes">Nested Routes</h3>
+<pre><code class="language-typescript">// Admin feature routes — with layout component wrapping children
+export const ADMIN_ROUTES: Routes = [
+  {
+    path: &#39;&#39;,
+    // AdminLayoutComponent provides the sidebar + content structure
+    loadComponent: () =&gt; import(&#39;./admin-layout.component&#39;).then(m =&gt; m.AdminLayoutComponent),
+    children: [
+      { path: &#39;&#39;, redirectTo: &#39;overview&#39;, pathMatch: &#39;full&#39; },
+      {
+        path: &#39;overview&#39;,
+        loadComponent: () =&gt; import(&#39;./overview/overview.component&#39;).then(m =&gt; m.OverviewComponent)
+      },
+      {
+        path: &#39;users&#39;,
+        loadComponent: () =&gt; import(&#39;./users/admin-users.component&#39;).then(m =&gt; m.AdminUsersComponent)
+      },
+      {
+        path: &#39;settings&#39;,
+        loadComponent: () =&gt; import(&#39;./settings/admin-settings.component&#39;).then(m =&gt; m.AdminSettingsComponent)
+      }
+    ]
+  }
+];
+</code></pre>
+<pre><code class="language-typescript">// admin-layout.component.ts
+@Component({
+  selector: &#39;app-admin-layout&#39;,
+  standalone: true,
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  template: `
+    &lt;div class=&quot;admin-layout&quot;&gt;
+      &lt;aside class=&quot;sidebar&quot;&gt;
+        &lt;nav&gt;
+          &lt;a routerLink=&quot;overview&quot; routerLinkActive=&quot;active&quot;&gt;Overview&lt;/a&gt;
+          &lt;a routerLink=&quot;users&quot; routerLinkActive=&quot;active&quot;&gt;Users&lt;/a&gt;
+          &lt;a routerLink=&quot;settings&quot; routerLinkActive=&quot;active&quot;&gt;Settings&lt;/a&gt;
+        &lt;/nav&gt;
+      &lt;/aside&gt;
+      &lt;main class=&quot;content&quot;&gt;
+        &lt;!-- Child routes render here --&gt;
+        &lt;router-outlet&gt;&lt;/router-outlet&gt;
+      &lt;/main&gt;
+    &lt;/div&gt;
+  `
+})
+export class AdminLayoutComponent {}
+</code></pre>
+<hr>
+<h2 id="7-router-events-progress-indicators">7. Router Events & Progress Indicators</h2>
+<p>Track the navigation lifecycle to show global progress bars, loading indicators, or analytics events.</p>
+<pre><code class="language-typescript">import { Component, inject, OnInit, signal } from &#39;@angular/core&#39;;
+import {
+  Router,
+  NavigationStart,
+  NavigationEnd,
+  NavigationCancel,
+  NavigationError,
+  RouterOutlet
+} from &#39;@angular/router&#39;;
+import { filter } from &#39;rxjs&#39;;
+import { takeUntilDestroyed } from &#39;@angular/core/rxjs-interop&#39;;
+
+@Component({
+  selector: &#39;app-root&#39;,
+  standalone: true,
+  imports: [RouterOutlet],
+  template: `
+    &lt;!-- Global progress bar at top of screen --&gt;
+    @if (isNavigating()) {
+      &lt;div class=&quot;progress-bar&quot;&gt;&lt;/div&gt;
+    }
+    &lt;router-outlet&gt;&lt;/router-outlet&gt;
+  `
+})
+export class AppComponent implements OnInit {
+  private router = inject(Router);
+  isNavigating = signal(false);
+
+  ngOnInit() {
+    this.router.events.pipe(
+      filter(event =&gt;
+        event instanceof NavigationStart ||
+        event instanceof NavigationEnd ||
+        event instanceof NavigationCancel ||
+        event instanceof NavigationError
+      ),
+      takeUntilDestroyed()  // Angular 16+ — auto-cleanup, no destroyRef needed
+    ).subscribe(event =&gt; {
+      this.isNavigating.set(event instanceof NavigationStart);
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="8-location-strategies">8. Location Strategies</h2>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>URL Example</th>
+<th>Server Config Required?</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>PathLocationStrategy</code> (default)</td>
+<td><code>https://app.com/users/42</code></td>
+<td>✅ Yes — must configure fallback to <code>index.html</code></td>
+<td>Production apps on properly configured servers</td>
+</tr>
+<tr>
+<td><code>HashLocationStrategy</code></td>
+<td><code>https://app.com/#/users/42</code></td>
+<td>❌ No</td>
+<td>Legacy servers, GitHub Pages, static hosting without config</td>
+</tr>
+</tbody></table>
+<h3 id="the-production-server-problem">The Production Server Problem</h3>
+<p>If you use <code>PathLocationStrategy</code> (the default) and a user bookmarks <code>https://app.com/users/42</code>, then refreshes:</p>
+<ul>
+<li>The <strong>server</strong> receives a request for <code>/users/42</code></li>
+<li>The server looks for a folder/file called <code>users/42</code> — it doesn&#39;t exist!</li>
+<li>The server returns a <code>404 Not Found</code> error</li>
+</ul>
+<p><strong>Fix</strong>: Configure your server to return <code>index.html</code> for all 404s.</p>
+<p><strong>Nginx:</strong></p>
+<pre><code class="language-nginx">location / {
+  try_files $uri $uri/ /index.html;
+}
+</code></pre>
+<p><strong>Apache:</strong></p>
+<pre><code class="language-apache">&lt;IfModule mod_rewrite.c&gt;
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+&lt;/IfModule&gt;
+</code></pre>
+<h3 id="enabling-hash-strategy">Enabling Hash Strategy</h3>
+<pre><code class="language-typescript">import { provideRouter, withHashLocation } from &#39;@angular/router&#39;;
+
+export const appConfig = {
+  providers: [
+    provideRouter(routes, withHashLocation())
+  ]
+};
+</code></pre>
+<hr>
+<h2 id="9-route-data">9. Route Data</h2>
+<h3 id="static-route-data-with-data">Static Route Data with `data`</h3>
+<pre><code class="language-typescript">// In routes
+{
+  path: &#39;analytics&#39;,
+  loadComponent: () =&gt; import(&#39;./analytics.component&#39;).then(m =&gt; m.AnalyticsComponent),
+  data: {
+    title: &#39;Analytics Dashboard&#39;,
+    breadcrumb: &#39;Analytics&#39;,
+    requiredPermission: &#39;analytics:read&#39;
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">// In the component — auto-bound with withComponentInputBinding()
+@Component({ ... })
+export class AnalyticsComponent {
+  title = input&lt;string&gt;(&#39;&#39;);
+  breadcrumb = input&lt;string&gt;(&#39;&#39;);
+  requiredPermission = input&lt;string&gt;(&#39;&#39;);
+}
+</code></pre>
+<h3 id="seo-with-route-titles">SEO with Route Titles</h3>
+<p>Angular can automatically set the browser tab title based on route data:</p>
+<pre><code class="language-typescript">import { provideRouter, withRouterConfig, TitleStrategy } from &#39;@angular/router&#39;;
+import { Injectable, inject } from &#39;@angular/core&#39;;
+import { Title } from &#39;@angular/platform-browser&#39;;
+import { RouterStateSnapshot } from &#39;@angular/router&#39;;
+
+// Custom title strategy that appends app name
+@Injectable({ providedIn: &#39;root&#39; })
+export class AppTitleStrategy extends TitleStrategy {
+  private titleService = inject(Title);
+
+  override updateTitle(snapshot: RouterStateSnapshot) {
+    const title = this.buildTitle(snapshot);
+    if (title) {
+      this.titleService.setTitle(`${title} | MyApp`);
+    } else {
+      this.titleService.setTitle(&#39;MyApp&#39;);
+    }
+  }
+}
+
+// Register in app.config.ts
+export const appConfig = {
+  providers: [
+    provideRouter(routes),
+    { provide: TitleStrategy, useClass: AppTitleStrategy }
+  ]
+};
+</code></pre>
+<pre><code class="language-typescript">// Routes with titles
+{
+  path: &#39;dashboard&#39;,
+  loadComponent: () =&gt; import(&#39;./dashboard.component&#39;).then(m =&gt; m.DashboardComponent),
+  title: &#39;Dashboard&#39;   // Browser tab will show &quot;Dashboard | MyApp&quot;
+}
+</code></pre>
+<hr>
+<h2 id="10-routerlink-directive-deep-dive">10. `RouterLink` Directive Deep Dive</h2>
+<pre><code class="language-html">&lt;!-- Basic navigation --&gt;
+&lt;a routerLink=&quot;/home&quot;&gt;Home&lt;/a&gt;
+
+&lt;!-- Dynamic segment --&gt;
+&lt;a [routerLink]=&quot;[&#39;/users&#39;, userId]&quot;&gt;My Profile&lt;/a&gt;
+
+&lt;!-- With query params --&gt;
+&lt;a [routerLink]=&quot;[&#39;/search&#39;]&quot; [queryParams]=&quot;{ q: &#39;angular&#39;, page: 1 }&quot;&gt;Search&lt;/a&gt;
+
+&lt;!-- Relative navigation — from /dashboard, goes to /dashboard/settings --&gt;
+&lt;a routerLink=&quot;settings&quot;&gt;Settings&lt;/a&gt;
+
+&lt;!-- Go up one level then to sibling --&gt;
+&lt;a routerLink=&quot;../profile&quot;&gt;Profile&lt;/a&gt;
+
+&lt;!-- Active class — adds &#39;active&#39; class when this route is current --&gt;
+&lt;a routerLink=&quot;/home&quot; routerLinkActive=&quot;active&quot;&gt;Home&lt;/a&gt;
+
+&lt;!-- exactActiveClass — only when EXACTLY this route (not a child) --&gt;
+&lt;a routerLink=&quot;/home&quot; routerLinkActive=&quot;active&quot; [routerLinkActiveOptions]=&quot;{ exact: true }&quot;&gt;Home&lt;/a&gt;
+
+&lt;!-- ❌ NEVER use href for SPA navigation — causes a full page reload! --&gt;
+&lt;a href=&quot;/home&quot;&gt;Home&lt;/a&gt;  &lt;!-- BAD! --&gt;
+</code></pre>
+<hr>
+<h2 id="11-common-pitfalls">11. Common Pitfalls</h2>
+<h3 id="pitfall-1-missing-pathmatch-full-on-empty-redirect">Pitfall 1: Missing `pathMatch: 'full'` on empty redirect</h3>
+<pre><code class="language-typescript">// ❌ Causes infinite redirect loop — &#39;&#39; is a prefix of every URL
+{ path: &#39;&#39;, redirectTo: &#39;home&#39; }
+
+// ✅ Correct
+{ path: &#39;&#39;, redirectTo: &#39;home&#39;, pathMatch: &#39;full&#39; }
+</code></pre>
+<h3 id="pitfall-2-wildcard-route-not-at-the-end">Pitfall 2: Wildcard route not at the end</h3>
+<pre><code class="language-typescript">// ❌ &#39;**&#39; catches everything — nothing below it is reachable!
+{ path: &#39;**&#39;, component: NotFoundComponent },
+{ path: &#39;dashboard&#39;, component: DashboardComponent }  // UNREACHABLE!
+
+// ✅ Wildcard always goes last
+{ path: &#39;dashboard&#39;, component: DashboardComponent },
+{ path: &#39;**&#39;, component: NotFoundComponent }
+</code></pre>
+<h3 id="pitfall-3-using-instead-of-routerlink">Pitfall 3: Using `<a href>` instead of `routerLink`</h3>
+<pre><code class="language-html">&lt;!-- ❌ Full page reload — destroys Angular app state and re-downloads everything --&gt;
+&lt;a href=&quot;/products&quot;&gt;Products&lt;/a&gt;
+
+&lt;!-- ✅ Angular SPA navigation — no reload, state preserved --&gt;
+&lt;a routerLink=&quot;/products&quot;&gt;Products&lt;/a&gt;
+</code></pre>
+<h3 id="pitfall-4-navigation-state-is-lost-on-refresh">Pitfall 4: Navigation state is lost on refresh</h3>
+<pre><code class="language-typescript">// ❌ Don&#39;t store important data only in navigation state
+this.router.navigate([&#39;/confirm&#39;], { state: { orderId: &#39;123&#39; } });
+// If user refreshes /confirm, history.state.orderId is undefined!
+
+// ✅ Use URL query params for persistent data
+this.router.navigate([&#39;/confirm&#39;], { queryParams: { orderId: &#39;123&#39; } });
+// ?orderId=123 survives refresh and can be bookmarked
+</code></pre>
+<h3 id="pitfall-5-not-handling-the-404-server-configuration-in-production">Pitfall 5: Not handling the 404 server configuration in production</h3>
+<p>If you deploy with <code>PathLocationStrategy</code> (default) and don&#39;t configure a server fallback, all directly-accessed routes (bookmarks, external links) return 404.</p>
+<hr>
+<h2 id="12-try-it-yourself">12. Try It Yourself</h2>
+<p><strong>Scenario</strong>: You have a products application. Build the complete route configuration for:</p>
+<ol>
+<li><code>/</code> → redirect to <code>/products</code></li>
+<li><code>/products</code> → <code>ProductsListComponent</code> (lazy-loaded, requires auth)</li>
+<li><code>/products/:id</code> → <code>ProductDetailComponent</code> (lazy-loaded, requires auth)</li>
+<li><code>/products/:id/edit</code> → <code>ProductEditComponent</code> (lazy-loaded, requires auth, prompt if unsaved changes)</li>
+<li><code>/login</code> → <code>LoginComponent</code> (public, lazy-loaded)</li>
+<li>Any other URL → <code>NotFoundComponent</code></li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">// app.routes.ts
+import { Routes } from &#39;@angular/router&#39;;
+import { authGuard } from &#39;./core/guards/auth.guard&#39;;
+import { unsavedChangesGuard } from &#39;./core/guards/unsaved-changes.guard&#39;;
+
+export const routes: Routes = [
+  { path: &#39;&#39;, redirectTo: &#39;products&#39;, pathMatch: &#39;full&#39; },
+
+  {
+    path: &#39;login&#39;,
+    loadComponent: () =&gt; import(&#39;./features/auth/login/login.component&#39;)
+                           .then(m =&gt; m.LoginComponent)
+  },
+
+  {
+    path: &#39;products&#39;,
+    canActivate: [authGuard],
+    children: [
+      {
+        path: &#39;&#39;,
+        loadComponent: () =&gt; import(&#39;./features/products/list/products-list.component&#39;)
+                               .then(m =&gt; m.ProductsListComponent)
+      },
+      {
+        path: &#39;:id&#39;,
+        loadComponent: () =&gt; import(&#39;./features/products/detail/product-detail.component&#39;)
+                               .then(m =&gt; m.ProductDetailComponent)
+      },
+      {
+        path: &#39;:id/edit&#39;,
+        loadComponent: () =&gt; import(&#39;./features/products/edit/product-edit.component&#39;)
+                               .then(m =&gt; m.ProductEditComponent),
+        canDeactivate: [unsavedChangesGuard]
+      }
+    ]
+  },
+
+  {
+    path: &#39;**&#39;,
+    loadComponent: () =&gt; import(&#39;./shared/components/not-found/not-found.component&#39;)
+                           .then(m =&gt; m.NotFoundComponent)
+  }
+];
+</code></pre>
+</details><hr>
+<h2 id="13-knowledge-check">13. Knowledge Check</h2>
+<ol>
+<li>What is the difference between <code>navigate()</code> and <code>navigateByUrl()</code>?</li>
+<li>Why is <code>replaceUrl: true</code> useful after a user successfully logs in?</li>
+<li>If your Angular app works fine on click but throws 404 on page refresh in production, what is the fix?</li>
+<li>What does <code>withComponentInputBinding()</code> do, and why is it preferred over injecting <code>ActivatedRoute</code>?</li>
+<li>When would you use <code>HashLocationStrategy</code> over the default <code>PathLocationStrategy</code>?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><code>navigate()</code> takes an <strong>array of URL segments</strong> (e.g., <code>[&#39;/users&#39;, id, &#39;edit&#39;]</code>), handles URL encoding automatically, and supports relative navigation (<code>relativeTo: this.route</code>). <code>navigateByUrl()</code> takes a <strong>literal string</strong> (e.g., <code>&#39;/users/&#39; + id + &#39;/edit&#39;</code>). <code>navigate()</code> is preferred in most cases.</p>
+</li>
+<li><p>It replaces the current entry in the browser&#39;s history stack. When the user is on the dashboard and clicks the browser <strong>Back</strong> button, they skip the Login page they came from (they&#39;re already logged in — there&#39;s no reason to go back there).</p>
+</li>
+<li><p>The production server is not configured to serve <code>index.html</code> for unknown routes. It&#39;s looking for a physical directory on the hard drive. Configure <strong>server-side URL rewriting</strong> (Nginx: <code>try_files $uri /index.html</code>) to serve <code>index.html</code> for all 404s, then Angular handles the routing client-side. Alternatively, switch to <code>HashLocationStrategy</code>.</p>
+</li>
+<li><p><code>withComponentInputBinding()</code> tells the router to <strong>automatically push route params, query params, and static <code>data</code></strong> into the component&#39;s <code>@Input()</code> / <code>input()</code> properties. This eliminates boilerplate: no need to inject <code>ActivatedRoute</code>, no need to subscribe to <code>paramMap</code>. It results in cleaner, more testable components.</p>
+</li>
+<li><p>Use <code>HashLocationStrategy</code> when you&#39;re hosting on a server you cannot configure (e.g., GitHub Pages, some shared hosting, S3 static hosting without CloudFront). The <code>#</code> fragment is never sent to the server, so the server always sees <code>https://app.com/</code> — no 404 problems. The downside is the URLs look ugly and aren&#39;t great for SEO.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./services-di.html">05 - Services &amp; Dependency Injection →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

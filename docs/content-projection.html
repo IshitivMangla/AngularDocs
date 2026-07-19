@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Content Projection (`<ng-content>`) - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item active">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-content-projection-">Angular: Content Projection (`<ng-content>`)</h1>
+<blockquote>
+<p><strong>Goal</strong>: Build truly reusable container components — modals, cards, tabs, accordions — using Angular&#39;s content projection system with single and multi-slot patterns.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-what-is-content-projection">What is Content Projection?</a></li>
+<li><a href="#2-basic-single-slot-projection">Basic Single-Slot Projection</a></li>
+<li><a href="#3-multi-slot-projection-with-select">Multi-Slot Projection with <code>select</code></a></li>
+<li><a href="#4-conditional-content-projection">Conditional Content Projection</a></li>
+<li><a href="#5-ng-template-and-ngtemplateoutlet"><code>ng-template</code> and <code>ngTemplateOutlet</code></a></li>
+<li><a href="#6-contentchild--contentchildren"><code>ContentChild</code> &amp; <code>ContentChildren</code></a></li>
+<li><a href="#7-real-world-example-card-component">Real-World Example: Card Component</a></li>
+<li><a href="#8-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#9-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-what-is-content-projection">1. What is Content Projection?</h2>
+<p>When a parent component puts HTML <strong>inside</strong> a child component&#39;s tags, that HTML is &quot;projected&quot; into a slot defined by <code>&lt;ng-content&gt;</code> in the child&#39;s template.</p>
+<pre><code>Parent uses:                    Child&#39;s template renders:
+&lt;app-card&gt;                      &lt;div class=&quot;card&quot;&gt;
+  &lt;p&gt;My content&lt;/p&gt;     →         &lt;p&gt;My content&lt;/p&gt;   ← Projected here!
+&lt;/app-card&gt;                     &lt;/div&gt;
+</code></pre>
+<p><strong>Key rule</strong>: Projected content is <strong>initialized in the parent&#39;s context</strong>. Variables, events, and styles belong to the parent — not the child.</p>
+<hr>
+<h2 id="2-basic-single-slot-projection">2. Basic Single-Slot Projection</h2>
+<pre><code class="language-typescript">// card.component.ts — container that accepts any content
+@Component({
+  selector: &#39;app-card&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;div class=&quot;card-body&quot;&gt;
+        &lt;!-- Single slot: projects all content from the parent --&gt;
+        &lt;ng-content&gt;&lt;/ng-content&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  `
+})
+export class CardComponent { }
+</code></pre>
+<pre><code class="language-html">&lt;!-- Parent usage --&gt;
+&lt;app-card&gt;
+  &lt;h2&gt;Product Name&lt;/h2&gt;
+  &lt;p&gt;Description here...&lt;/p&gt;
+  &lt;button (click)=&quot;addToCart()&quot;&gt;Add to Cart&lt;/button&gt;
+  &lt;!-- All of this is projected into &lt;ng-content&gt; --&gt;
+&lt;/app-card&gt;
+</code></pre>
+<hr>
+<h2 id="3-multi-slot-projection-with-select">3. Multi-Slot Projection with `select`</h2>
+<p><code>select</code> takes any valid CSS selector:</p>
+<ul>
+<li><code>[attr]</code> — elements with a specific attribute</li>
+<li><code>.class</code> — elements with a specific class</li>
+<li><code>tag</code> — elements matching a tag name</li>
+<li>Multiple: <code>h1, h2</code> — elements matching either selector</li>
+</ul>
+<pre><code class="language-typescript">// modal.component.ts
+@Component({
+  selector: &#39;app-modal&#39;,
+  standalone: true,
+  imports: [RouterLink],
+  template: `
+    &lt;div class=&quot;modal-backdrop&quot; (click)=&quot;onBackdropClick()&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;modal-dialog&quot; role=&quot;dialog&quot;&gt;
+
+      &lt;!-- Slot 1: Elements with the &#39;modalHeader&#39; attribute --&gt;
+      &lt;div class=&quot;modal-header&quot;&gt;
+        &lt;ng-content select=&quot;[modalHeader]&quot;&gt;&lt;/ng-content&gt;
+        &lt;button class=&quot;close-btn&quot; (click)=&quot;closed.emit()&quot;&gt;✕&lt;/button&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Slot 2: Elements with &#39;modal-body&#39; CSS class --&gt;
+      &lt;div class=&quot;modal-body&quot;&gt;
+        &lt;ng-content select=&quot;.modal-body&quot;&gt;&lt;/ng-content&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Slot 3: Default fallback — catches everything that didn&#39;t match above --&gt;
+      &lt;div class=&quot;modal-footer&quot;&gt;
+        &lt;ng-content&gt;&lt;/ng-content&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  `
+})
+export class ModalComponent {
+  closed = output&lt;void&gt;();
+  clickOutside = input&lt;boolean&gt;(true);
+
+  onBackdropClick() {
+    if (this.clickOutside()) this.closed.emit();
+  }
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- Using the Modal with multi-slot projection --&gt;
+&lt;app-modal (closed)=&quot;isOpen.set(false)&quot;&gt;
+
+  &lt;!-- → Goes to [modalHeader] slot --&gt;
+  &lt;h2 modalHeader&gt;Confirm Delete&lt;/h2&gt;
+
+  &lt;!-- → Goes to .modal-body slot --&gt;
+  &lt;div class=&quot;modal-body&quot;&gt;
+    &lt;p&gt;Are you sure you want to delete &quot;{{ productName() }}&quot;?&lt;/p&gt;
+    &lt;p&gt;This action cannot be undone.&lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;!-- → Goes to default footer slot (no matching selector) --&gt;
+  &lt;button (click)=&quot;isOpen.set(false)&quot;&gt;Cancel&lt;/button&gt;
+  &lt;button class=&quot;btn-danger&quot; (click)=&quot;confirmDelete()&quot;&gt;Delete&lt;/button&gt;
+
+&lt;/app-modal&gt;
+</code></pre>
+<hr>
+<h2 id="4-conditional-content-projection">4. Conditional Content Projection</h2>
+<p><code>&lt;ng-content&gt;</code> cannot be wrapped with <code>@if</code> because the projected content is <strong>always instantiated</strong> in the parent, regardless of whether it&#39;s displayed in the child. Use <code>ngTemplateOutlet</code> for truly lazy content.</p>
+<pre><code class="language-typescript">// panel.component.ts
+import { Component, signal, input } from &#39;@angular/core&#39;;
+import { NgTemplateOutlet } from &#39;@angular/common&#39;;
+
+@Component({
+  selector: &#39;app-accordion-panel&#39;,
+  standalone: true,
+  imports: [NgTemplateOutlet],
+  template: `
+    &lt;div class=&quot;panel&quot;&gt;
+      &lt;button (click)=&quot;isOpen.set(!isOpen())&quot; class=&quot;panel-header&quot;&gt;
+        &lt;ng-content select=&quot;[panelTitle]&quot;&gt;&lt;/ng-content&gt;
+        &lt;span&gt;{{ isOpen() ? &#39;▼&#39; : &#39;▶&#39; }}&lt;/span&gt;
+      &lt;/button&gt;
+
+      @if (isOpen()) {
+        &lt;!-- ng-content INSIDE @if still instantiates content in the parent! --&gt;
+        &lt;div class=&quot;panel-body&quot;&gt;
+          &lt;ng-content&gt;&lt;/ng-content&gt;
+        &lt;/div&gt;
+      }
+    &lt;/div&gt;
+  `
+})
+export class AccordionPanelComponent {
+  isOpen = signal(false);
+}
+</code></pre>
+<hr>
+<h2 id="5-ng-template-and-ngtemplateoutlet">5. `ng-template` and `ngTemplateOutlet`</h2>
+<p>When you need <strong>truly lazy</strong> content that&#39;s only created when rendered, use <code>ng-template</code> with <code>ngTemplateOutlet</code>.</p>
+<pre><code class="language-typescript">// tabs.component.ts
+import { Component, ContentChildren, QueryList, input, signal } from &#39;@angular/core&#39;;
+import { NgTemplateOutlet } from &#39;@angular/common&#39;;
+import { TabPanelComponent } from &#39;./tab-panel.component&#39;;
+
+@Component({
+  selector: &#39;app-tabs&#39;,
+  standalone: true,
+  imports: [NgTemplateOutlet],
+  template: `
+    &lt;div class=&quot;tabs&quot;&gt;
+      &lt;div class=&quot;tab-headers&quot;&gt;
+        @for (tab of tabs(); track tab.label) {
+          &lt;button
+            [class.active]=&quot;activeTab() === tab&quot;
+            (click)=&quot;activeTab.set(tab)&quot;&gt;
+            {{ tab.label }}
+          &lt;/button&gt;
+        }
+      &lt;/div&gt;
+
+      &lt;!-- Only renders the active tab&#39;s content! --&gt;
+      &lt;div class=&quot;tab-content&quot;&gt;
+        @if (activeTab(); as tab) {
+          &lt;ng-container *ngTemplateOutlet=&quot;tab.template&quot;&gt;&lt;/ng-container&gt;
+        }
+      &lt;/div&gt;
+    &lt;/div&gt;
+  `
+})
+export class TabsComponent {
+  tabs = input&lt;{ label: string; template: any }[]&gt;([]);
+  activeTab = signal&lt;any&gt;(null);
+
+  ngOnInit() {
+    if (this.tabs().length &gt; 0) {
+      this.activeTab.set(this.tabs()[0]);
+    }
+  }
+}
+</code></pre>
+<hr>
+<h2 id="6-contentchild-contentchildren">6. `ContentChild` & `ContentChildren`</h2>
+<p><code>@ContentChild</code> gets a reference to a projected element, and <code>@ContentChildren</code> gets a list.</p>
+<pre><code class="language-typescript">// alert.component.ts — wraps content with dismissible behavior
+import { Component, ContentChild, AfterContentInit, ElementRef } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-alert-wrapper&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;alert-container&quot; [class.has-icon]=&quot;hasIcon&quot;&gt;
+      &lt;ng-content select=&quot;[alertIcon]&quot;&gt;&lt;/ng-content&gt;
+      &lt;ng-content&gt;&lt;/ng-content&gt;
+    &lt;/div&gt;
+  `
+})
+export class AlertWrapperComponent implements AfterContentInit {
+  // Reference to projected content matching [alertIcon]
+  @ContentChild(&#39;alertIcon&#39;) alertIcon?: ElementRef;
+  hasIcon = false;
+
+  ngAfterContentInit() {
+    // ContentChild is available here (not in ngOnInit!)
+    this.hasIcon = !!this.alertIcon;
+    console.log(&#39;Alert has an icon:&#39;, this.hasIcon);
+  }
+}
+</code></pre>
+<hr>
+<h2 id="7-real-world-example-card-component">7. Real-World Example: Card Component</h2>
+<p>A complete, production-ready card with all slots:</p>
+<pre><code class="language-typescript">// card.component.ts
+@Component({
+  selector: &#39;app-card&#39;,
+  standalone: true,
+  template: `
+    &lt;article class=&quot;card&quot; [class]=&quot;variant()&quot;&gt;
+      &lt;!-- Optional image slot --&gt;
+      &lt;div class=&quot;card-image&quot;&gt;
+        &lt;ng-content select=&quot;[cardImage]&quot;&gt;&lt;/ng-content&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Header: title + optional badge --&gt;
+      &lt;div class=&quot;card-header&quot;&gt;
+        &lt;ng-content select=&quot;[cardTitle]&quot;&gt;&lt;/ng-content&gt;
+        &lt;ng-content select=&quot;[cardBadge]&quot;&gt;&lt;/ng-content&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Body: main content --&gt;
+      &lt;div class=&quot;card-body&quot;&gt;
+        &lt;ng-content&gt;&lt;/ng-content&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Footer: action buttons --&gt;
+      &lt;div class=&quot;card-footer&quot;&gt;
+        &lt;ng-content select=&quot;[cardActions]&quot;&gt;&lt;/ng-content&gt;
+      &lt;/div&gt;
+    &lt;/article&gt;
+  `
+})
+export class CardComponent {
+  variant = input&lt;&#39;default&#39; | &#39;featured&#39; | &#39;minimal&#39;&gt;(&#39;default&#39;);
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- Usage --&gt;
+&lt;app-card variant=&quot;featured&quot;&gt;
+  &lt;img cardImage [src]=&quot;product.imageUrl&quot; [alt]=&quot;product.name&quot;&gt;
+
+  &lt;h3 cardTitle&gt;{{ product.name }}&lt;/h3&gt;
+  &lt;span cardBadge class=&quot;badge-sale&quot;&gt;SALE&lt;/span&gt;
+
+  &lt;!-- This goes to the default &lt;ng-content&gt; slot (card body) --&gt;
+  &lt;p&gt;{{ product.description | truncate:100 }}&lt;/p&gt;
+  &lt;p class=&quot;price&quot;&gt;{{ product.price | currency }}&lt;/p&gt;
+
+  &lt;div cardActions&gt;
+    &lt;button (click)=&quot;addToCart(product)&quot;&gt;🛒 Add to Cart&lt;/button&gt;
+    &lt;button (click)=&quot;addToWishlist(product)&quot;&gt;♡&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/app-card&gt;
+</code></pre>
+<hr>
+<h2 id="8-common-pitfalls">8. Common Pitfalls</h2>
+<h3 id="pitfall-1-projected-content-is-always-instantiated">Pitfall 1: Projected content is always instantiated</h3>
+<pre><code class="language-html">&lt;!-- ❌ Even though @if hides the content, AppHeavyComponent is STILL created! --&gt;
+&lt;app-panel&gt;
+  &lt;app-heavy-component&gt;&lt;/app-heavy-component&gt;  &lt;!-- Instantiated immediately! --&gt;
+&lt;/app-panel&gt;
+
+&lt;!-- ✅ Use @defer for truly lazy content --&gt;
+@defer (when panelOpen()) {
+  &lt;app-heavy-component&gt;&lt;/app-heavy-component&gt;
+}
+</code></pre>
+<h3 id="pitfall-2-styling-projected-content-from-the-child">Pitfall 2: Styling projected content from the child</h3>
+<pre><code class="language-css">/* ❌ Child component&#39;s CSS cannot reach projected content (due to View Encapsulation) */
+.card-body p { color: red; }  /* Won&#39;t work for projected &lt;p&gt; elements */
+
+/* ✅ Option 1: Style from the PARENT (where content is declared) */
+/* In parent&#39;s CSS */
+.product-description { color: red; }
+
+/* ✅ Option 2: Use ViewEncapsulation.None (not recommended — leaks globally) */
+/* ✅ Option 3: Use CSS custom properties (variables) for theming */
+</code></pre>
+<h3 id="pitfall-3-wrong-css-selector-in-select">Pitfall 3: Wrong CSS selector in `select`</h3>
+<pre><code class="language-html">&lt;!-- ❌ Selects an element named &lt;icon&gt;, not elements with class=&quot;icon&quot; --&gt;
+&lt;ng-content select=&quot;icon&quot;&gt;&lt;/ng-content&gt;
+
+&lt;!-- ✅ .icon selects elements with class=&quot;icon&quot; --&gt;
+&lt;ng-content select=&quot;.icon&quot;&gt;&lt;/ng-content&gt;
+
+&lt;!-- ✅ [data-slot=&quot;icon&quot;] selects by attribute --&gt;
+&lt;ng-content select=&quot;[data-slot=&#39;icon&#39;]&quot;&gt;&lt;/ng-content&gt;
+</code></pre>
+<h3 id="pitfall-4-accessing-contentchild-in-ngoninit">Pitfall 4: Accessing `@ContentChild` in `ngOnInit`</h3>
+<pre><code class="language-typescript">// ❌ ContentChild is not available in ngOnInit!
+@ContentChild(IconComponent) icon?: IconComponent;
+
+ngOnInit() {
+  console.log(this.icon);  // undefined!
+}
+
+// ✅ Use ngAfterContentInit
+ngAfterContentInit() {
+  console.log(this.icon);  // IconComponent instance!
+}
+</code></pre>
+<hr>
+<h2 id="9-try-it-yourself">9. Try It Yourself</h2>
+<p>Build a reusable <code>&lt;app-dialog&gt;</code> component that:</p>
+<ol>
+<li>Projects content into three named slots: title, body, footer</li>
+<li>Uses attributes as slot selectors: <code>[dialogTitle]</code>, <code>[dialogBody]</code>, <code>[dialogFooter]</code></li>
+<li>Has a close button in the header that emits a <code>(closed)</code> event</li>
+<li>Accepts a <code>showFooter</code> input that hides the footer when false</li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">// dialog.component.ts
+import { Component, input, output } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-dialog&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;dialog-overlay&quot; (click)=&quot;closed.emit()&quot;&gt;
+      &lt;div class=&quot;dialog&quot; (click)=&quot;$event.stopPropagation()&quot; role=&quot;dialog&quot;&gt;
+
+        &lt;div class=&quot;dialog-header&quot;&gt;
+          &lt;ng-content select=&quot;[dialogTitle]&quot;&gt;&lt;/ng-content&gt;
+          &lt;button class=&quot;close&quot; (click)=&quot;closed.emit()&quot; aria-label=&quot;Close&quot;&gt;✕&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;dialog-body&quot;&gt;
+          &lt;ng-content select=&quot;[dialogBody]&quot;&gt;&lt;/ng-content&gt;
+          &lt;!-- Default slot for unslotted content --&gt;
+          &lt;ng-content&gt;&lt;/ng-content&gt;
+        &lt;/div&gt;
+
+        @if (showFooter()) {
+          &lt;div class=&quot;dialog-footer&quot;&gt;
+            &lt;ng-content select=&quot;[dialogFooter]&quot;&gt;&lt;/ng-content&gt;
+          &lt;/div&gt;
+        }
+      &lt;/div&gt;
+    &lt;/div&gt;
+  `
+})
+export class DialogComponent {
+  showFooter = input&lt;boolean&gt;(true);
+  closed = output&lt;void&gt;();
+}
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-html">&lt;app-dialog (closed)=&quot;isOpen.set(false)&quot; [showFooter]=&quot;true&quot;&gt;
+  &lt;h2 dialogTitle&gt;Edit Profile&lt;/h2&gt;
+
+  &lt;div dialogBody&gt;
+    &lt;form&gt;
+      &lt;input placeholder=&quot;Name&quot;&gt;
+      &lt;input type=&quot;email&quot; placeholder=&quot;Email&quot;&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;
+
+  &lt;div dialogFooter&gt;
+    &lt;button (click)=&quot;isOpen.set(false)&quot;&gt;Cancel&lt;/button&gt;
+    &lt;button (click)=&quot;save()&quot;&gt;Save&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/app-dialog&gt;
+</code></pre>
+</details><hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>When a parent projects a <code>&lt;button (click)=&quot;save()&quot;&gt;</code> into a child component, where must <code>save()</code> exist?</li>
+<li>What&#39;s the difference between <code>&lt;ng-content select=&quot;icon&quot;&gt;</code> and <code>&lt;ng-content select=&quot;.icon&quot;&gt;</code>?</li>
+<li>Does content inside <code>&lt;ng-content&gt;</code> that&#39;s hidden by <code>@if</code> still get instantiated?</li>
+<li>When is <code>@ContentChild</code> available (which lifecycle hook)?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>In the <strong>parent component</strong>. Projected content retains the scope of the component where it was <em>declared</em> (the parent), not where it&#39;s <em>displayed</em> (the child). The child component has no knowledge of <code>save()</code>.</p>
+</li>
+<li><p><code>select=&quot;icon&quot;</code> selects elements with the <strong>tag name</strong> <code>&lt;icon&gt;</code> (a custom HTML element). <code>select=&quot;.icon&quot;</code> selects elements with the <strong>CSS class</strong> <code>class=&quot;icon&quot;</code>. This is the standard CSS selector syntax — the same as <code>document.querySelector()</code>.</p>
+</li>
+<li><p><strong>Yes.</strong> Content projected with <code>&lt;ng-content&gt;</code> is always instantiated in the parent context when the parent renders. <code>@if</code> only controls whether the rendered DOM is <em>visible</em>. The component inside is still created. To prevent instantiation, use <code>ng-template</code> with <code>ngTemplateOutlet</code> or <code>@defer</code>.</p>
+</li>
+<li><p><code>@ContentChild</code> is only available from <strong><code>ngAfterContentInit()</code></strong> onwards. Accessing it in <code>ngOnInit()</code> returns <code>undefined</code> because the projected content hasn&#39;t been initialized yet at that point.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./route-guards-resolvers.html">13 - Route Guards &amp; Resolvers →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Reactive Forms - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item active">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-reactive-forms">Angular: Reactive Forms</h1>
+<blockquote>
+<p><strong>Goal</strong>: Build complex, dynamic, and validated forms using Angular&#39;s Reactive Forms API — the industry standard for enterprise Angular applications.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-template-driven-vs-reactive-forms">Template-Driven vs Reactive Forms</a></li>
+<li><a href="#2-building-blocks">Building Blocks</a></li>
+<li><a href="#3-formbuilder">FormBuilder — Shorthand Syntax</a></li>
+<li><a href="#4-typed-forms">Typed Forms (Angular 14+)</a></li>
+<li><a href="#5-validation">Validation</a></li>
+<li><a href="#6-nested-formgroups">Nested FormGroups</a></li>
+<li><a href="#7-dynamic-fields-with-formarray">Dynamic Fields with FormArray</a></li>
+<li><a href="#8-listening-to-form-changes">Listening to Form Changes</a></li>
+<li><a href="#9-form-submission-pattern">Form Submission Pattern</a></li>
+<li><a href="#10-resetting--patching-forms">Resetting &amp; Patching Forms</a></li>
+<li><a href="#11-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#12-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#13-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-template-driven-vs-reactive-forms">1. Template-Driven vs Reactive Forms</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Template-Driven</th>
+<th>Reactive</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Form defined in</td>
+<td>HTML template</td>
+<td>TypeScript class</td>
+</tr>
+<tr>
+<td>Access to form state</td>
+<td><code>ngModel</code> directives</td>
+<td><code>FormControl</code>, <code>FormGroup</code></td>
+</tr>
+<tr>
+<td>Validation</td>
+<td>HTML attributes</td>
+<td>TypeScript validators</td>
+</tr>
+<tr>
+<td>Testing</td>
+<td>Hard (requires DOM)</td>
+<td>Easy (pure TypeScript)</td>
+</tr>
+<tr>
+<td>Dynamic fields</td>
+<td>Complex</td>
+<td>Simple (<code>FormArray</code>)</td>
+</tr>
+<tr>
+<td>Use case</td>
+<td>Simple forms (contact, login)</td>
+<td>Complex/enterprise forms</td>
+</tr>
+</tbody></table>
+<p><strong>Use Reactive Forms</strong> for anything more complex than a simple login form.</p>
+<hr>
+<h2 id="2-building-blocks">2. Building Blocks</h2>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>FormControl</code></td>
+<td>Tracks value and status of a single input (<code>&lt;input&gt;</code>, <code>&lt;select&gt;</code>, etc.)</td>
+</tr>
+<tr>
+<td><code>FormGroup</code></td>
+<td>Groups multiple <code>FormControl</code>s into a logical unit (e.g., an address section)</td>
+</tr>
+<tr>
+<td><code>FormArray</code></td>
+<td>A dynamic, ordered array of <code>FormControl</code>s or <code>FormGroup</code>s</td>
+</tr>
+<tr>
+<td><code>FormBuilder</code></td>
+<td>Shorthand factory service for creating the above</td>
+</tr>
+</tbody></table>
+<h3 id="status-values">Status Values</h3>
+<p>Every control and group has a <code>status</code>:</p>
+<ul>
+<li><code>VALID</code> — All validators pass</li>
+<li><code>INVALID</code> — At least one validator fails</li>
+<li><code>PENDING</code> — An async validator is running</li>
+<li><code>DISABLED</code> — Control is disabled</li>
+</ul>
+<hr>
+<h2 id="3-formbuilder">3. FormBuilder</h2>
+<p><code>FormBuilder</code> (<code>inject(FormBuilder)</code>) provides a shorthand syntax to avoid verbose <code>new FormControl()</code> calls.</p>
+<pre><code class="language-typescript">import { Component, inject } from &#39;@angular/core&#39;;
+import { FormBuilder, Validators, ReactiveFormsModule } from &#39;@angular/forms&#39;;
+
+@Component({
+  selector: &#39;app-login&#39;,
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  template: `
+    &lt;form [formGroup]=&quot;loginForm&quot; (ngSubmit)=&quot;onSubmit()&quot;&gt;
+      &lt;input formControlName=&quot;email&quot; type=&quot;email&quot; placeholder=&quot;Email&quot;&gt;
+      &lt;input formControlName=&quot;password&quot; type=&quot;password&quot; placeholder=&quot;Password&quot;&gt;
+      &lt;button type=&quot;submit&quot; [disabled]=&quot;loginForm.invalid&quot;&gt;Login&lt;/button&gt;
+    &lt;/form&gt;
+  `
+})
+export class LoginComponent {
+  private fb = inject(FormBuilder);
+
+  loginForm = this.fb.group({
+    email: [&#39;&#39;, [Validators.required, Validators.email]],
+    password: [&#39;&#39;, [Validators.required, Validators.minLength(8)]]
+  });
+
+  onSubmit() {
+    if (this.loginForm.valid) {
+      console.log(this.loginForm.value);  // { email: &#39;...&#39;, password: &#39;...&#39; }
+    }
+  }
+}
+</code></pre>
+<hr>
+<h2 id="4-typed-forms-angular-14">4. Typed Forms (Angular 14+)</h2>
+<p>Angular 14+ introduced <strong>strictly typed reactive forms</strong>. The compiler knows exactly what type each control&#39;s value is.</p>
+<pre><code class="language-typescript">import { FormControl, FormGroup, Validators } from &#39;@angular/forms&#39;;
+
+// ✅ Fully typed form — TypeScript knows each control&#39;s type
+const profileForm = new FormGroup({
+  name: new FormControl(&#39;&#39;, { validators: Validators.required, nonNullable: true }),
+  age: new FormControl&lt;number | null&gt;(null),
+  role: new FormControl&lt;&#39;admin&#39; | &#39;editor&#39; | &#39;viewer&#39;&gt;(&#39;viewer&#39;, { nonNullable: true }),
+});
+
+// TypeScript knows the return type!
+const nameValue: string = profileForm.controls.name.value;        // string
+const ageValue: number | null = profileForm.controls.age.value;   // number | null
+const roleValue: &#39;admin&#39; | &#39;editor&#39; | &#39;viewer&#39; = profileForm.controls.role.value;
+
+// getRawValue() returns typed object!
+const allValues = profileForm.getRawValue();
+// Type: { name: string; age: number | null; role: &#39;admin&#39; | &#39;editor&#39; | &#39;viewer&#39;; }
+</code></pre>
+<h3 id="nonnullable-true">`nonNullable: true`</h3>
+<p>By default, calling <code>form.reset()</code> sets control values to <code>null</code>. <code>nonNullable: true</code> makes <code>reset()</code> restore the initial value instead.</p>
+<pre><code class="language-typescript">// Without nonNullable: reset() → value becomes null
+const name = new FormControl(&#39;John&#39;);
+name.reset();
+console.log(name.value);  // null
+
+// With nonNullable: reset() → value becomes &#39;John&#39; (initial value)
+const name = new FormControl(&#39;John&#39;, { nonNullable: true });
+name.reset();
+console.log(name.value);  // &#39;John&#39;
+</code></pre>
+<p>Using <code>FormBuilder.nonNullable</code>:</p>
+<pre><code class="language-typescript">private fb = inject(FormBuilder);
+
+// All controls are automatically nonNullable!
+form = this.fb.nonNullable.group({
+  name: [&#39;&#39;, Validators.required],
+  email: [&#39;&#39;, [Validators.required, Validators.email]],
+  age: [18],
+});
+// form.controls.name.value is string (not string | null)
+</code></pre>
+<hr>
+<h2 id="5-validation">5. Validation</h2>
+<h3 id="built-in-validators">Built-in Validators</h3>
+<pre><code class="language-typescript">import { Validators } from &#39;@angular/forms&#39;;
+
+const form = this.fb.group({
+  username: [&#39;&#39;, [
+    Validators.required,           // Must have a value
+    Validators.minLength(3),       // At least 3 characters
+    Validators.maxLength(20),      // No more than 20 characters
+    Validators.pattern(/^[a-zA-Z0-9_]+$/)  // Only letters, numbers, underscores
+  ]],
+  email: [&#39;&#39;, [Validators.required, Validators.email]],
+  website: [&#39;&#39;, Validators.pattern(/^https?:\/\/.+/)],
+  age: [null, [Validators.required, Validators.min(18), Validators.max(100)]],
+});
+</code></pre>
+<h3 id="displaying-validation-errors-in-template">Displaying Validation Errors in Template</h3>
+<pre><code class="language-html">&lt;form [formGroup]=&quot;form&quot; (ngSubmit)=&quot;submit()&quot;&gt;
+  &lt;div class=&quot;field&quot;&gt;
+    &lt;label for=&quot;email&quot;&gt;Email&lt;/label&gt;
+    &lt;input
+      id=&quot;email&quot;
+      formControlName=&quot;email&quot;
+      type=&quot;email&quot;
+      [class.invalid]=&quot;emailCtrl.invalid &amp;&amp; emailCtrl.touched&quot;
+    &gt;
+
+    &lt;!-- Show errors only after the user has interacted with the field --&gt;
+    @if (emailCtrl.invalid &amp;&amp; emailCtrl.touched) {
+      &lt;div class=&quot;error-messages&quot;&gt;
+        @if (emailCtrl.errors?.[&#39;required&#39;]) {
+          &lt;small&gt;Email is required.&lt;/small&gt;
+        }
+        @if (emailCtrl.errors?.[&#39;email&#39;]) {
+          &lt;small&gt;Please enter a valid email address.&lt;/small&gt;
+        }
+      &lt;/div&gt;
+    }
+  &lt;/div&gt;
+
+  &lt;button type=&quot;submit&quot; [disabled]=&quot;form.invalid&quot;&gt;Submit&lt;/button&gt;
+&lt;/form&gt;
+</code></pre>
+<pre><code class="language-typescript">// Helper getter for cleaner template access
+get emailCtrl() { return this.form.controls.email; }
+</code></pre>
+<h3 id="cross-field-validation-group-validators">Cross-Field Validation (Group Validators)</h3>
+<pre><code class="language-typescript">import { AbstractControl, ValidationErrors, ValidatorFn } from &#39;@angular/forms&#39;;
+
+// Custom group validator — checks if password and confirmPassword match
+function passwordMatchValidator: ValidatorFn = (group: AbstractControl): ValidationErrors | null =&gt; {
+  const password = group.get(&#39;password&#39;)?.value;
+  const confirm = group.get(&#39;confirmPassword&#39;)?.value;
+  return password === confirm ? null : { passwordMismatch: true };
+};
+
+// Apply it at the group level
+const form = this.fb.group({
+  password: [&#39;&#39;, [Validators.required, Validators.minLength(8)]],
+  confirmPassword: [&#39;&#39;, Validators.required]
+}, {
+  validators: passwordMatchValidator  // ← Applied to the GROUP, not individual controls
+});
+</code></pre>
+<pre><code class="language-html">@if (form.errors?.[&#39;passwordMismatch&#39;] &amp;&amp; form.get(&#39;confirmPassword&#39;)?.touched) {
+  &lt;p class=&quot;error&quot;&gt;Passwords do not match!&lt;/p&gt;
+}
+</code></pre>
+<hr>
+<h2 id="6-nested-formgroups">6. Nested FormGroups</h2>
+<p>Use nested <code>FormGroup</code> for logically grouped fields like addresses.</p>
+<pre><code class="language-typescript">import { Component, inject } from &#39;@angular/core&#39;;
+import { FormBuilder, Validators, ReactiveFormsModule } from &#39;@angular/forms&#39;;
+
+@Component({
+  selector: &#39;app-checkout&#39;,
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  template: `
+    &lt;form [formGroup]=&quot;checkoutForm&quot; (ngSubmit)=&quot;onSubmit()&quot;&gt;
+      &lt;h3&gt;Personal Info&lt;/h3&gt;
+      &lt;input formControlName=&quot;fullName&quot; placeholder=&quot;Full Name&quot;&gt;
+      &lt;input formControlName=&quot;phone&quot; placeholder=&quot;Phone&quot;&gt;
+
+      &lt;!-- Nested group: prefix with formGroupName --&gt;
+      &lt;h3&gt;Shipping Address&lt;/h3&gt;
+      &lt;div formGroupName=&quot;shippingAddress&quot;&gt;
+        &lt;input formControlName=&quot;street&quot; placeholder=&quot;Street&quot;&gt;
+        &lt;input formControlName=&quot;city&quot; placeholder=&quot;City&quot;&gt;
+        &lt;input formControlName=&quot;state&quot; placeholder=&quot;State&quot;&gt;
+        &lt;input formControlName=&quot;zip&quot; placeholder=&quot;ZIP Code&quot;&gt;
+      &lt;/div&gt;
+
+      &lt;button type=&quot;submit&quot; [disabled]=&quot;checkoutForm.invalid&quot;&gt;Place Order&lt;/button&gt;
+    &lt;/form&gt;
+  `
+})
+export class CheckoutComponent {
+  private fb = inject(FormBuilder);
+
+  checkoutForm = this.fb.group({
+    fullName: [&#39;&#39;, [Validators.required, Validators.minLength(2)]],
+    phone: [&#39;&#39;, Validators.required],
+    shippingAddress: this.fb.group({  // ← Nested group
+      street: [&#39;&#39;, Validators.required],
+      city: [&#39;&#39;, Validators.required],
+      state: [&#39;&#39;, [Validators.required, Validators.minLength(2)]],
+      zip: [&#39;&#39;, [Validators.required, Validators.pattern(/^\d{5}$/)]]
+    })
+  });
+
+  onSubmit() {
+    if (this.checkoutForm.valid) {
+      const order = this.checkoutForm.getRawValue();
+      // TypeScript knows the exact shape: { fullName, phone, shippingAddress: { street, city, state, zip } }
+      console.log(&#39;Order:&#39;, order);
+    } else {
+      this.checkoutForm.markAllAsTouched();  // Show all validation errors
+    }
+  }
+}
+</code></pre>
+<h3 id="accessing-nested-controls">Accessing Nested Controls</h3>
+<pre><code class="language-typescript">// ✅ Method 1: Strongly typed access (recommended)
+this.checkoutForm.controls.shippingAddress.controls.city.value
+
+// ✅ Method 2: get() with dot-notation path
+this.checkoutForm.get(&#39;shippingAddress.city&#39;)?.value
+
+// ❌ Method 3: Does NOT work — can&#39;t use dot-notation in bracket access
+this.checkoutForm.controls[&#39;shippingAddress.city&#39;]  // undefined!
+</code></pre>
+<hr>
+<h2 id="7-dynamic-fields-with-formarray">7. Dynamic Fields with FormArray</h2>
+<p>Use <code>FormArray</code> when the user can add or remove fields dynamically (e.g., &quot;Add another phone number&quot;, &quot;Add team member&quot;).</p>
+<pre><code class="language-typescript">import { Component, inject } from &#39;@angular/core&#39;;
+import { FormBuilder, FormArray, Validators, ReactiveFormsModule } from &#39;@angular/forms&#39;;
+
+@Component({
+  selector: &#39;app-team-builder&#39;,
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  template: `
+    &lt;form [formGroup]=&quot;teamForm&quot; (ngSubmit)=&quot;submit()&quot;&gt;
+      &lt;h2&gt;Build Your Team&lt;/h2&gt;
+      &lt;input formControlName=&quot;projectName&quot; placeholder=&quot;Project Name&quot;&gt;
+
+      &lt;h3&gt;Team Members&lt;/h3&gt;
+      &lt;div formArrayName=&quot;members&quot;&gt;
+
+        @for (member of members.controls; track $index; let i = $index) {
+          &lt;div [formGroupName]=&quot;i&quot; class=&quot;member-row&quot;&gt;
+            &lt;input formControlName=&quot;name&quot; placeholder=&quot;Name&quot;&gt;
+            &lt;input formControlName=&quot;email&quot; placeholder=&quot;Email&quot; type=&quot;email&quot;&gt;
+
+            &lt;select formControlName=&quot;role&quot;&gt;
+              &lt;option value=&quot;developer&quot;&gt;Developer&lt;/option&gt;
+              &lt;option value=&quot;designer&quot;&gt;Designer&lt;/option&gt;
+              &lt;option value=&quot;manager&quot;&gt;Manager&lt;/option&gt;
+            &lt;/select&gt;
+
+            &lt;!-- Prevent removing if only 1 member left --&gt;
+            &lt;button type=&quot;button&quot; (click)=&quot;removeMember(i)&quot; [disabled]=&quot;members.length === 1&quot;&gt;
+              Remove
+            &lt;/button&gt;
+          &lt;/div&gt;
+        }
+      &lt;/div&gt;
+
+      &lt;button type=&quot;button&quot; (click)=&quot;addMember()&quot;&gt;+ Add Member&lt;/button&gt;
+      &lt;button type=&quot;submit&quot; [disabled]=&quot;teamForm.invalid&quot;&gt;Create Team&lt;/button&gt;
+    &lt;/form&gt;
+  `
+})
+export class TeamBuilderComponent {
+  private fb = inject(FormBuilder);
+
+  teamForm = this.fb.group({
+    projectName: [&#39;&#39;, Validators.required],
+    members: this.fb.array([
+      this.createMemberGroup()  // Start with one empty member
+    ])
+  });
+
+  // Helper getter for type-safe access to the array
+  get members(): FormArray {
+    return this.teamForm.get(&#39;members&#39;) as FormArray;
+  }
+
+  // Factory function for a member FormGroup
+  private createMemberGroup() {
+    return this.fb.group({
+      name: [&#39;&#39;, [Validators.required, Validators.minLength(2)]],
+      email: [&#39;&#39;, [Validators.required, Validators.email]],
+      role: [&#39;developer&#39;, Validators.required]
+    });
+  }
+
+  addMember() {
+    this.members.push(this.createMemberGroup());
+  }
+
+  removeMember(index: number) {
+    this.members.removeAt(index);
+  }
+
+  submit() {
+    if (this.teamForm.valid) {
+      console.log(&#39;Team data:&#39;, this.teamForm.getRawValue());
+    } else {
+      this.teamForm.markAllAsTouched();
+    }
+  }
+}
+</code></pre>
+<hr>
+<h2 id="8-listening-to-form-changes">8. Listening to Form Changes</h2>
+<pre><code class="language-typescript">import { Component, inject, OnInit, DestroyRef } from &#39;@angular/core&#39;;
+import { takeUntilDestroyed } from &#39;@angular/core/rxjs-interop&#39;;
+import { debounceTime, distinctUntilChanged } from &#39;rxjs&#39;;
+
+@Component({ ... })
+export class ProductFilterComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private destroyRef = inject(DestroyRef);
+
+  filterForm = this.fb.group({
+    search: [&#39;&#39;],
+    category: [&#39;all&#39;],
+    minPrice: [0],
+    maxPrice: [1000],
+    inStockOnly: [false]
+  });
+
+  ngOnInit() {
+    // React to the entire form changing
+    this.filterForm.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(filters =&gt; {
+      console.log(&#39;Filters changed:&#39;, filters);
+      this.applyFilters(filters);
+    });
+
+    // React to a single control changing
+    this.filterForm.controls.category.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(category =&gt; {
+      // When category changes, reset price range
+      this.filterForm.patchValue({ minPrice: 0, maxPrice: 1000 }, { emitEvent: false });
+    });
+  }
+
+  applyFilters(filters: any) { /* ... */ }
+}
+</code></pre>
+<hr>
+<h2 id="9-form-submission-pattern">9. Form Submission Pattern</h2>
+<pre><code class="language-typescript">onSubmit() {
+  // 1. Stop if form is invalid — show all errors
+  if (this.form.invalid) {
+    this.form.markAllAsTouched();  // Force-show all error messages
+    return;
+  }
+
+  // 2. Disable to prevent double-submission
+  this.form.disable();
+  this.isSubmitting.set(true);
+
+  // 3. Get all values (including disabled controls)
+  const formData = this.form.getRawValue();
+
+  // 4. Submit
+  this.userService.save(formData).subscribe({
+    next: (result) =&gt; {
+      this.isSubmitting.set(false);
+      this.form.enable();
+      this.toastService.showSuccess(&#39;Saved successfully!&#39;);
+      this.router.navigate([&#39;/users&#39;, result.id]);
+    },
+    error: (err) =&gt; {
+      this.isSubmitting.set(false);
+      this.form.enable();
+      this.error.set(err.message);
+    }
+  });
+}
+</code></pre>
+<hr>
+<h2 id="10-resetting-patching-forms">10. Resetting & Patching Forms</h2>
+<pre><code class="language-typescript">// Reset entire form to initial/empty state
+this.form.reset();                     // All controls → null (or initial if nonNullable)
+this.form.reset({ name: &#39;&#39;, email: &#39;&#39; });  // Reset with specific values
+
+// Patch: Update only specific controls (rest unchanged)
+this.form.patchValue({
+  email: &#39;new@email.com&#39;,
+  // Only &#39;email&#39; is updated — other controls are untouched
+});
+
+// setValue: Update ALL controls — must provide a value for every control!
+this.form.setValue({
+  name: &#39;Alice&#39;,
+  email: &#39;alice@example.com&#39;,
+  age: 30,
+  role: &#39;admin&#39;
+  // All fields required — omitting any throws an error!
+});
+
+// Disable/Enable specific controls
+this.form.get(&#39;email&#39;)?.disable();  // Disable email field
+this.form.get(&#39;email&#39;)?.enable();   // Re-enable it
+
+// Set validators dynamically
+this.form.get(&#39;phone&#39;)?.setValidators([Validators.required, Validators.pattern(/^\d{10}$/)]);
+this.form.get(&#39;phone&#39;)?.updateValueAndValidity();  // Trigger re-validation
+</code></pre>
+<hr>
+<h2 id="11-common-pitfalls">11. Common Pitfalls</h2>
+<h3 id="pitfall-1-forgetting-reactiveformsmodule-in-imports">Pitfall 1: Forgetting `ReactiveFormsModule` in imports</h3>
+<pre><code class="language-typescript">// ❌ Console error: &quot;Can&#39;t bind to &#39;formGroup&#39; since it isn&#39;t a known property of &#39;form&#39;&quot;
+@Component({
+  standalone: true,
+  imports: [],  // Missing ReactiveFormsModule!
+  template: `&lt;form [formGroup]=&quot;form&quot;&gt;...&lt;/form&gt;`
+})
+</code></pre>
+<h3 id="pitfall-2-using-value-when-controls-are-disabled">Pitfall 2: Using `.value` when controls are disabled</h3>
+<pre><code class="language-typescript">// ❌ .value OMITS disabled controls!
+const data = this.form.value;       // disabled controls are excluded
+
+// ✅ .getRawValue() includes everything
+const data = this.form.getRawValue();  // All controls included
+</code></pre>
+<h3 id="pitfall-3-accessing-nested-controls-with-bracket-notation-dots">Pitfall 3: Accessing nested controls with bracket notation + dots</h3>
+<pre><code class="language-typescript">// ❌ Returns undefined!
+this.form.controls[&#39;address.city&#39;]
+
+// ✅ Use .get() for nested dot-path access
+this.form.get(&#39;address.city&#39;)?.value
+</code></pre>
+<h3 id="pitfall-4-not-calling-markallastouched-on-invalid-submit">Pitfall 4: Not calling `markAllAsTouched()` on invalid submit</h3>
+<pre><code class="language-typescript">// ❌ User clicks Submit — form is invalid — but NO error messages appear
+// (because errors only show when the field is &quot;touched&quot;)
+if (this.form.invalid) return;
+
+// ✅ Mark all touched so error messages show up!
+if (this.form.invalid) {
+  this.form.markAllAsTouched();
+  return;
+}
+</code></pre>
+<hr>
+<h2 id="12-try-it-yourself">12. Try It Yourself</h2>
+<p>Build a <strong>User Registration Form</strong> with:</p>
+<ul>
+<li><code>firstName</code> (required, min 2 chars)</li>
+<li><code>lastName</code> (required)</li>
+<li><code>email</code> (required, must be valid email)</li>
+<li><code>password</code> (required, min 8 chars)</li>
+<li><code>confirmPassword</code> (required, must match password)</li>
+<li>Show each field&#39;s error only when the user has touched it</li>
+<li>Disable the submit button when form is invalid</li>
+<li>On valid submit, log the form value and reset the form</li>
+</ul>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Component, inject } from &#39;@angular/core&#39;;
+import { FormBuilder, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from &#39;@angular/forms&#39;;
+
+function passwordMatch(group: AbstractControl): ValidationErrors | null {
+  const pwd = group.get(&#39;password&#39;)?.value;
+  const confirm = group.get(&#39;confirmPassword&#39;)?.value;
+  return pwd === confirm ? null : { mismatch: true };
+}
+
+@Component({
+  selector: &#39;app-register&#39;,
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  template: `
+    &lt;form [formGroup]=&quot;form&quot; (ngSubmit)=&quot;onSubmit()&quot;&gt;
+      &lt;div class=&quot;field&quot;&gt;
+        &lt;input formControlName=&quot;firstName&quot; placeholder=&quot;First Name&quot;&gt;
+        @if (c(&#39;firstName&#39;).invalid &amp;&amp; c(&#39;firstName&#39;).touched) {
+          @if (c(&#39;firstName&#39;).errors?.[&#39;required&#39;]) { &lt;small&gt;First name is required&lt;/small&gt; }
+          @if (c(&#39;firstName&#39;).errors?.[&#39;minlength&#39;]) { &lt;small&gt;Minimum 2 characters&lt;/small&gt; }
+        }
+      &lt;/div&gt;
+
+      &lt;div class=&quot;field&quot;&gt;
+        &lt;input formControlName=&quot;lastName&quot; placeholder=&quot;Last Name&quot;&gt;
+        @if (c(&#39;lastName&#39;).invalid &amp;&amp; c(&#39;lastName&#39;).touched) {
+          &lt;small&gt;Last name is required&lt;/small&gt;
+        }
+      &lt;/div&gt;
+
+      &lt;div class=&quot;field&quot;&gt;
+        &lt;input formControlName=&quot;email&quot; type=&quot;email&quot; placeholder=&quot;Email&quot;&gt;
+        @if (c(&#39;email&#39;).invalid &amp;&amp; c(&#39;email&#39;).touched) {
+          @if (c(&#39;email&#39;).errors?.[&#39;required&#39;]) { &lt;small&gt;Email is required&lt;/small&gt; }
+          @if (c(&#39;email&#39;).errors?.[&#39;email&#39;]) { &lt;small&gt;Must be a valid email&lt;/small&gt; }
+        }
+      &lt;/div&gt;
+
+      &lt;div class=&quot;field&quot;&gt;
+        &lt;input formControlName=&quot;password&quot; type=&quot;password&quot; placeholder=&quot;Password&quot;&gt;
+        @if (c(&#39;password&#39;).invalid &amp;&amp; c(&#39;password&#39;).touched) {
+          @if (c(&#39;password&#39;).errors?.[&#39;minlength&#39;]) { &lt;small&gt;Minimum 8 characters&lt;/small&gt; }
+        }
+      &lt;/div&gt;
+
+      &lt;div class=&quot;field&quot;&gt;
+        &lt;input formControlName=&quot;confirmPassword&quot; type=&quot;password&quot; placeholder=&quot;Confirm Password&quot;&gt;
+        @if (form.errors?.[&#39;mismatch&#39;] &amp;&amp; c(&#39;confirmPassword&#39;).touched) {
+          &lt;small&gt;Passwords do not match!&lt;/small&gt;
+        }
+      &lt;/div&gt;
+
+      &lt;button type=&quot;submit&quot; [disabled]=&quot;form.invalid&quot;&gt;Register&lt;/button&gt;
+    &lt;/form&gt;
+  `
+})
+export class RegisterComponent {
+  private fb = inject(FormBuilder);
+
+  form = this.fb.group({
+    firstName: [&#39;&#39;, [Validators.required, Validators.minLength(2)]],
+    lastName: [&#39;&#39;, Validators.required],
+    email: [&#39;&#39;, [Validators.required, Validators.email]],
+    password: [&#39;&#39;, [Validators.required, Validators.minLength(8)]],
+    confirmPassword: [&#39;&#39;, Validators.required]
+  }, { validators: passwordMatch });
+
+  c(name: string) { return this.form.get(name)!; }
+
+  onSubmit() {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    console.log(&#39;Registered:&#39;, this.form.getRawValue());
+    this.form.reset();
+  }
+}
+</code></pre>
+</details><hr>
+<h2 id="13-knowledge-check">13. Knowledge Check</h2>
+<ol>
+<li>What is the difference between <code>.value</code> and <code>.getRawValue()</code>?</li>
+<li>How do you apply validation across two fields (e.g., passwords match)?</li>
+<li>When does <code>markAllAsTouched()</code> need to be called?</li>
+<li>What is the <code>nonNullable</code> option on <code>FormControl</code> used for?</li>
+<li>Can you have a <code>FormArray</code> of <code>FormGroup</code>s? Give a use case.</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><code>.value</code> returns only the values of <strong>enabled</strong> controls. <strong>Disabled</strong> controls are excluded. <code>.getRawValue()</code> returns all controls&#39; values regardless of disabled status. Use <code>.getRawValue()</code> when you need all data at form submission.</p>
+</li>
+<li><p>Apply a <strong>group-level validator</strong> using the second argument to <code>this.fb.group({...}, { validators: myGroupValidator })</code>. Group validators receive the entire <code>AbstractControl</code> and can access any control via <code>.get(&#39;controlName&#39;)</code>.</p>
+</li>
+<li><p>Call <code>markAllAsTouched()</code> on form submission when the form is invalid. Angular only shows validation error messages for &quot;touched&quot; controls (controls the user has interacted with). Calling this forces all error messages to appear so the user knows exactly what needs to be fixed.</p>
+</li>
+<li><p>By default, calling <code>form.reset()</code> sets all control values to <code>null</code>. With <code>nonNullable: true</code>, <code>reset()</code> restores the control to its <strong>initial value</strong> (the value provided when creating the <code>FormControl</code>). This is useful for forms that need to be reset to a default state rather than blank.</p>
+</li>
+<li><p>Yes — a <code>FormArray</code> can contain <code>FormGroup</code> instances. Use case: &quot;Add another phone number&quot; where each entry is a group of <code>{ type: &#39;mobile&#39; | &#39;home&#39;, number: &#39;...&#39; }</code>. Or a team builder where each member has <code>{ name, email, role }</code>.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./component-communication.html">08 - Component Communication →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

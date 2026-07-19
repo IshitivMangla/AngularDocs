@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Control Flow Syntax - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item active">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-control-flow-syntax">Angular: Control Flow Syntax</h1>
+<blockquote>
+<p><strong>Goal</strong>: Master Angular&#39;s modern <code>@if</code>, <code>@for</code>, and <code>@switch</code> template syntax to write clean, performant, and type-safe templates.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-why-the-new-syntax">Why the New Syntax?</a></li>
+<li><a href="#2-conditional-rendering--if">Conditional Rendering — <code>@if</code></a></li>
+<li><a href="#3-iteration--for">Iteration — <code>@for</code></a></li>
+<li><a href="#4-the-empty-block">The <code>@empty</code> block</a></li>
+<li><a href="#5-switch-statements--switch">Switch Statements — <code>@switch</code></a></li>
+<li><a href="#6-performance-considerations">Performance Considerations</a></li>
+<li><a href="#7-migrating-from-old-syntax">Migrating from Old Syntax</a></li>
+<li><a href="#8-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#9-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-why-the-new-syntax">1. Why the New Syntax?</h2>
+<p>Angular v17 replaced structural directives (<code>*ngIf</code>, <code>*ngFor</code>, <code>*ngSwitch</code>) with a built-in control flow syntax (<code>@if</code>, <code>@for</code>, <code>@switch</code>).</p>
+<h3 id="old-problems-solved">Old Problems Solved</h3>
+<table>
+<thead>
+<tr>
+<th>Old Structural Directives</th>
+<th>New <code>@</code> Block Syntax</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>*ngIf</code> + <code>*ngFor</code> on same element was impossible</td>
+<td>Works natively on the same element</td>
+</tr>
+<tr>
+<td>Required <code>&lt;ng-container&gt;</code> for grouping</td>
+<td>No wrapper needed — <code>@if { ... }</code> wraps a block</td>
+</tr>
+<tr>
+<td><code>trackBy</code> was optional in <code>*ngFor</code> (performance trap)</td>
+<td><code>track</code> is <strong>mandatory</strong> in <code>@for</code></td>
+</tr>
+<tr>
+<td>Required importing <code>NgIf</code>, <code>NgFor</code> from <code>CommonModule</code></td>
+<td>Zero imports needed — built into compiler</td>
+</tr>
+<tr>
+<td>Type narrowing didn&#39;t work inside <code>*ngIf</code> templates</td>
+<td>TypeScript type narrowing works natively inside <code>@if</code></td>
+</tr>
+<tr>
+<td>No built-in &quot;else if&quot; — needed <code>ng-template #elseRef</code></td>
+<td>Native <code>@else if</code> chain</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="2-conditional-rendering-if">2. Conditional Rendering — `@if`</h2>
+<h3 id="basic-usage">Basic Usage</h3>
+<pre><code class="language-html">&lt;!-- Simple condition --&gt;
+@if (isLoggedIn()) {
+  &lt;app-dashboard&gt;&lt;/app-dashboard&gt;
+} @else {
+  &lt;app-login&gt;&lt;/app-login&gt;
+}
+</code></pre>
+<h3 id="with-else-if">With `@else if`</h3>
+<pre><code class="language-html">@if (status() === &#39;loading&#39;) {
+  &lt;div class=&quot;spinner&quot;&gt;Loading...&lt;/div&gt;
+} @else if (status() === &#39;error&#39;) {
+  &lt;div class=&quot;error-banner&quot;&gt;
+    &lt;p&gt;Something went wrong!&lt;/p&gt;
+    &lt;button (click)=&quot;retry()&quot;&gt;Try Again&lt;/button&gt;
+  &lt;/div&gt;
+} @else if (status() === &#39;empty&#39;) {
+  &lt;div class=&quot;empty-state&quot;&gt;
+    &lt;img src=&quot;empty.svg&quot; alt=&quot;No data&quot;&gt;
+    &lt;p&gt;No items found. Create one to get started.&lt;/p&gt;
+  &lt;/div&gt;
+} @else {
+  &lt;app-data-grid [data]=&quot;results()&quot;&gt;&lt;/app-data-grid&gt;
+}
+</code></pre>
+<h3 id="the-as-alias-your-best-friend">The `as` Alias — Your Best Friend</h3>
+<p>The <code>as</code> keyword evaluates the expression <strong>once</strong> and assigns it a local alias. This is perfect for:</p>
+<ol>
+<li>Avoiding repeated function/signal calls</li>
+<li>Getting TypeScript to <strong>narrow the type</strong> (e.g., from <code>User | null</code> to <code>User</code>)</li>
+</ol>
+<pre><code class="language-typescript">// In the component
+currentUser = signal&lt;User | null&gt;(null);
+</code></pre>
+<pre><code class="language-html">&lt;!-- Without alias — currentUser() called 3 times, type is User | null each time --&gt;
+@if (currentUser()) {
+  &lt;h1&gt;Welcome, {{ currentUser()!.name }}&lt;/h1&gt;       &lt;!-- Need non-null assertion ! --&gt;
+  &lt;p&gt;Email: {{ currentUser()!.email }}&lt;/p&gt;
+  &lt;p&gt;Role: {{ currentUser()!.role }}&lt;/p&gt;
+}
+
+&lt;!-- ✅ With &#39;as&#39; alias — called once, type is narrowed to &#39;User&#39; inside the block --&gt;
+@if (currentUser(); as user) {
+  &lt;h1&gt;Welcome, {{ user.name }}&lt;/h1&gt;    &lt;!-- No ! needed, TypeScript knows it&#39;s User --&gt;
+  &lt;p&gt;Email: {{ user.email }}&lt;/p&gt;
+  &lt;p&gt;Role: {{ user.role }}&lt;/p&gt;
+}
+</code></pre>
+<h3 id="nested-conditions">Nested Conditions</h3>
+<pre><code class="language-html">@if (hasPermission()) {
+  @if (isFeatureEnabled()) {
+    &lt;app-advanced-feature&gt;&lt;/app-advanced-feature&gt;
+  } @else {
+    &lt;p&gt;Feature coming soon!&lt;/p&gt;
+  }
+} @else {
+  &lt;app-access-denied&gt;&lt;/app-access-denied&gt;
+}
+</code></pre>
+<hr>
+<h2 id="3-iteration-for">3. Iteration — `@for`</h2>
+<h3 id="the-track-expression-is-mandatory">The `track` Expression is Mandatory</h3>
+<p><code>track</code> is how Angular identifies which DOM element corresponds to which data item. When the array changes, Angular uses <code>track</code> to figure out:</p>
+<ul>
+<li>Which items were <strong>added</strong> (create new DOM elements)</li>
+<li>Which items were <strong>removed</strong> (destroy DOM elements)</li>
+<li>Which items were <strong>moved</strong> (move existing DOM elements — very cheap!)</li>
+</ul>
+<pre><code class="language-html">&lt;!-- ✅ Best practice: Track by a unique identifier --&gt;
+@for (user of users(); track user.id) {
+  &lt;div class=&quot;user-row&quot;&gt;{{ user.name }}&lt;/div&gt;
+}
+
+&lt;!-- ✅ Acceptable for primitives: Track by value itself --&gt;
+@for (color of [&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;]; track color) {
+  &lt;span [style.color]=&quot;color&quot;&gt;{{ color }}&lt;/span&gt;
+}
+
+&lt;!-- ⚠️ Last resort: Track by index (only for static/immutable lists) --&gt;
+@for (item of items(); track $index) {
+  &lt;div&gt;{{ item }}&lt;/div&gt;
+}
+</code></pre>
+<h3 id="built-in-loop-variables">Built-in Loop Variables</h3>
+<p>Angular provides implicit variables inside every <code>@for</code> block:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>$index</code></td>
+<td><code>number</code></td>
+<td>Zero-based position in the collection</td>
+</tr>
+<tr>
+<td><code>$count</code></td>
+<td><code>number</code></td>
+<td>Total number of items</td>
+</tr>
+<tr>
+<td><code>$first</code></td>
+<td><code>boolean</code></td>
+<td><code>true</code> for the first item</td>
+</tr>
+<tr>
+<td><code>$last</code></td>
+<td><code>boolean</code></td>
+<td><code>true</code> for the last item</td>
+</tr>
+<tr>
+<td><code>$even</code></td>
+<td><code>boolean</code></td>
+<td><code>true</code> for even-indexed items (0, 2, 4...)</td>
+</tr>
+<tr>
+<td><code>$odd</code></td>
+<td><code>boolean</code></td>
+<td><code>true</code> for odd-indexed items (1, 3, 5...)</td>
+</tr>
+</tbody></table>
+<pre><code class="language-html">&lt;ul class=&quot;notification-list&quot;&gt;
+  @for (notification of notifications(); track notification.id;
+        let i = $index;
+        let total = $count;
+        let isFirst = $first;
+        let isLast = $last;
+        let isEven = $even) {
+
+    &lt;li
+      [class.first-item]=&quot;isFirst&quot;
+      [class.zebra-stripe]=&quot;isEven&quot;
+      [class.no-border]=&quot;isLast&quot;&gt;
+
+      &lt;!-- Show position like &quot;3 of 12&quot; --&gt;
+      &lt;span class=&quot;counter&quot;&gt;{{ i + 1 }} of {{ total }}&lt;/span&gt;
+      {{ notification.message }}
+
+      &lt;!-- Only show divider if NOT the last item --&gt;
+      @if (!isLast) { &lt;hr&gt; }
+    &lt;/li&gt;
+  }
+&lt;/ul&gt;
+</code></pre>
+<h3 id="nested-for-loops">Nested `@for` loops</h3>
+<pre><code class="language-html">&lt;!-- Product categories with their products --&gt;
+@for (category of categories(); track category.id) {
+  &lt;section&gt;
+    &lt;h2&gt;{{ category.name }}&lt;/h2&gt;
+
+    @for (product of category.products; track product.id) {
+      &lt;app-product-card [product]=&quot;product&quot;&gt;&lt;/app-product-card&gt;
+    }
+  &lt;/section&gt;
+}
+</code></pre>
+<hr>
+<h2 id="4-the-empty-block">4. The `@empty` block</h2>
+<p>When the array is empty, the <code>@empty</code> block renders automatically. This completely replaces the old <code>*ngIf=&quot;items.length === 0&quot;</code> pattern.</p>
+<pre><code class="language-html">@for (order of orders(); track order.id) {
+  &lt;div class=&quot;order-card&quot;&gt;
+    &lt;span&gt;Order #{{ order.id }}&lt;/span&gt;
+    &lt;span&gt;{{ order.status }}&lt;/span&gt;
+    &lt;span&gt;{{ order.total | currency }}&lt;/span&gt;
+  &lt;/div&gt;
+} @empty {
+  &lt;!-- This renders if orders() returns an empty array [] --&gt;
+  &lt;div class=&quot;empty-state&quot;&gt;
+    &lt;img src=&quot;/assets/empty-orders.svg&quot; alt=&quot;No orders&quot;&gt;
+    &lt;h3&gt;No orders yet&lt;/h3&gt;
+    &lt;p&gt;When you place an order, it will appear here.&lt;/p&gt;
+    &lt;a routerLink=&quot;/shop&quot;&gt;Start Shopping&lt;/a&gt;
+  &lt;/div&gt;
+}
+</code></pre>
+<h3 id="full-pattern-loading-error-empty-data">Full Pattern: Loading + Error + Empty + Data</h3>
+<pre><code class="language-html">@if (isLoading()) {
+  &lt;!-- Skeleton loading state --&gt;
+  @for (i of [1,2,3]; track i) {
+    &lt;div class=&quot;skeleton-card&quot;&gt;&lt;/div&gt;
+  }
+} @else if (errorMessage()) {
+  &lt;div class=&quot;error-state&quot;&gt;{{ errorMessage() }}&lt;/div&gt;
+} @else {
+  @for (product of products(); track product.id) {
+    &lt;app-product-card [product]=&quot;product&quot;&gt;&lt;/app-product-card&gt;
+  } @empty {
+    &lt;app-empty-state message=&quot;No products found&quot;&gt;&lt;/app-empty-state&gt;
+  }
+}
+</code></pre>
+<hr>
+<h2 id="5-switch-statements-switch">5. Switch Statements — `@switch`</h2>
+<p>Use <code>@switch</code> when you need to render one of several options based on a value.</p>
+<pre><code class="language-html">&lt;!-- Basic switch --&gt;
+@switch (user.role) {
+  @case (&#39;admin&#39;) {
+    &lt;app-admin-toolbar&gt;&lt;/app-admin-toolbar&gt;
+  }
+  @case (&#39;editor&#39;) {
+    &lt;app-editor-toolbar&gt;&lt;/app-editor-toolbar&gt;
+  }
+  @case (&#39;viewer&#39;) {
+    &lt;p&gt;Read-only access&lt;/p&gt;
+  }
+  @default {
+    &lt;p&gt;Unknown role&lt;/p&gt;
+  }
+}
+</code></pre>
+<h3 id="switch-on-computed-signals">Switch on Computed Signals</h3>
+<pre><code class="language-typescript">// Component
+orderStatusLabel = computed(() =&gt; {
+  const order = this.currentOrder();
+  if (!order) return &#39;none&#39;;
+  return order.status;
+});
+</code></pre>
+<pre><code class="language-html">&lt;!-- Switch on a computed signal --&gt;
+@switch (orderStatusLabel()) {
+  @case (&#39;pending&#39;) {
+    &lt;span class=&quot;badge badge-warning&quot;&gt;⏳ Pending&lt;/span&gt;
+  }
+  @case (&#39;processing&#39;) {
+    &lt;span class=&quot;badge badge-info&quot;&gt;🔄 Processing&lt;/span&gt;
+  }
+  @case (&#39;shipped&#39;) {
+    &lt;span class=&quot;badge badge-primary&quot;&gt;🚚 Shipped&lt;/span&gt;
+  }
+  @case (&#39;delivered&#39;) {
+    &lt;span class=&quot;badge badge-success&quot;&gt;✅ Delivered&lt;/span&gt;
+  }
+  @case (&#39;cancelled&#39;) {
+    &lt;span class=&quot;badge badge-danger&quot;&gt;❌ Cancelled&lt;/span&gt;
+  }
+  @default {
+    &lt;span class=&quot;badge&quot;&gt;Unknown&lt;/span&gt;
+  }
+}
+</code></pre>
+<hr>
+<h2 id="6-performance-considerations">6. Performance Considerations</h2>
+<h3 id="why-track-by-id-and-not-index">Why `track` by `id` and not `$index`?</h3>
+<p>Consider a list of 5 users. The user deletes user #2:</p>
+<p><strong>Tracking by <code>$index</code> (bad):</strong></p>
+<pre><code>Before: [Alice(0), Bob(1), Charlie(2), Diana(3), Eve(4)]
+After:  [Alice(0), Charlie(1), Diana(2), Eve(3)]
+         ^         ^           ^          ^
+         Changed!  Changed!    Changed!   Changed!
+</code></pre>
+<p>Angular sees that indices 1, 2, 3, 4 all have new content, so it <strong>destroys and recreates 4 DOM elements</strong>. That&#39;s expensive!</p>
+<p><strong>Tracking by <code>id</code> (good):</strong></p>
+<pre><code>Before: [Alice(id:1), Bob(id:2), Charlie(id:3), Diana(id:4), Eve(id:5)]
+After:  [Alice(id:1), Charlie(id:3), Diana(id:4), Eve(id:5)]
+         ^            ^              ^              ^
+         Unchanged!   Unchanged!     Unchanged!     Unchanged!
+</code></pre>
+<p>Angular recognizes Bob (id:2) was removed, and simply <strong>removes that one DOM element</strong>. Everything else stays in place.</p>
+<h3 id="avoiding-function-calls-in-templates">Avoiding Function Calls in Templates</h3>
+<p>Every function call in a template re-executes on each render cycle. Use <code>computed()</code> to cache derived values.</p>
+<pre><code class="language-html">&lt;!-- ❌ getFilteredItems() runs on EVERY change detection cycle --&gt;
+@for (item of getFilteredItems(); track item.id) { ... }
+
+&lt;!-- ✅ filteredItems is a computed signal — only recalculates when dependencies change --&gt;
+@for (item of filteredItems(); track item.id) { ... }
+</code></pre>
+<hr>
+<h2 id="7-migrating-from-old-syntax">7. Migrating from Old Syntax</h2>
+<p>Here&#39;s a quick conversion reference:</p>
+<h3 id="ngif-if">`*ngIf` → `@if`</h3>
+<pre><code class="language-html">&lt;!-- OLD --&gt;
+&lt;div *ngIf=&quot;isVisible; else hiddenTemplate&quot;&gt;Content&lt;/div&gt;
+&lt;ng-template #hiddenTemplate&gt;&lt;p&gt;Hidden&lt;/p&gt;&lt;/ng-template&gt;
+
+&lt;!-- NEW --&gt;
+@if (isVisible) {
+  &lt;div&gt;Content&lt;/div&gt;
+} @else {
+  &lt;p&gt;Hidden&lt;/p&gt;
+}
+</code></pre>
+<h3 id="ngfor-for">`*ngFor` → `@for`</h3>
+<pre><code class="language-html">&lt;!-- OLD --&gt;
+&lt;li *ngFor=&quot;let item of items; index as i; trackBy: trackById&quot;&gt;
+  {{ i }}: {{ item.name }}
+&lt;/li&gt;
+
+&lt;!-- NEW — track is mandatory and inline, no separate trackBy function needed! --&gt;
+@for (item of items; track item.id; let i = $index) {
+  &lt;li&gt;{{ i }}: {{ item.name }}&lt;/li&gt;
+}
+</code></pre>
+<h3 id="ngswitch-switch">`[ngSwitch]` → `@switch`</h3>
+<pre><code class="language-html">&lt;!-- OLD — verbose and confusing --&gt;
+&lt;div [ngSwitch]=&quot;status&quot;&gt;
+  &lt;p *ngSwitchCase=&quot;&#39;active&#39;&quot;&gt;Active&lt;/p&gt;
+  &lt;p *ngSwitchCase=&quot;&#39;inactive&#39;&quot;&gt;Inactive&lt;/p&gt;
+  &lt;p *ngSwitchDefault&gt;Unknown&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;!-- NEW — clean and readable --&gt;
+@switch (status) {
+  @case (&#39;active&#39;) { &lt;p&gt;Active&lt;/p&gt; }
+  @case (&#39;inactive&#39;) { &lt;p&gt;Inactive&lt;/p&gt; }
+  @default { &lt;p&gt;Unknown&lt;/p&gt; }
+}
+</code></pre>
+<h3 id="removing-old-imports">Removing Old Imports</h3>
+<p>Since the new syntax is built into the compiler, you can remove <code>NgIf</code>, <code>NgFor</code>, <code>NgSwitch</code> from your component imports:</p>
+<pre><code class="language-typescript">// ❌ OLD — needed these imports
+imports: [NgIf, NgFor, NgSwitch, NgSwitchCase, CommonModule]
+
+// ✅ NEW — none of these are needed for control flow
+imports: [
+  // Only import what you actually use (pipes, components, etc.)
+  DatePipe,
+  CurrencyPipe,
+  ProductCardComponent,
+]
+</code></pre>
+<hr>
+<h2 id="8-common-pitfalls">8. Common Pitfalls</h2>
+<h3 id="pitfall-1-tracking-by-index-with-mutable-arrays">Pitfall 1: Tracking by `$index` with mutable arrays</h3>
+<pre><code class="language-html">&lt;!-- ❌ If users are sorted/filtered/deleted, this causes unnecessary re-renders --&gt;
+@for (user of users(); track $index) { ... }
+
+&lt;!-- ✅ Always track by a unique, stable identifier --&gt;
+@for (user of users(); track user.id) { ... }
+</code></pre>
+<h3 id="pitfall-2-importing-old-directives-unnecessarily">Pitfall 2: Importing old directives unnecessarily</h3>
+<pre><code class="language-typescript">// ❌ Remove these — they are no longer needed for control flow
+@Component({
+  imports: [NgIf, NgFor, CommonModule]
+})
+</code></pre>
+<h3 id="pitfall-3-using-ng-template-for-else-when-not-needed">Pitfall 3: Using `ng-template` for `@else` when not needed</h3>
+<pre><code class="language-html">&lt;!-- ❌ Old way — unnecessarily verbose --&gt;
+&lt;div *ngIf=&quot;condition; else myTemplate&quot;&gt;...&lt;/div&gt;
+&lt;ng-template #myTemplate&gt;...&lt;/ng-template&gt;
+
+&lt;!-- ✅ New way --&gt;
+@if (condition) { ... } @else { ... }
+</code></pre>
+<h3 id="pitfall-4-not-using-as-for-complex-signal-expressions">Pitfall 4: Not using `as` for complex signal expressions</h3>
+<pre><code class="language-html">&lt;!-- ❌ signal() called 5 times, potential unnecessary function calls --&gt;
+@if (productStore.selectedProduct()) {
+  &lt;h1&gt;{{ productStore.selectedProduct()!.name }}&lt;/h1&gt;
+  &lt;p&gt;{{ productStore.selectedProduct()!.description }}&lt;/p&gt;
+  &lt;img [src]=&quot;productStore.selectedProduct()!.imageUrl&quot;&gt;
+}
+
+&lt;!-- ✅ Evaluated once, TypeScript narrowed, clean code --&gt;
+@if (productStore.selectedProduct(); as product) {
+  &lt;h1&gt;{{ product.name }}&lt;/h1&gt;
+  &lt;p&gt;{{ product.description }}&lt;/p&gt;
+  &lt;img [src]=&quot;product.imageUrl&quot;&gt;
+}
+</code></pre>
+<hr>
+<h2 id="9-try-it-yourself">9. Try It Yourself</h2>
+<p><strong>Task</strong>: Refactor this legacy Angular template to use modern syntax. The component has:</p>
+<ul>
+<li>A <code>movies</code> signal with type <code>{ id: number; title: string; genre: string; rating: number }[]</code></li>
+<li>An <code>isLoading</code> signal (boolean)</li>
+<li>A <code>selectedGenre</code> signal (string)</li>
+</ul>
+<p><strong>Legacy Template:</strong></p>
+<pre><code class="language-html">&lt;div *ngIf=&quot;!isLoading; else loadingBlock&quot;&gt;
+  &lt;ng-container *ngIf=&quot;movies.length &gt; 0; else emptyBlock&quot;&gt;
+    &lt;div *ngFor=&quot;let movie of movies; let i = index; trackBy: trackByMovieId&quot;
+         [class.featured]=&quot;i === 0&quot;&gt;
+      &lt;span&gt;{{ i + 1 }}. {{ movie.title }}&lt;/span&gt;
+      &lt;div [ngSwitch]=&quot;movie.genre&quot;&gt;
+        &lt;span *ngSwitchCase=&quot;&#39;Action&#39;&quot; class=&quot;genre-action&quot;&gt;🎬 Action&lt;/span&gt;
+        &lt;span *ngSwitchCase=&quot;&#39;Comedy&#39;&quot; class=&quot;genre-comedy&quot;&gt;😂 Comedy&lt;/span&gt;
+        &lt;span *ngSwitchDefault class=&quot;genre-other&quot;&gt;🎭 Other&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/ng-container&gt;
+
+  &lt;ng-template #emptyBlock&gt;
+    &lt;p&gt;No movies match your filter.&lt;/p&gt;
+  &lt;/ng-template&gt;
+&lt;/div&gt;
+
+&lt;ng-template #loadingBlock&gt;
+  &lt;div class=&quot;spinner&quot;&gt;Loading movies...&lt;/div&gt;
+&lt;/ng-template&gt;
+</code></pre>
+<blockquote>
+<p><strong>Hint</strong>: Use <code>@if</code>, <code>@for</code> with <code>@empty</code>, and <code>@switch</code>. Remove the <code>ng-template</code> references entirely.</p>
+</blockquote>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-html">@if (isLoading()) {
+  &lt;div class=&quot;spinner&quot;&gt;Loading movies...&lt;/div&gt;
+} @else {
+  @for (movie of movies(); track movie.id; let i = $index; let isFirst = $first) {
+    &lt;div [class.featured]=&quot;isFirst&quot;&gt;
+      &lt;span&gt;{{ i + 1 }}. {{ movie.title }}&lt;/span&gt;
+
+      @switch (movie.genre) {
+        @case (&#39;Action&#39;) { &lt;span class=&quot;genre-action&quot;&gt;🎬 Action&lt;/span&gt; }
+        @case (&#39;Comedy&#39;) { &lt;span class=&quot;genre-comedy&quot;&gt;😂 Comedy&lt;/span&gt; }
+        @default { &lt;span class=&quot;genre-other&quot;&gt;🎭 Other&lt;/span&gt; }
+      }
+    &lt;/div&gt;
+  } @empty {
+    &lt;p&gt;No movies match your filter.&lt;/p&gt;
+  }
+}
+</code></pre>
+<p><strong>What changed:</strong></p>
+<ul>
+<li>No <code>ng-template</code> elements needed</li>
+<li>No <code>trackBy</code> function needed — tracking is inline</li>
+<li><code>$first</code> replaces the <code>index === 0</code> check cleanly</li>
+<li><code>@empty</code> replaces the complex empty-check condition</li>
+<li>No imports needed — everything is built into the compiler</details></li>
+</ul>
+<hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>Why is the <code>track</code> expression mandatory in <code>@for</code>, but <code>trackBy</code> was optional in <code>*ngFor</code>?</li>
+<li>What is the TypeScript benefit of using <code>@if (user(); as u)</code> instead of <code>@if (user())</code>?</li>
+<li>When would you use <code>track $index</code> instead of <code>track item.id</code>?</li>
+<li>How does <code>@empty</code> improve code readability compared to the old <code>*ngIf=&quot;items.length === 0&quot;</code> pattern?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>The Angular team made it mandatory in the new syntax because tracking by index is a common performance anti-pattern that caused subtle bugs in production. By requiring <code>track</code>, they force developers to think about it, leading to better default performance across all Angular apps.</p>
+</li>
+<li><p>When you use <code>as u</code>, TypeScript <strong>narrows the type</strong> inside the block. If <code>user()</code> returns <code>User | null</code>, inside <code>@if (user(); as u)</code>, TypeScript knows <code>u</code> is of type <code>User</code> (not <code>User | null</code>). This means you don&#39;t need the non-null assertion operator <code>!</code> and get full autocomplete.</p>
+</li>
+<li><p>You should use <code>track $index</code> only when iterating over a <strong>static, immutable array of primitives</strong> (e.g., <code>[&#39;a&#39;, &#39;b&#39;, &#39;c&#39;]</code>) where items never change order, are never inserted/deleted from the middle. For any real-world data with IDs, always track by the unique identifier.</p>
+</li>
+<li><p><code>@empty</code> is co-located with the <code>@for</code> loop — the empty state is visually adjacent to the list it corresponds to, making the intent immediately clear. The old pattern required a separate <code>*ngIf=&quot;items.length === 0&quot;</code> element far from the <code>*ngFor</code>, which was easy to forget and hard to maintain.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./routing.html">04 - Routing &amp; Navigation →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Lifecycle Hooks - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item active">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-lifecycle-hooks">Angular: Lifecycle Hooks</h1>
+<blockquote>
+<p><strong>Goal</strong>: Understand the exact order Angular calls lifecycle hooks, know which hook to use for which task, and use modern alternatives like <code>DestroyRef</code> and <code>afterRender()</code>.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-the-component-lifecycle">The Component Lifecycle</a></li>
+<li><a href="#2-hook-execution-order">Hook Execution Order</a></li>
+<li><a href="#3-core-hooks-deep-dive">Core Hooks Deep Dive</a></li>
+<li><a href="#4-ngonchanges--input-change-detection"><code>ngOnChanges</code> — Input Change Detection</a></li>
+<li><a href="#5-ngafterviewinit--ngafterviewchecked"><code>ngAfterViewInit</code> &amp; <code>ngAfterViewChecked</code></a></li>
+<li><a href="#6-ngaftercontentinit--ngaftercontentchecked"><code>ngAfterContentInit</code> &amp; <code>ngAfterContentChecked</code></a></li>
+<li><a href="#7-destroyref--modern-cleanup"><code>DestroyRef</code> — Modern Cleanup</a></li>
+<li><a href="#8-afterrender--afternextrender"><code>afterRender</code> &amp; <code>afterNextRender</code> (Angular 17+)</a></li>
+<li><a href="#9-takeuntildestroyed-for-rxjs"><code>takeUntilDestroyed</code> for RxJS</a></li>
+<li><a href="#10-hooks-with-signal-inputs">Hooks with Signal Inputs</a></li>
+<li><a href="#11-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#12-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#13-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-the-component-lifecycle">1. The Component Lifecycle</h2>
+<p>Every Angular component goes through these phases:</p>
+<pre><code>Creation
+  1. constructor()        — Dependencies injected
+  2. ngOnChanges()        — @Input values set (before ngOnInit)
+  3. ngOnInit()           — Component initialized (HTTP calls go here)
+
+Change Detection (runs on every cycle)
+  4. ngDoCheck()          — Custom dirty checking (expensive, avoid!)
+  5. ngAfterContentInit() — Content projection (&lt;ng-content&gt;) complete (once)
+  6. ngAfterContentChecked() — After content checked (every cycle)
+  7. ngAfterViewInit()    — Template &amp; child views complete (once)
+  8. ngAfterViewChecked() — After view checked (every cycle)
+
+Destruction
+  9. ngOnDestroy()        — Cleanup: cancel subscriptions, clear timers
+</code></pre>
+<hr>
+<h2 id="2-hook-execution-order">2. Hook Execution Order</h2>
+<pre><code class="language-typescript">@Component({
+  selector: &#39;app-lifecycle-demo&#39;,
+  standalone: true,
+  template: `&lt;p&gt;{{ data }}&lt;/p&gt;`
+})
+export class LifecycleDemoComponent implements OnInit, OnChanges, OnDestroy, AfterViewInit {
+  @Input() userId!: number;
+  data = &#39;&#39;;
+
+  constructor() {
+    // 1. FIRST hook to run.
+    // Purpose: Dependency injection ONLY.
+    // CANNOT: Access @Input values (they are undefined here!)
+    // CANNOT: Access child view elements (ViewChild is undefined)
+    console.log(&#39;1. constructor — userId is:&#39;, this.userId); // undefined!
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // 2. Runs BEFORE ngOnInit, and AGAIN every time an @Input changes.
+    // Use case: React to input changes, but prefer signal input() + effect() in modern code.
+    console.log(&#39;2. ngOnChanges — userId changed to:&#39;, changes[&#39;userId&#39;]?.currentValue);
+  }
+
+  ngOnInit() {
+    // 3. Runs ONCE after ngOnChanges, when all @Inputs are resolved.
+    // Best place for: HTTP requests, subscriptions, business logic initialization.
+    console.log(&#39;3. ngOnInit — userId is:&#39;, this.userId); // Now has the correct value!
+  }
+
+  ngAfterViewInit() {
+    // 4. Runs ONCE after the template is rendered.
+    // First time @ViewChild elements are available!
+    console.log(&#39;4. ngAfterViewInit — DOM is ready&#39;);
+  }
+
+  ngOnDestroy() {
+    // 5. Runs just before the component is removed from the DOM.
+    // CRITICAL: Unsubscribe from observables, clear intervals/timeouts, detach listeners.
+    console.log(&#39;5. ngOnDestroy — cleaning up!&#39;);
+  }
+}
+</code></pre>
+<hr>
+<h2 id="3-core-hooks-deep-dive">3. Core Hooks Deep Dive</h2>
+<h3 id="constructor">`constructor()`</h3>
+<pre><code class="language-typescript">@Component({ ... })
+export class ProductComponent {
+  // ✅ Use constructor ONLY for DI and simple property initialization
+  private productService = inject(ProductService);
+  private router = inject(Router);
+  products = signal&lt;Product[]&gt;([]);
+
+  // ❌ NEVER: Make HTTP requests in constructor
+  // ❌ NEVER: Access @Input() values (they are undefined here)
+  // ❌ NEVER: Manipulate the DOM (template not rendered yet)
+}
+</code></pre>
+<h3 id="ngoninit">`ngOnInit()`</h3>
+<pre><code class="language-typescript">@Component({ ... })
+export class UserProfileComponent implements OnInit {
+  private userService = inject(UserService);
+  private destroyRef = inject(DestroyRef);
+
+  userId = input.required&lt;string&gt;();  // Available in ngOnInit!
+  user = signal&lt;User | null&gt;(null);
+  isLoading = signal(true);
+  error = signal&lt;string | null&gt;(null);
+
+  ngOnInit() {
+    // ✅ CORRECT: HTTP request in ngOnInit (userId is available)
+    this.userService.getUserById(this.userId()).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: (user) =&gt; {
+        this.user.set(user);
+        this.isLoading.set(false);
+      },
+      error: (err) =&gt; {
+        this.error.set(err.message);
+        this.isLoading.set(false);
+      }
+    });
+  }
+}
+</code></pre>
+<h3 id="ngondestroy">`ngOnDestroy()`</h3>
+<pre><code class="language-typescript">@Component({ ... })
+export class DashboardComponent implements OnDestroy {
+  private wsConnection!: WebSocket;
+  private resizeObserver!: ResizeObserver;
+
+  ngOnInit() {
+    this.wsConnection = new WebSocket(&#39;wss://api.example.com/live&#39;);
+    this.resizeObserver = new ResizeObserver(() =&gt; { /* ... */ });
+    this.resizeObserver.observe(document.body);
+  }
+
+  ngOnDestroy() {
+    // ✅ Always clean up non-Angular resources!
+    this.wsConnection.close();
+    this.resizeObserver.disconnect();
+    console.log(&#39;DashboardComponent destroyed — resources released&#39;);
+  }
+}
+</code></pre>
+<hr>
+<h2 id="4-ngonchanges-input-change-detection">4. `ngOnChanges` — Input Change Detection</h2>
+<p><code>ngOnChanges</code> provides a <code>SimpleChanges</code> object with previous and current values for each changed <code>@Input()</code>.</p>
+<pre><code class="language-typescript">import { Component, Input, OnChanges, SimpleChanges, signal, computed } from &#39;@angular/core&#39;;
+
+@Component({ ... })
+export class UserAvatarComponent implements OnChanges {
+  @Input({ required: true }) userId!: string;
+
+  user = signal&lt;User | null&gt;(null);
+  isLoading = signal(false);
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes[&#39;userId&#39;]) {
+      const change = changes[&#39;userId&#39;];
+      console.log(`userId changed from ${change.previousValue} to ${change.currentValue}`);
+      console.log(&#39;Is first change?&#39;, change.firstChange);
+
+      // Fetch data when userId changes (including first time)
+      this.fetchUser(change.currentValue);
+    }
+  }
+
+  private fetchUser(id: string) {
+    this.isLoading.set(true);
+    // ... HTTP call
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>Modern Alternative</strong>: If using Signal <code>input()</code>, use <code>effect()</code> instead of <code>ngOnChanges</code>:</p>
+<pre><code class="language-typescript">export class UserAvatarComponent {
+  userId = input.required&lt;string&gt;();
+
+  constructor() {
+    effect(() =&gt; {
+      // Automatically runs when userId changes — much cleaner!
+      this.fetchUser(this.userId());
+    });
+  }
+}
+</code></pre>
+</blockquote>
+<hr>
+<h2 id="5-ngafterviewinit-ngafterviewchecked">5. `ngAfterViewInit` & `ngAfterViewChecked`</h2>
+<p><code>@ViewChild</code> elements are <code>undefined</code> until <code>ngAfterViewInit</code>.</p>
+<pre><code class="language-typescript">import { Component, ViewChild, ElementRef, AfterViewInit, signal } from &#39;@angular/core&#39;;
+
+@Component({
+  standalone: true,
+  template: `
+    &lt;canvas #myCanvas&gt;&lt;/canvas&gt;
+    &lt;div #scrollContainer class=&quot;list&quot;&gt;
+      &lt;!-- list items --&gt;
+    &lt;/div&gt;
+  `
+})
+export class CanvasComponent implements AfterViewInit {
+  @ViewChild(&#39;myCanvas&#39;) canvas!: ElementRef&lt;HTMLCanvasElement&gt;;
+  @ViewChild(&#39;scrollContainer&#39;) scrollContainer!: ElementRef&lt;HTMLDivElement&gt;;
+
+  ngOnInit() {
+    // ❌ Too early! canvas is undefined here.
+    // console.log(this.canvas.nativeElement);  // TypeError!
+  }
+
+  ngAfterViewInit() {
+    // ✅ The template is now rendered — @ViewChild elements are available!
+    const ctx = this.canvas.nativeElement.getContext(&#39;2d&#39;);
+    ctx?.fillRect(0, 0, 100, 100);
+
+    // Programmatically scroll to bottom
+    const el = this.scrollContainer.nativeElement;
+    el.scrollTop = el.scrollHeight;
+  }
+}
+</code></pre>
+<h3 id="ngafterviewchecked-use-with-caution">`ngAfterViewChecked` — Use with Caution</h3>
+<p>Runs after <strong>every change detection cycle</strong>. Avoid putting heavy logic here.</p>
+<pre><code class="language-typescript">ngAfterViewChecked() {
+  // ❌ Heavy computation here runs thousands of times!
+  // ✅ Only use for lightweight checks that can&#39;t go elsewhere
+  // Tip: Use computed() or signals instead of ngAfterViewChecked
+}
+</code></pre>
+<hr>
+<h2 id="6-ngaftercontentinit-ngaftercontentchecked">6. `ngAfterContentInit` & `ngAfterContentChecked`</h2>
+<p>These run after <code>&lt;ng-content&gt;</code> (projected content) is rendered. See notes/12-content-projection.md for more.</p>
+<pre><code class="language-typescript">import { Component, ContentChild, AfterContentInit } from &#39;@angular/core&#39;;
+import { CardBodyComponent } from &#39;./card-body.component&#39;;
+
+@Component({
+  selector: &#39;app-card&#39;,
+  template: `
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;ng-content select=&quot;[card-header]&quot;&gt;&lt;/ng-content&gt;
+      &lt;ng-content select=&quot;[card-body]&quot;&gt;&lt;/ng-content&gt;
+    &lt;/div&gt;
+  `
+})
+export class CardComponent implements AfterContentInit {
+  @ContentChild(CardBodyComponent) body!: CardBodyComponent;
+
+  ngAfterContentInit() {
+    // Projected content (CardBodyComponent) is now initialized!
+    console.log(&#39;Card body content available:&#39;, this.body);
+  }
+}
+</code></pre>
+<hr>
+<h2 id="7-destroyref-modern-cleanup">7. `DestroyRef` — Modern Cleanup</h2>
+<p><code>DestroyRef</code> is the modern alternative to implementing <code>ngOnDestroy</code>. It lets you register cleanup callbacks from anywhere in the class, including utility functions.</p>
+<pre><code class="language-typescript">import { Component, inject, OnInit, DestroyRef } from &#39;@angular/core&#39;;
+
+@Component({ ... })
+export class NotificationsComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit() {
+    // Timer cleanup
+    const timerId = setInterval(() =&gt; this.checkNotifications(), 30_000);
+    this.destroyRef.onDestroy(() =&gt; clearInterval(timerId));
+
+    // WebSocket cleanup
+    const ws = new WebSocket(&#39;wss://api.example.com/notifications&#39;);
+    ws.onmessage = (event) =&gt; this.handleNotification(event.data);
+    this.destroyRef.onDestroy(() =&gt; ws.close());
+
+    // Remove event listeners
+    const handler = (e: KeyboardEvent) =&gt; { if (e.key === &#39;Escape&#39;) this.close(); };
+    document.addEventListener(&#39;keydown&#39;, handler);
+    this.destroyRef.onDestroy(() =&gt; document.removeEventListener(&#39;keydown&#39;, handler));
+  }
+
+  private checkNotifications() { /* ... */ }
+  private handleNotification(data: any) { /* ... */ }
+  private close() { /* ... */ }
+}
+</code></pre>
+<h3 id="why-destroyref-over-ngondestroy">Why `DestroyRef` over `ngOnDestroy`?</h3>
+<pre><code class="language-typescript">// ❌ Old way: ngOnDestroy — cleanup scattered from init code
+export class OldComponent implements OnInit, OnDestroy {
+  private timerId!: ReturnType&lt;typeof setInterval&gt;;
+
+  ngOnInit() {
+    this.timerId = setInterval(() =&gt; { /* ... */ }, 5000);
+    // → You have to scroll far down to find where it&#39;s cleaned up!
+  }
+
+  ngOnDestroy() {
+    clearInterval(this.timerId);
+    // → Setup and teardown are separated
+  }
+}
+
+// ✅ New way: DestroyRef — setup and cleanup are co-located!
+export class NewComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit() {
+    const timerId = setInterval(() =&gt; { /* ... */ }, 5000);
+    this.destroyRef.onDestroy(() =&gt; clearInterval(timerId));
+    // → Cleanup is right next to the setup — much easier to maintain!
+  }
+}
+</code></pre>
+<hr>
+<h2 id="8-afterrender-afternextrender-angular-17">8. `afterRender` & `afterNextRender` (Angular 17+)</h2>
+<p>These run after Angular has written to the DOM — equivalent to <code>ngAfterViewInit</code> but more precise and work in Zoneless apps.</p>
+<pre><code class="language-typescript">import { Component, afterRender, afterNextRender, ElementRef, inject } from &#39;@angular/core&#39;;
+import * as Chart from &#39;chart.js&#39;;
+
+@Component({
+  selector: &#39;app-analytics-chart&#39;,
+  standalone: true,
+  template: `&lt;canvas #chart&gt;&lt;/canvas&gt;`
+})
+export class AnalyticsChartComponent {
+  private el = inject(ElementRef);
+
+  constructor() {
+    // afterNextRender: Runs once after the FIRST render
+    // Use for: Third-party library initialization, chart creation, one-time DOM setup
+    afterNextRender(() =&gt; {
+      const canvas = this.el.nativeElement.querySelector(&#39;canvas&#39;);
+      new Chart.Chart(canvas, { type: &#39;bar&#39;, data: { /* ... */ } });
+    });
+
+    // afterRender: Runs after EVERY render cycle
+    // Use for: Keeping a third-party library in sync with Angular state
+    afterRender(() =&gt; {
+      // Update chart when data changes
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="9-takeuntildestroyed-for-rxjs">9. `takeUntilDestroyed` for RxJS</h2>
+<p>The cleanest way to auto-unsubscribe from RxJS observables:</p>
+<pre><code class="language-typescript">import { Component, inject, OnInit } from &#39;@angular/core&#39;;
+import { takeUntilDestroyed } from &#39;@angular/core/rxjs-interop&#39;;
+import { interval } from &#39;rxjs&#39;;
+
+@Component({ ... })
+export class PollComponent implements OnInit {
+  // Note: takeUntilDestroyed() must be called in an injection context!
+  // Assign the operator at property level or use destroyRef explicitly.
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit() {
+    // ✅ Auto-unsubscribes when component is destroyed
+    interval(5000).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() =&gt; this.refreshData());
+  }
+
+  private refreshData() { /* ... */ }
+}
+
+// Even cleaner — use at property initialization
+@Component({ ... })
+export class ModernPollComponent {
+  // This works because it&#39;s in an injection context at property init time!
+  private data$ = interval(5000).pipe(takeUntilDestroyed());
+
+  ngOnInit() {
+    this.data$.subscribe(() =&gt; this.refreshData());
+  }
+}
+</code></pre>
+<hr>
+<h2 id="10-hooks-with-signal-inputs">10. Hooks with Signal Inputs</h2>
+<p>When using Signal <code>input()</code>, most <code>ngOnChanges</code> usage is replaced by <code>effect()</code> and <code>computed()</code>:</p>
+<pre><code class="language-typescript">import { Component, input, effect, computed, signal, inject } from &#39;@angular/core&#39;;
+import { UserService } from &#39;../user.service&#39;;
+
+@Component({
+  selector: &#39;app-user-posts&#39;,
+  standalone: true,
+  template: `
+    &lt;h2&gt;Posts by {{ username() }}&lt;/h2&gt;
+    @for (post of posts(); track post.id) {
+      &lt;article&gt;{{ post.title }}&lt;/article&gt;
+    }
+  `
+})
+export class UserPostsComponent {
+  private userService = inject(UserService);
+
+  // Signal input — reactive out of the box
+  userId = input.required&lt;string&gt;();
+  username = input&lt;string&gt;(&#39;Unknown&#39;);
+
+  posts = signal&lt;Post[]&gt;([]);
+
+  constructor() {
+    // Instead of ngOnChanges — automatically re-runs when userId changes
+    effect(() =&gt; {
+      const id = this.userId(); // Track dependency
+      this.userService.getPostsByUser(id).subscribe(posts =&gt; this.posts.set(posts));
+    });
+  }
+
+  // Derived data — instead of writing in ngOnChanges
+  displayName = computed(() =&gt; `@${this.username().toLowerCase()}`);
+}
+</code></pre>
+<hr>
+<h2 id="11-common-pitfalls">11. Common Pitfalls</h2>
+<h3 id="pitfall-1-fetching-data-in-the-constructor">Pitfall 1: Fetching data in the constructor</h3>
+<pre><code class="language-typescript">// ❌ @Input values are undefined in constructor!
+constructor(private userService: UserService) {
+  this.userService.getUser(this.userId).subscribe(); // this.userId is undefined!
+}
+
+// ✅ Fetch in ngOnInit where inputs are available
+ngOnInit() {
+  this.userService.getUser(this.userId).subscribe();
+}
+</code></pre>
+<h3 id="pitfall-2-memory-leak-not-unsubscribing">Pitfall 2: Memory leak — not unsubscribing</h3>
+<pre><code class="language-typescript">// ❌ Subscription lives forever — memory leak!
+ngOnInit() {
+  this.router.events.subscribe(event =&gt; { /* ... */ });
+}
+
+// ✅ Always use takeUntilDestroyed or DestroyRef
+ngOnInit() {
+  this.router.events.pipe(
+    takeUntilDestroyed(this.destroyRef)
+  ).subscribe(event =&gt; { /* ... */ });
+}
+</code></pre>
+<h3 id="pitfall-3-heavy-logic-in-ngdocheck-or-ngafterviewchecked">Pitfall 3: Heavy logic in `ngDoCheck` or `ngAfterViewChecked`</h3>
+<pre><code class="language-typescript">// ❌ Runs on EVERY single change detection — will cause major performance issues!
+ngDoCheck() {
+  this.filteredItems = this.items.filter(i =&gt; i.name.includes(this.search));
+}
+
+// ✅ Use computed() — only recalculates when dependencies change
+filteredItems = computed(() =&gt; this.items().filter(i =&gt; i.name.includes(this.search())));
+</code></pre>
+<h3 id="pitfall-4-accessing-viewchild-in-ngoninit">Pitfall 4: Accessing `@ViewChild` in `ngOnInit`</h3>
+<pre><code class="language-typescript">@ViewChild(&#39;myInput&#39;) myInput!: ElementRef;
+
+ngOnInit() {
+  // ❌ Template not rendered yet — myInput is undefined!
+  this.myInput.nativeElement.focus();
+}
+
+ngAfterViewInit() {
+  // ✅ Template is now rendered
+  this.myInput.nativeElement.focus();
+}
+</code></pre>
+<hr>
+<h2 id="12-try-it-yourself">12. Try It Yourself</h2>
+<p>You are building an <code>AutoSaveComponent</code> that:</p>
+<ol>
+<li>Has a <code>content = signal(&#39;&#39;)</code> for the text</li>
+<li>Auto-saves every 5 seconds using <code>setInterval</code></li>
+<li>Also subscribes to a <code>websocketService.updates$</code> Observable</li>
+<li>Properly cleans up the interval AND the subscription when destroyed</li>
+</ol>
+<p><strong>Starter:</strong></p>
+<pre><code class="language-typescript">export class AutoSaveComponent implements OnInit {
+  content = signal(&#39;&#39;);
+  // TODO: Set up auto-save interval
+  // TODO: Subscribe to websocket
+  // TODO: Clean up both when destroyed
+}
+</code></pre>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Component, inject, signal, OnInit } from &#39;@angular/core&#39;;
+import { DestroyRef } from &#39;@angular/core&#39;;
+import { takeUntilDestroyed } from &#39;@angular/core/rxjs-interop&#39;;
+import { WebsocketService } from &#39;./websocket.service&#39;;
+import { DocumentService } from &#39;./document.service&#39;;
+
+@Component({
+  selector: &#39;app-auto-save&#39;,
+  standalone: true,
+  template: `
+    &lt;textarea [(ngModel)]=&quot;content&quot; placeholder=&quot;Start writing...&quot;&gt;&lt;/textarea&gt;
+    &lt;p class=&quot;status&quot;&gt;{{ status() }}&lt;/p&gt;
+  `
+})
+export class AutoSaveComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+  private documentService = inject(DocumentService);
+  private wsService = inject(WebsocketService);
+
+  content = signal(&#39;&#39;);
+  status = signal(&#39;All changes saved&#39;);
+
+  ngOnInit() {
+    // ✅ Auto-save interval — registered with DestroyRef for clean co-location
+    const autoSaveId = setInterval(() =&gt; {
+      this.documentService.save(this.content()).subscribe(() =&gt; {
+        this.status.set(`Saved at ${new Date().toLocaleTimeString()}`);
+      });
+    }, 5000);
+    this.destroyRef.onDestroy(() =&gt; clearInterval(autoSaveId));
+
+    // ✅ Websocket subscription — auto-unsubscribed via takeUntilDestroyed
+    this.wsService.updates$.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(update =&gt; {
+      this.content.set(update.content);
+      this.status.set(&#39;Updated from remote&#39;);
+    });
+  }
+}
+</code></pre>
+</details><hr>
+<h2 id="13-knowledge-check">13. Knowledge Check</h2>
+<ol>
+<li>In which lifecycle hook are <code>@ViewChild</code> elements first available?</li>
+<li>Why should you never make HTTP calls in the <code>constructor()</code>?</li>
+<li>What is the difference between <code>afterNextRender()</code> and <code>afterRender()</code>?</li>
+<li>How does <code>takeUntilDestroyed()</code> work, and why is it preferred over manual <code>unsubscribe()</code>?</li>
+<li>Why is <code>ngOnChanges</code> rarely needed in modern Angular code?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><code>ngAfterViewInit()</code>. Before this hook runs, the component&#39;s template has not been rendered yet, so any <code>@ViewChild</code> reference will be <code>undefined</code>.</p>
+</li>
+<li><p>In the <code>constructor()</code>, Angular has just injected dependencies but has NOT yet resolved <code>@Input()</code> values — they will all be <code>undefined</code> or default values. Making an HTTP call that depends on an input (like <code>userId</code>) would send a request with <code>undefined</code> as the parameter, which is incorrect. Always use <code>ngOnInit()</code> for initialization that requires inputs.</p>
+</li>
+<li><p><code>afterNextRender()</code> runs exactly <strong>once</strong> after the first successful render — ideal for one-time DOM setup like initializing a third-party chart library. <code>afterRender()</code> runs after <strong>every</strong> render cycle — use it when you need to keep a third-party library synchronized with Angular&#39;s state changes.</p>
+</li>
+<li><p><code>takeUntilDestroyed()</code> is an RxJS operator that internally uses <code>DestroyRef</code> to automatically call <code>unsubscribe()</code> when the component/service is destroyed. It&#39;s preferred over manual unsubscription because: (a) you can&#39;t forget to call it, (b) setup and cleanup are co-located in the same pipe, (c) it handles edge cases like errors in the stream.</p>
+</li>
+<li><p>With Signal <code>input()</code>, input values are reactive signals. You can use <code>effect(() =&gt; { const id = this.userId(); ... })</code> to react to input changes, which is much cleaner and more idiomatic than implementing <code>ngOnChanges</code> with <code>SimpleChanges</code>. <code>ngOnChanges</code> is still used with the legacy <code>@Input()</code> decorator.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./pipes.html">10 - Pipes →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

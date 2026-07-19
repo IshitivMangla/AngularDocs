@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: HttpClient & RxJS - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item active">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-httpclient-rxjs">Angular: HttpClient & RxJS</h1>
+<blockquote>
+<p><strong>Goal</strong>: Build production-ready HTTP services using Angular&#39;s <code>HttpClient</code> and master the RxJS operators you&#39;ll use daily for async data management.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-setup">Setup — <code>provideHttpClient</code></a></li>
+<li><a href="#2-observables-vs-promises">Observables vs Promises — The Core Difference</a></li>
+<li><a href="#3-basic-http-operations">Basic HTTP Operations (CRUD)</a></li>
+<li><a href="#4-essential-rxjs-operators">Essential RxJS Operators</a></li>
+<li><a href="#5-error-handling-patterns">Error Handling Patterns</a></li>
+<li><a href="#6-advanced-rxjs-patterns">Advanced RxJS Patterns</a></li>
+<li><a href="#7-tosignal">toSignal() — Bridging HTTP to the Template</a></li>
+<li><a href="#8-http-options">HTTP Options: Headers, Params, Response Types</a></li>
+<li><a href="#9-file-upload">File Upload with Progress Tracking</a></li>
+<li><a href="#10-request-cancellation">Request Cancellation &amp; Deduplication</a></li>
+<li><a href="#11-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#12-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#13-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-setup">1. Setup</h2>
+<h3 id="configure-in-appconfigts">Configure in `app.config.ts`</h3>
+<pre><code class="language-typescript">import { ApplicationConfig } from &#39;@angular/core&#39;;
+import { provideHttpClient, withFetch, withInterceptors } from &#39;@angular/common/http&#39;;
+import { authInterceptor } from &#39;./core/interceptors/auth.interceptor&#39;;
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideHttpClient(
+      // Uses the modern browser Fetch API instead of legacy XMLHttpRequest.
+      // Required for compatibility with SSR edge environments (Cloudflare Workers, Deno).
+      withFetch(),
+
+      // Register functional interceptors (see notes/19-http-interceptors.md)
+      withInterceptors([authInterceptor])
+    ),
+  ]
+};
+</code></pre>
+<hr>
+<h2 id="2-observables-vs-promises-the-core-difference">2. Observables vs Promises — The Core Difference</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Promise</th>
+<th>Observable (RxJS)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Execution</td>
+<td>Eager — runs immediately</td>
+<td>Lazy — only runs when subscribed</td>
+</tr>
+<tr>
+<td>Values</td>
+<td>Emits exactly one value</td>
+<td>Can emit zero, one, or many values</td>
+</tr>
+<tr>
+<td>Cancellation</td>
+<td>Cannot be cancelled</td>
+<td>Cancel by calling <code>.unsubscribe()</code> or using <code>takeUntil()</code></td>
+</tr>
+<tr>
+<td>Operators</td>
+<td>Limited (.then, .catch)</td>
+<td>Rich — 100+ operators (map, filter, switchMap, etc.)</td>
+</tr>
+<tr>
+<td>Retry</td>
+<td>Manual implementation</td>
+<td><code>.pipe(retry(3))</code></td>
+</tr>
+<tr>
+<td>Progress</td>
+<td>No built-in support</td>
+<td>Yes — can emit upload/download progress events</td>
+</tr>
+</tbody></table>
+<h3 id="why-httpclient-uses-observables">Why HttpClient Uses Observables</h3>
+<pre><code class="language-typescript">// The HTTP request does NOT happen here — Observables are lazy!
+const request$ = this.http.get(&#39;/api/users&#39;);
+
+// The request happens HERE when you subscribe
+const sub = request$.subscribe(users =&gt; console.log(users));
+
+// Cancel the request (if it hasn&#39;t completed yet) — impossible with Promise!
+sub.unsubscribe();
+</code></pre>
+<hr>
+<h2 id="3-basic-http-operations-crud">3. Basic HTTP Operations (CRUD)</h2>
+<pre><code class="language-typescript">// src/app/core/services/product.service.ts
+import { Injectable, inject } from &#39;@angular/core&#39;;
+import { HttpClient, HttpParams } from &#39;@angular/common/http&#39;;
+import { Observable } from &#39;rxjs&#39;;
+import { Product, CreateProductDto, UpdateProductDto } from &#39;../models/product.model&#39;;
+
+export interface PaginatedResponse&lt;T&gt; {
+  data: T[];
+  total: number;
+  page: number;
+  perPage: number;
+}
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class ProductService {
+  private http = inject(HttpClient);
+  private readonly API = &#39;/api/products&#39;;
+
+  // --- GET (Read) ---
+  getAll(page = 1, limit = 20, search = &#39;&#39;): Observable&lt;PaginatedResponse&lt;Product&gt;&gt; {
+    // Use HttpParams for clean query string building
+    const params = new HttpParams()
+      .set(&#39;page&#39;, page)
+      .set(&#39;limit&#39;, limit)
+      .set(&#39;search&#39;, search);
+
+    return this.http.get&lt;PaginatedResponse&lt;Product&gt;&gt;(this.API, { params });
+  }
+
+  getById(id: number): Observable&lt;Product&gt; {
+    return this.http.get&lt;Product&gt;(`${this.API}/${id}`);
+  }
+
+  // --- POST (Create) ---
+  create(product: CreateProductDto): Observable&lt;Product&gt; {
+    return this.http.post&lt;Product&gt;(this.API, product);
+  }
+
+  // --- PUT (Full Replace) ---
+  replace(id: number, product: CreateProductDto): Observable&lt;Product&gt; {
+    return this.http.put&lt;Product&gt;(`${this.API}/${id}`, product);
+  }
+
+  // --- PATCH (Partial Update) ---
+  update(id: number, changes: UpdateProductDto): Observable&lt;Product&gt; {
+    return this.http.patch&lt;Product&gt;(`${this.API}/${id}`, changes);
+  }
+
+  // --- DELETE ---
+  delete(id: number): Observable&lt;void&gt; {
+    return this.http.delete&lt;void&gt;(`${this.API}/${id}`);
+  }
+}
+</code></pre>
+<hr>
+<h2 id="4-essential-rxjs-operators">4. Essential RxJS Operators</h2>
+<p>These are the operators you&#39;ll use in 80% of real-world scenarios:</p>
+<h3 id="transformation-operators">Transformation Operators</h3>
+<pre><code class="language-typescript">import { map, pluck, switchMap, mergeMap, concatMap, exhaustMap } from &#39;rxjs/operators&#39;;
+
+// map() — transform each emitted value
+this.http.get&lt;ApiUser[]&gt;(&#39;/api/users&#39;).pipe(
+  // Transform API shape to app shape
+  map(apiUsers =&gt; apiUsers.map(u =&gt; ({
+    id: u.user_id,
+    name: `${u.first_name} ${u.last_name}`,
+    email: u.email_address
+  })))
+);
+
+// switchMap() — cancel previous, switch to new observable
+// Perfect for search: if user types faster, cancel the previous request
+this.searchQuery$.pipe(
+  debounceTime(300),
+  switchMap(query =&gt; this.http.get(`/api/search?q=${query}`))
+);
+
+// concatMap() — queue requests, execute one after another (order preserved)
+// Use when order matters: e.g., saving form steps sequentially
+this.formSteps$.pipe(
+  concatMap(step =&gt; this.http.post(&#39;/api/wizard&#39;, step))
+);
+
+// mergeMap() — run all requests in parallel, order not guaranteed
+// Use when order doesn&#39;t matter: e.g., loading multiple independent datasets
+this.productIds$.pipe(
+  mergeMap(id =&gt; this.http.get(`/api/products/${id}`))  // All fire simultaneously
+);
+
+// exhaustMap() — ignore new triggers while current is active
+// Perfect for submit buttons: prevents double-submission
+this.submitClick$.pipe(
+  exhaustMap(() =&gt; this.http.post(&#39;/api/checkout&#39;, this.formData))
+  // If user clicks submit 3 times rapidly, only the FIRST request runs.
+  // The other clicks are IGNORED until the first completes.
+);
+</code></pre>
+<h3 id="filtering-control-operators">Filtering & Control Operators</h3>
+<pre><code class="language-typescript">import { filter, take, takeUntil, takeUntilDestroyed, distinctUntilChanged, debounceTime } from &#39;rxjs/operators&#39;;
+
+// filter() — only process values matching a condition
+this.router.events.pipe(
+  filter(event =&gt; event instanceof NavigationEnd)
+).subscribe(event =&gt; { /* only NavigationEnd events */ });
+
+// take(n) — complete after n emissions
+this.someStream$.pipe(take(1)).subscribe();  // Only take the first value
+
+// distinctUntilChanged() — skip if same as previous
+this.searchQuery$.pipe(distinctUntilChanged());  // Prevents duplicate API calls
+
+// debounceTime(ms) — wait for silence before emitting
+this.searchInput.valueChanges.pipe(debounceTime(300));  // Wait 300ms after user stops typing
+
+// takeUntilDestroyed() — auto-unsubscribe when component/service is destroyed
+// Requires Angular 16+ and must be called in injection context
+this.someService.data$.pipe(
+  takeUntilDestroyed()
+).subscribe(data =&gt; this.data.set(data));
+</code></pre>
+<h3 id="combination-operators">Combination Operators</h3>
+<pre><code class="language-typescript">import { forkJoin, combineLatest, zip, merge, concat } from &#39;rxjs&#39;;
+
+// forkJoin() — wait for ALL to complete, then emit combined results
+// Perfect for loading a page that needs multiple data sources
+forkJoin({
+  user: this.http.get&lt;User&gt;(&#39;/api/me&#39;),
+  products: this.http.get&lt;Product[]&gt;(&#39;/api/products&#39;),
+  categories: this.http.get&lt;Category[]&gt;(&#39;/api/categories&#39;)
+}).subscribe(({ user, products, categories }) =&gt; {
+  // All three are available here simultaneously
+});
+
+// combineLatest() — emit when ANY changes, with latest value from all
+// Perfect for computed/reactive values that depend on multiple observables
+combineLatest([
+  this.filterState$,
+  this.sortState$,
+  this.page$
+]).pipe(
+  debounceTime(0),  // Prevent double-emission if multiple change simultaneously
+  switchMap(([filters, sort, page]) =&gt; this.productService.getAll(filters, sort, page))
+).subscribe(products =&gt; this.products.set(products));
+
+// merge() — emit from any of the sources as they come
+merge(
+  this.websocket.messages$,
+  this.pollingService.updates$
+).subscribe(update =&gt; this.handleUpdate(update));
+</code></pre>
+<h3 id="error-handling-operators">Error Handling Operators</h3>
+<pre><code class="language-typescript">import { catchError, retry, retryWhen, tap } from &#39;rxjs/operators&#39;;
+import { throwError, of, timer } from &#39;rxjs&#39;;
+
+// retry(n) — retry up to n times on error
+this.http.get(&#39;/api/data&#39;).pipe(
+  retry(3)  // Try the request up to 3 total times before giving up
+);
+
+// catchError() — handle the error gracefully
+this.http.get&lt;User[]&gt;(&#39;/api/users&#39;).pipe(
+  catchError(error =&gt; {
+    if (error.status === 404) {
+      return of([]);  // Return empty array instead of crashing
+    }
+    return throwError(() =&gt; error);  // Re-throw unrecoverable errors
+  })
+);
+
+// finalize() — runs whether success or error (like finally block)
+this.http.get(&#39;/api/data&#39;).pipe(
+  tap(() =&gt; this.isLoading.set(true)),
+  finalize(() =&gt; this.isLoading.set(false))  // Always runs
+);
+</code></pre>
+<hr>
+<h2 id="5-error-handling-patterns">5. Error Handling Patterns</h2>
+<h3 id="pattern-1-service-level-error-handling">Pattern 1: Service-Level Error Handling</h3>
+<pre><code class="language-typescript">@Injectable({ providedIn: &#39;root&#39; })
+export class UserService {
+  private http = inject(HttpClient);
+
+  getUsers(): Observable&lt;User[]&gt; {
+    return this.http.get&lt;User[]&gt;(&#39;/api/users&#39;).pipe(
+      retry(2),  // Auto-retry on network failures
+
+      // Transform HTTP error into a domain-specific error
+      catchError((error: HttpErrorResponse) =&gt; {
+        if (error.status === 0) {
+          // Network error (no internet)
+          return throwError(() =&gt; new Error(&#39;No internet connection. Please check your network.&#39;));
+        }
+        if (error.status === 401) {
+          return throwError(() =&gt; new Error(&#39;Session expired. Please log in again.&#39;));
+        }
+        if (error.status === 403) {
+          return throwError(() =&gt; new Error(&#39;You do not have permission to view this data.&#39;));
+        }
+        if (error.status === 404) {
+          return of([]);  // Not found — treat as empty
+        }
+        return throwError(() =&gt; new Error(`Server error (${error.status}). Please try again.`));
+      })
+    );
+  }
+}
+</code></pre>
+<h3 id="pattern-2-component-level-error-state">Pattern 2: Component-Level Error State</h3>
+<pre><code class="language-typescript">@Component({
+  standalone: true,
+  template: `
+    @if (isLoading()) {
+      &lt;div class=&quot;spinner&quot;&gt;&lt;/div&gt;
+    } @else if (error()) {
+      &lt;div class=&quot;error-card&quot;&gt;
+        &lt;h3&gt;⚠️ Something went wrong&lt;/h3&gt;
+        &lt;p&gt;{{ error() }}&lt;/p&gt;
+        &lt;button (click)=&quot;load()&quot;&gt;Try Again&lt;/button&gt;
+      &lt;/div&gt;
+    } @else {
+      @for (user of users(); track user.id) {
+        &lt;app-user-card [user]=&quot;user&quot;&gt;&lt;/app-user-card&gt;
+      } @empty {
+        &lt;p&gt;No users found.&lt;/p&gt;
+      }
+    }
+  `
+})
+export class UsersPageComponent implements OnInit {
+  private userService = inject(UserService);
+  private destroyRef = inject(DestroyRef);
+
+  users = signal&lt;User[]&gt;([]);
+  isLoading = signal(false);
+  error = signal&lt;string | null&gt;(null);
+
+  ngOnInit() {
+    this.load();
+  }
+
+  load() {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    this.userService.getUsers().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: (users) =&gt; {
+        this.users.set(users);
+        this.isLoading.set(false);
+      },
+      error: (err: Error) =&gt; {
+        this.error.set(err.message);
+        this.isLoading.set(false);
+      }
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="6-advanced-rxjs-patterns">6. Advanced RxJS Patterns</h2>
+<h3 id="pattern-auto-refresh-with-polling">Pattern: Auto-Refresh with Polling</h3>
+<pre><code class="language-typescript">import { timer, switchMap, retry } from &#39;rxjs&#39;;
+
+// Poll every 30 seconds, cancel when component is destroyed
+timer(0, 30_000).pipe(
+  switchMap(() =&gt; this.dashboardService.getMetrics()),
+  retry({ count: 3, delay: 5000 }),  // Retry up to 3x with 5s delay
+  takeUntilDestroyed(this.destroyRef)
+).subscribe(metrics =&gt; this.metrics.set(metrics));
+</code></pre>
+<h3 id="pattern-optimistic-updates">Pattern: Optimistic Updates</h3>
+<pre><code class="language-typescript">deleteProduct(product: Product) {
+  // 1. Immediately update the UI (optimistic)
+  this.products.update(list =&gt; list.filter(p =&gt; p.id !== product.id));
+
+  // 2. Send the actual HTTP request
+  this.productService.delete(product.id).pipe(
+    catchError(err =&gt; {
+      // 3. If the request fails, roll back the UI change!
+      this.products.update(list =&gt; [...list, product]);
+      this.toastService.showError(&#39;Failed to delete product. Please try again.&#39;);
+      return of(null);
+    })
+  ).subscribe();
+}
+</code></pre>
+<h3 id="pattern-sequential-requests-dependent-calls">Pattern: Sequential Requests (Dependent Calls)</h3>
+<pre><code class="language-typescript">// Need the user first, then their orders based on user.id
+this.userService.getCurrentUser().pipe(
+  switchMap(user =&gt; this.orderService.getOrdersByUser(user.id)),  // Use user.id
+  switchMap(orders =&gt; {
+    // Load order details for all orders in parallel
+    return forkJoin(orders.map(o =&gt; this.orderService.getDetails(o.id)));
+  })
+).subscribe(detailedOrders =&gt; this.orders.set(detailedOrders));
+</code></pre>
+<hr>
+<h2 id="7-tosignal-bridging-http-to-the-template">7. `toSignal()` — Bridging HTTP to the Template</h2>
+<p>The cleanest way to use HTTP data in templates is to convert the Observable to a Signal:</p>
+<pre><code class="language-typescript">import { Component, inject, signal, computed } from &#39;@angular/core&#39;;
+import { toSignal } from &#39;@angular/core/rxjs-interop&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+import { map, catchError, of } from &#39;rxjs&#39;;
+
+@Component({
+  selector: &#39;app-dashboard&#39;,
+  standalone: true,
+  template: `
+    @if (users()) {
+      &lt;p&gt;{{ userCount() }} total users&lt;/p&gt;
+      @for (user of users()!; track user.id) {
+        &lt;div&gt;{{ user.name }}&lt;/div&gt;
+      }
+    }
+  `
+})
+export class DashboardComponent {
+  private http = inject(HttpClient);
+
+  // One-liner: HTTP observable → Signal
+  // Auto-subscribes, auto-unsubscribes when component is destroyed!
+  users = toSignal(
+    this.http.get&lt;User[]&gt;(&#39;/api/users&#39;).pipe(
+      catchError(() =&gt; of([] as User[]))
+    ),
+    { initialValue: null }  // initialValue avoids undefined during first render
+  );
+
+  // Derive computed from the signal
+  userCount = computed(() =&gt; this.users()?.length ?? 0);
+}
+</code></pre>
+<hr>
+<h2 id="8-http-options-headers-params-response-types">8. HTTP Options: Headers, Params, Response Types</h2>
+<pre><code class="language-typescript">import { HttpHeaders, HttpParams } from &#39;@angular/common/http&#39;;
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class ApiService {
+  private http = inject(HttpClient);
+
+  // Custom Headers
+  getWithAuth(): Observable&lt;any&gt; {
+    const headers = new HttpHeaders({
+      &#39;Authorization&#39;: `Bearer ${this.getToken()}`,
+      &#39;X-Request-ID&#39;: crypto.randomUUID(),
+      &#39;Content-Type&#39;: &#39;application/json&#39;
+    });
+
+    return this.http.get(&#39;/api/secure-data&#39;, { headers });
+  }
+
+  // Query Parameters
+  searchUsers(query: string, page: number, roles: string[]): Observable&lt;User[]&gt; {
+    let params = new HttpParams()
+      .set(&#39;q&#39;, query)
+      .set(&#39;page&#39;, page.toString())
+      .set(&#39;limit&#39;, &#39;20&#39;);
+
+    // Append multiple values for the same param
+    roles.forEach(role =&gt; { params = params.append(&#39;role&#39;, role); });
+    // Result: ?q=angular&amp;page=1&amp;limit=20&amp;role=admin&amp;role=editor
+
+    return this.http.get&lt;User[]&gt;(&#39;/api/users&#39;, { params });
+  }
+
+  // Observe the full response (not just the body)
+  getWithMetadata(): Observable&lt;HttpResponse&lt;User[]&gt;&gt; {
+    return this.http.get&lt;User[]&gt;(&#39;/api/users&#39;, {
+      observe: &#39;response&#39;  // Get headers, status code, etc.
+    });
+    // response.body → User[]
+    // response.status → 200
+    // response.headers.get(&#39;X-Total-Count&#39;) → &#39;150&#39;
+  }
+
+  // Download a binary file (PDF, image, etc.)
+  downloadFile(id: number): Observable&lt;Blob&gt; {
+    return this.http.get(`/api/files/${id}`, {
+      responseType: &#39;blob&#39;  // Tell Angular to expect binary data, not JSON
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="9-file-upload-with-progress-tracking">9. File Upload with Progress Tracking</h2>
+<pre><code class="language-typescript">import { HttpEventType, HttpClient } from &#39;@angular/common/http&#39;;
+import { filter, map } from &#39;rxjs&#39;;
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class FileUploadService {
+  private http = inject(HttpClient);
+
+  uploadFile(file: File): Observable&lt;number&gt; {  // Emits 0–100 (progress percentage)
+    const formData = new FormData();
+    formData.append(&#39;file&#39;, file, file.name);
+
+    return this.http.post(&#39;/api/upload&#39;, formData, {
+      reportProgress: true,     // Enable progress events
+      observe: &#39;events&#39;          // Observe ALL events (start, progress, complete)
+    }).pipe(
+      filter(event =&gt; event.type === HttpEventType.UploadProgress),
+      map(event =&gt; {
+        if (event.type === HttpEventType.UploadProgress) {
+          return Math.round(100 * event.loaded / (event.total ?? 1));
+        }
+        return 0;
+      })
+    );
+  }
+}
+
+// Component usage
+@Component({
+  template: `
+    &lt;input type=&quot;file&quot; (change)=&quot;onFileSelect($event)&quot;&gt;
+    @if (uploadProgress() &gt; 0) {
+      &lt;progress [value]=&quot;uploadProgress()&quot; max=&quot;100&quot;&gt;&lt;/progress&gt;
+      &lt;span&gt;{{ uploadProgress() }}%&lt;/span&gt;
+    }
+  `
+})
+export class UploadComponent {
+  private uploadService = inject(FileUploadService);
+  uploadProgress = signal(0);
+
+  onFileSelect(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    this.uploadService.uploadFile(file).subscribe({
+      next: progress =&gt; this.uploadProgress.set(progress),
+      complete: () =&gt; {
+        this.uploadProgress.set(100);
+        console.log(&#39;Upload complete!&#39;);
+      }
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="10-request-cancellation-deduplication">10. Request Cancellation & Deduplication</h2>
+<h3 id="cancellation-with-switchmap">Cancellation with `switchMap`</h3>
+<pre><code class="language-typescript">// search.component.ts
+// When user types faster than the network responds, cancel stale requests!
+
+searchQuery = signal(&#39;&#39;);
+
+private query$ = toObservable(this.searchQuery);
+private results$ = this.query$.pipe(
+  debounceTime(300),
+  distinctUntilChanged(),
+  switchMap(q =&gt;  // switchMap cancels the previous HTTP request automatically
+    this.http.get&lt;SearchResult[]&gt;(`/api/search?q=${q}`).pipe(
+      catchError(() =&gt; of([]))
+    )
+  )
+);
+
+results = toSignal(this.results$, { initialValue: [] });
+</code></pre>
+<h3 id="preventing-duplicate-requests-with-sharereplay">Preventing Duplicate Requests with `shareReplay`</h3>
+<pre><code class="language-typescript">// If multiple components subscribe to this, only ONE HTTP call is made!
+@Injectable({ providedIn: &#39;root&#39; })
+export class ConfigService {
+  private config$ = this.http.get&lt;AppConfig&gt;(&#39;/api/config&#39;).pipe(
+    shareReplay(1)  // Cache the result, replay to late subscribers
+  );
+
+  getConfig(): Observable&lt;AppConfig&gt; {
+    return this.config$;  // Multiple subscribers, one request
+  }
+}
+</code></pre>
+<hr>
+<h2 id="11-common-pitfalls">11. Common Pitfalls</h2>
+<h3 id="pitfall-1-not-subscribing-cold-observable">Pitfall 1: Not subscribing (cold observable)</h3>
+<pre><code class="language-typescript">// ❌ No request is sent! HTTP Observables are &quot;cold&quot; (lazy)
+ngOnInit() {
+  this.userService.getUsers();  // .subscribe() missing!
+}
+
+// ✅ Subscribe to trigger the request
+ngOnInit() {
+  this.userService.getUsers().subscribe(users =&gt; this.users.set(users));
+}
+</code></pre>
+<h3 id="pitfall-2-memory-leak-not-unsubscribing">Pitfall 2: Memory leak — not unsubscribing</h3>
+<pre><code class="language-typescript">// ❌ If user navigates away before the request completes,
+// the callback fires on a destroyed component → error!
+this.http.get(&#39;/api/data&#39;).subscribe(data =&gt; this.data.set(data));
+
+// ✅ Option 1: Use takeUntilDestroyed()
+this.http.get(&#39;/api/data&#39;).pipe(
+  takeUntilDestroyed(this.destroyRef)
+).subscribe(data =&gt; this.data.set(data));
+
+// ✅ Option 2: Use toSignal() — handles subscription lifecycle automatically
+this.data = toSignal(this.http.get(&#39;/api/data&#39;), { initialValue: null });
+</code></pre>
+<h3 id="pitfall-3-using-mergemap-instead-of-switchmap-for-search">Pitfall 3: Using `mergeMap` instead of `switchMap` for search</h3>
+<pre><code class="language-typescript">// ❌ mergeMap: All requests run in parallel, responses arrive out of order
+searchInput.pipe(mergeMap(q =&gt; this.http.get(`/api/search?q=${q}`)));
+// User types &quot;cat&quot; then &quot;cats&quot; — &quot;cats&quot; response might arrive BEFORE &quot;cat&quot;,
+// displaying stale results!
+
+// ✅ switchMap: Cancels previous, always shows latest
+searchInput.pipe(switchMap(q =&gt; this.http.get(`/api/search?q=${q}`)));
+</code></pre>
+<h3 id="pitfall-4-not-handling-errors-in-subscriptions">Pitfall 4: Not handling errors in subscriptions</h3>
+<pre><code class="language-typescript">// ❌ If the observable errors, Angular will throw an unhandled error
+// and the application may crash or the stream terminates silently
+this.userService.getUsers().subscribe(users =&gt; this.users.set(users));
+
+// ✅ Always handle errors
+this.userService.getUsers().subscribe({
+  next: users =&gt; this.users.set(users),
+  error: err =&gt; this.error.set(err.message)  // Handle gracefully!
+});
+</code></pre>
+<hr>
+<h2 id="12-try-it-yourself">12. Try It Yourself</h2>
+<p>Build a <code>SearchComponent</code> that:</p>
+<ol>
+<li>Has an input field that the user types into</li>
+<li>Only sends an API call after 400ms of inactivity (debounce)</li>
+<li>Cancels the previous request if a new search starts</li>
+<li>Shows a loading state while searching</li>
+<li>Displays results or an &quot;empty state&quot; message</li>
+<li>Auto-cleans up subscriptions when the component is destroyed</li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Component, inject, signal } from &#39;@angular/core&#39;;
+import { FormsModule } from &#39;@angular/forms&#39;;
+import { toObservable, toSignal } from &#39;@angular/core/rxjs-interop&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+import { debounceTime, distinctUntilChanged, switchMap, tap, catchError, startWith } from &#39;rxjs&#39;;
+import { of } from &#39;rxjs&#39;;
+
+interface SearchResult { id: number; title: string; description: string; }
+
+@Component({
+  selector: &#39;app-search&#39;,
+  standalone: true,
+  imports: [FormsModule],
+  template: `
+    &lt;div class=&quot;search-container&quot;&gt;
+      &lt;input
+        [(ngModel)]=&quot;query&quot;
+        placeholder=&quot;Search...&quot;
+        class=&quot;search-input&quot;
+      &gt;
+
+      @if (isSearching()) {
+        &lt;div class=&quot;spinner&quot;&gt;Searching...&lt;/div&gt;
+      } @else {
+        @for (result of results(); track result.id) {
+          &lt;div class=&quot;result-card&quot;&gt;
+            &lt;h3&gt;{{ result.title }}&lt;/h3&gt;
+            &lt;p&gt;{{ result.description }}&lt;/p&gt;
+          &lt;/div&gt;
+        } @empty {
+          @if (query()) {
+            &lt;div class=&quot;empty-state&quot;&gt;No results for &quot;{{ query() }}&quot;&lt;/div&gt;
+          }
+        }
+      }
+    &lt;/div&gt;
+  `
+})
+export class SearchComponent {
+  private http = inject(HttpClient);
+
+  // ✅ Track the search query in a signal
+  query = signal(&#39;&#39;);
+  isSearching = signal(false);
+
+  // ✅ Convert signal to observable for RxJS operators
+  private query$ = toObservable(this.query);
+
+  // ✅ The search pipeline
+  private results$ = this.query$.pipe(
+    debounceTime(400),           // Wait 400ms after user stops typing
+    distinctUntilChanged(),       // Skip if the query hasn&#39;t actually changed
+    tap(() =&gt; this.isSearching.set(true)),  // Show loading spinner
+    switchMap(query =&gt; {          // Cancel stale requests automatically
+      if (!query.trim()) {
+        this.isSearching.set(false);
+        return of([]);            // Return empty for blank queries
+      }
+      return this.http.get&lt;SearchResult[]&gt;(`/api/search?q=${query}`).pipe(
+        catchError(() =&gt; of([]))  // Handle errors gracefully
+      );
+    }),
+    tap(() =&gt; this.isSearching.set(false))  // Hide spinner
+  );
+
+  // ✅ Convert result observable to signal — auto-subscribes and auto-unsubscribes!
+  results = toSignal(this.results$, { initialValue: [] as SearchResult[] });
+}
+</code></pre>
+</details><hr>
+<h2 id="13-knowledge-check">13. Knowledge Check</h2>
+<ol>
+<li>Why are Angular <code>HttpClient</code> Observables &quot;cold&quot;, and what does that mean practically?</li>
+<li>What is the difference between <code>switchMap</code> and <code>mergeMap</code>? Which should you use for a search autocomplete?</li>
+<li>What does <code>retry(3)</code> do when a server returns a <code>404 Not Found</code> error?</li>
+<li>Why is <code>finalize()</code> preferred over putting cleanup in both <code>next</code> and <code>error</code> callbacks?</li>
+<li>When should you use <code>forkJoin</code> vs <code>combineLatest</code>?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>&quot;Cold&quot; means the Observable is <strong>lazy</strong> — the HTTP request <strong>doesn&#39;t happen</strong> until a <code>subscribe()</code> call is made. Practically: if you call <code>this.http.get(&#39;/api/data&#39;)</code> and don&#39;t subscribe, no network request is ever sent. This is a common beginner bug.</p>
+</li>
+<li><p><code>switchMap</code> <strong>cancels</strong> the previous inner observable before starting the new one — perfect for search, because you don&#39;t want stale results from an old query to overwrite fresh results. <code>mergeMap</code> runs <strong>all inner observables in parallel</strong> — good for things like parallel file processing where order doesn&#39;t matter.</p>
+</li>
+<li><p><code>retry(3)</code> will re-subscribe to the observable (re-send the request) up to 3 total times. However, <strong>a 404 is a server success response</strong> — the server replied successfully with &quot;this resource doesn&#39;t exist&quot;. <code>retry</code> is for network errors (status 0) or server errors (5xx). Retrying a 404 is usually pointless and you should <code>catchError</code> it instead.</p>
+</li>
+<li><p><code>finalize()</code> runs when the observable <strong>completes OR errors</strong>, acting like a <code>finally</code> block. Without it, you&#39;d need to write the same cleanup code in both the <code>next</code> and <code>error</code> callbacks, violating the DRY principle.</p>
+</li>
+<li><p>Use <strong><code>forkJoin</code></strong> when you want to fire multiple requests simultaneously and need all of them to <strong>complete before doing anything</strong> (one-shot operations). Use <strong><code>combineLatest</code></strong> when you have multiple ongoing Observables (streams) and want to react whenever <strong>any of them emit a new value</strong> — e.g., merging filter state, sort state, and pagination state into one derived stream.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./reactive-forms.html">07 - Reactive Forms →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

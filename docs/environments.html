@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Environments & Multi-Stage Configurations - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item active">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-environments-multi-stage-configurations">Angular: Environments & Multi-Stage Configurations</h1>
+<blockquote>
+<p><strong>Goal</strong>: Master multi-environment configuration in Angular — managing local, staging, and production API endpoints, feature flags, and deployment settings safely.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-why-environment-configurations">Why Environment Configurations?</a></li>
+<li><a href="#2-how-file-replacement-works">How File Replacement Works</a></li>
+<li><a href="#3-setting-up-environments">Setting Up Environments</a></li>
+<li><a href="#4-consuming-environment-variables">Consuming Environment Variables</a></li>
+<li><a href="#5-adding-a-custom-staging-environment">Adding a Custom Staging Environment</a></li>
+<li><a href="#6-feature-flags-via-environments">Feature Flags via Environments</a></li>
+<li><a href="#7-security-warning-client-side-secrets">Security Warning: Client-Side Secrets</a></li>
+<li><a href="#8-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#9-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-why-environment-configurations">1. Why Environment Configurations?</h2>
+<p>Real-world applications connect to different resources depending on where they run:</p>
+<pre><code>Developer Laptop  → http://localhost:3000/api        (Development)
+QA / Staging      → https://staging-api.app.com/v1   (Staging)
+Production Server → https://api.app.com/v1           (Production)
+</code></pre>
+<p>Hardcoding URLs in your services breaks builds and risks accidentally pointing production users at localhost or test databases.</p>
+<hr>
+<h2 id="2-how-file-replacement-works">2. How File Replacement Works</h2>
+<p>Angular swaps environment files <strong>at build time</strong>:</p>
+<pre><code>Build Command: ng build --configuration production
+
+Angular CLI reads angular.json fileReplacements:
+src/environments/environment.ts  ◄── REPLACED BY ── src/environments/environment.production.ts
+
+Your application code ALWAYS imports:
+import { environment } from &#39;./environments/environment&#39;;
+
+At compile time, esbuild/Webpack substitutes the production file content!
+</code></pre>
+<hr>
+<h2 id="3-setting-up-environments">3. Setting Up Environments</h2>
+<p>Generate environment files if they don&#39;t exist:</p>
+<pre><code class="language-bash">ng generate environments
+</code></pre>
+<p>This creates:</p>
+<ul>
+<li><code>src/environments/environment.ts</code> (Development default)</li>
+<li><code>src/environments/environment.development.ts</code></li>
+</ul>
+<h3 id="srcenvironmentsenvironmentts-development-default">`src/environments/environment.ts` (Development Default)</h3>
+<pre><code class="language-typescript">export const environment = {
+  production: false,
+  apiBaseUrl: &#39;http://localhost:3000/api/v1&#39;,
+  appName: &#39;My Enterprise App (DEV)&#39;,
+  enableAnalytics: false,
+  logLevel: &#39;debug&#39;,
+  stripePublicKey: &#39;pk_test_1234567890&#39;
+};
+</code></pre>
+<h3 id="srcenvironmentsenvironmentproductionts-production">`src/environments/environment.production.ts` (Production)</h3>
+<pre><code class="language-typescript">export const environment = {
+  production: true,
+  apiBaseUrl: &#39;https://api.myenterpriseapp.com/v1&#39;,
+  appName: &#39;My Enterprise App&#39;,
+  enableAnalytics: true,
+  logLevel: &#39;error&#39;,
+  stripePublicKey: &#39;pk_live_0987654321&#39;
+};
+</code></pre>
+<hr>
+<h2 id="4-consuming-environment-variables">4. Consuming Environment Variables</h2>
+<pre><code class="language-typescript">// src/app/core/services/api.service.ts
+import { Injectable, inject } from &#39;@angular/core&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+
+// ✅ GOLDEN RULE: Always import the BASE environment file!
+// NEVER import environment.production.ts directly!
+import { environment } from &#39;../../../environments/environment&#39;;
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class ApiService {
+  private http = inject(HttpClient);
+
+  // Dynamic API URL based on current environment configuration
+  private readonly baseUrl = environment.apiBaseUrl;
+
+  getUsers() {
+    return this.http.get(`${this.baseUrl}/users`);
+  }
+
+  logDebug(message: string) {
+    if (environment.logLevel === &#39;debug&#39;) {
+      console.log(`[DEBUG] ${message}`);
+    }
+  }
+}
+</code></pre>
+<hr>
+<h2 id="5-adding-a-custom-staging-environment">5. Adding a Custom Staging Environment</h2>
+<h3 id="step-1-create-srcenvironmentsenvironmentstagingts">Step 1: Create `src/environments/environment.staging.ts`</h3>
+<pre><code class="language-typescript">export const environment = {
+  production: false,
+  apiBaseUrl: &#39;https://staging-api.myenterpriseapp.com/v1&#39;,
+  appName: &#39;My Enterprise App (STAGING)&#39;,
+  enableAnalytics: true,
+  logLevel: &#39;info&#39;,
+  stripePublicKey: &#39;pk_test_staging1234&#39;
+};
+</code></pre>
+<h3 id="step-2-configure-angularjson">Step 2: Configure `angular.json`</h3>
+<pre><code class="language-json">&quot;architect&quot;: {
+  &quot;build&quot;: {
+    &quot;configurations&quot;: {
+      &quot;production&quot;: {
+        &quot;fileReplacements&quot;: [
+          {
+            &quot;replace&quot;: &quot;src/environments/environment.ts&quot;,
+            &quot;with&quot;: &quot;src/environments/environment.production.ts&quot;
+          }
+        ]
+      },
+      &quot;staging&quot;: {
+        &quot;fileReplacements&quot;: [
+          {
+            &quot;replace&quot;: &quot;src/environments/environment.ts&quot;,
+            &quot;with&quot;: &quot;src/environments/environment.staging.ts&quot;
+          }
+        ]
+      }
+    }
+  }
+}
+</code></pre>
+<h3 id="step-3-build-using-the-configuration">Step 3: Build using the configuration</h3>
+<pre><code class="language-bash">ng build --configuration staging
+</code></pre>
+<hr>
+<h2 id="6-feature-flags-via-environments">6. Feature Flags via Environments</h2>
+<p>Environment files are a simple way to toggle features on or off per environment:</p>
+<pre><code class="language-typescript">export const environment = {
+  production: false,
+  features: {
+    darkMode: true,
+    newCheckoutFlow: true,
+    betaDashboard: false
+  }
+};
+</code></pre>
+<pre><code class="language-typescript">// Guard using feature flag
+export const betaDashboardGuard: CanMatchFn = () =&gt; {
+  return environment.features.betaDashboard;
+};
+</code></pre>
+<hr>
+<h2 id="7-security-warning-client-side-secrets">7. Security Warning: Client-Side Secrets</h2>
+<blockquote>
+<p>⚠️ <strong>CRITICAL SECURITY RULE</strong>: Environment files are compiled directly into the JavaScript bundle sent to the user&#39;s browser.</p>
+</blockquote>
+<p><strong>NEVER put secrets in environment files</strong>:</p>
+<ul>
+<li>❌ Database credentials / Connection strings</li>
+<li>❌ API Secret keys (Stripe Secret, AWS Secret Key)</li>
+<li>❌ Private JWT signing keys</li>
+</ul>
+<p>Anyone can open Chrome DevTools, inspect <code>main.js</code>, and see all values inside <code>environment.ts</code>!</p>
+<hr>
+<h2 id="8-common-pitfalls">8. Common Pitfalls</h2>
+<h3 id="pitfall-1-importing-the-environment-file-directly">Pitfall 1: Importing the environment file directly</h3>
+<pre><code class="language-typescript">// ❌ Direct import breaks file replacement!
+import { environment } from &#39;../../environments/environment.production&#39;;
+
+// ✅ Always import base file
+import { environment } from &#39;../../environments/environment&#39;;
+</code></pre>
+<h3 id="pitfall-2-different-interfaces-across-environment-files">Pitfall 2: Different interfaces across environment files</h3>
+<pre><code class="language-typescript">// ❌ If environment.production.ts has keys that environment.ts doesn&#39;t,
+// TypeScript won&#39;t catch it because it compiles against environment.ts!
+
+// ✅ Create a shared interface to ensure exact property matching
+export interface AppEnvironment {
+  production: boolean;
+  apiBaseUrl: string;
+  enableAnalytics: boolean;
+}
+
+export const environment: AppEnvironment = { /* ... */ };
+</code></pre>
+<hr>
+<h2 id="9-try-it-yourself">9. Try It Yourself</h2>
+<p>Create an <code>EnvironmentService</code> that:</p>
+<ol>
+<li>Exposes an <code>isProduction</code> signal</li>
+<li>Exposes a <code>buildApiUrl(path: string)</code> method that appends the given path to <code>environment.apiBaseUrl</code></li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Injectable, signal } from &#39;@angular/core&#39;;
+import { environment } from &#39;../../environments/environment&#39;;
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class EnvironmentService {
+  readonly isProduction = signal(environment.production);
+  readonly appName = signal(environment.appName);
+
+  buildApiUrl(path: string): string {
+    const cleanPath = path.startsWith(&#39;/&#39;) ? path : `/${path}`;
+    return `${environment.apiBaseUrl}${cleanPath}`;
+  }
+}
+</code></pre>
+</details><hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>When does environment file replacement happen: during build time or runtime?</li>
+<li>What happens if you import <code>environment.production.ts</code> directly in a service?</li>
+<li>Why are environment files unsafe for storing database passwords or API secret keys?</li>
+<li>How do you trigger a build using a custom <code>staging</code> configuration?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>Environment file replacement happens at <strong>build time</strong> (during <code>ng build</code> / <code>ng serve</code>). The Angular CLI bundler physically substitutes the content of <code>environment.ts</code> with the target environment file specified in <code>angular.json</code>.</p>
+</li>
+<li><p>The file replacement mechanism in <code>angular.json</code> will be bypassed. The app will ALWAYS use the production environment values, even during local development (<code>ng serve</code>), breaking local testing.</p>
+</li>
+<li><p>Environment files are compiled into public JavaScript bundle files (<code>main.js</code>) that are downloaded by the user&#39;s browser. Anyone can inspect browser source files and read any secret keys stored there.</p>
+</li>
+<li><p>Run <code>ng build --configuration staging</code> (or <code>ng serve --configuration staging</code> for dev server).</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./index.html">00 - Master Index →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

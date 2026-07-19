@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: ViewChild & ViewChildren - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item active">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-viewchild-viewchildren">Angular: ViewChild & ViewChildren</h1>
+<blockquote>
+<p><strong>Goal</strong>: Master DOM querying in Angular — from traditional <code>@ViewChild</code> decorators to modern Signal-based <code>viewChild()</code> and <code>viewChildren()</code> queries.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-view-queries-mental-model">View Queries Mental Model</a></li>
+<li><a href="#2-decorator-vs-signal-queries">Decorator vs Signal Queries</a></li>
+<li><a href="#3-single-queries-viewchild">Single Queries: <code>viewChild()</code></a></li>
+<li><a href="#4-multiple-queries-viewchildren">Multiple Queries: <code>viewChildren()</code></a></li>
+<li><a href="#5-querying-elements-components-and-directives">Querying Elements, Components, and Directives</a></li>
+<li><a href="#6-the-read-option">The <code>read</code> Option</a></li>
+<li><a href="#7-static-true-vs-static-false"><code>{ static: true }</code> vs <code>{ static: false }</code></a></li>
+<li><a href="#8-templateref-and-viewcontainerref"><code>TemplateRef</code> and <code>ViewContainerRef</code></a></li>
+<li><a href="#9-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#10-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#11-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-view-queries-mental-model">1. View Queries Mental Model</h2>
+<p>View queries allow a parent component to obtain direct references to elements, child components, or directives located <strong>inside its own template</strong>.</p>
+<pre><code>Component Template:
+&lt;input #usernameInput&gt;                        ← ElementRef
+&lt;app-custom-card #card&gt;&lt;/app-custom-card&gt;     ← Child Component Instance
+&lt;div appHighlight&gt;&lt;/div&gt;                     ← Directive Instance
+</code></pre>
+<h3 id="rule-of-thumb">Rule of Thumb</h3>
+<ul>
+<li>Use <strong>data binding / signals</strong> for 90% of UI interactions.</li>
+<li>Use <strong>view queries</strong> ONLY when you need to call native DOM APIs (focus, scroll, canvas), call child component public methods, or integrate 3rd-party non-Angular libraries.</li>
+</ul>
+<hr>
+<h2 id="2-decorator-vs-signal-queries">2. Decorator vs Signal Queries</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Legacy <code>@ViewChild</code></th>
+<th>Modern <code>viewChild()</code> (Angular 17.2+)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Return type</td>
+<td>Raw value / <code>undefined</code></td>
+<td>Read-only <code>Signal</code></td>
+</tr>
+<tr>
+<td>Availability</td>
+<td><code>ngAfterViewInit</code></td>
+<td>Reactive signal (works in <code>effect()</code>)</td>
+</tr>
+<tr>
+<td>Null safety</td>
+<td>Needs <code>!</code>, <code>?</code>, or optional chaining</td>
+<td><code>Signal&lt;T | undefined&gt;</code> or <code>required()</code></td>
+</tr>
+<tr>
+<td>Boilerplate</td>
+<td>High</td>
+<td>Low</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="3-single-queries-viewchild">3. Single Queries: `viewChild()`</h2>
+<h3 id="basic-syntax">Basic Syntax</h3>
+<pre><code class="language-typescript">import { Component, viewChild, ElementRef, effect } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-search-bar&#39;,
+  standalone: true,
+  template: `
+    &lt;input #searchInput placeholder=&quot;Type to search...&quot;&gt;
+    &lt;button (click)=&quot;clearInput()&quot;&gt;Clear&lt;/button&gt;
+  `
+})
+export class SearchBarComponent {
+  // Signal query — returns Signal&lt;ElementRef&lt;HTMLInputElement&gt; | undefined&gt;
+  searchInput = viewChild&lt;ElementRef&lt;HTMLInputElement&gt;&gt;(&#39;searchInput&#39;);
+
+  // Required signal query — throws if element isn&#39;t in template
+  requiredInput = viewChild.required&lt;ElementRef&lt;HTMLInputElement&gt;&gt;(&#39;searchInput&#39;);
+
+  constructor() {
+    // React when the view child becomes available in the DOM
+    effect(() =&gt; {
+      const inputEl = this.searchInput()?.nativeElement;
+      if (inputEl) {
+        inputEl.focus();
+      }
+    });
+  }
+
+  clearInput() {
+    const el = this.searchInput()?.nativeElement;
+    if (el) {
+      el.value = &#39;&#39;;
+      el.focus();
+    }
+  }
+}
+</code></pre>
+<hr>
+<h2 id="4-multiple-queries-viewchildren">4. Multiple Queries: `viewChildren()`</h2>
+<p>When you need to reference multiple matching elements in a loop or template.</p>
+<pre><code class="language-typescript">import { Component, viewChildren, ElementRef, effect } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-step-wizard&#39;,
+  standalone: true,
+  template: `
+    @for (step of steps; track step.id; let i = $index) {
+      &lt;div #stepCard class=&quot;step-card&quot;&gt;
+        &lt;h3&gt;Step {{ i + 1 }}: {{ step.title }}&lt;/h3&gt;
+      &lt;/div&gt;
+    }
+    &lt;button (click)=&quot;scrollToStep(2)&quot;&gt;Go to Step 3&lt;/button&gt;
+  `
+})
+export class StepWizardComponent {
+  steps = [
+    { id: 1, title: &#39;Personal Info&#39; },
+    { id: 2, title: &#39;Shipping Address&#39; },
+    { id: 3, title: &#39;Payment Method&#39; }
+  ];
+
+  // Returns Signal&lt;readonly ElementRef&lt;HTMLDivElement&gt;[]&gt;
+  stepCards = viewChildren&lt;ElementRef&lt;HTMLDivElement&gt;&gt;(&#39;stepCard&#39;);
+
+  constructor() {
+    effect(() =&gt; {
+      console.log(`Found ${this.stepCards().length} step cards rendered in DOM`);
+    });
+  }
+
+  scrollToStep(index: number) {
+    const cards = this.stepCards();
+    if (cards[index]) {
+      cards[index].nativeElement.scrollIntoView({ behavior: &#39;smooth&#39; });
+    }
+  }
+}
+</code></pre>
+<hr>
+<h2 id="5-querying-elements-components-and-directives">5. Querying Elements, Components, and Directives</h2>
+<h3 id="1-querying-a-child-component">1. Querying a Child Component</h3>
+<pre><code class="language-typescript">// Child component
+@Component({
+  selector: &#39;app-audio-player&#39;,
+  standalone: true,
+  template: `&lt;audio #audioEl [src]=&quot;src()&quot;&gt;&lt;/audio&gt;`
+})
+export class AudioPlayerComponent {
+  src = input.required&lt;string&gt;();
+
+  play() { /* ... */ }
+  pause() { /* ... */ }
+  seek(seconds: number) { /* ... */ }
+}
+</code></pre>
+<pre><code class="language-typescript">// Parent component calling child methods
+@Component({
+  selector: &#39;app-music-page&#39;,
+  standalone: true,
+  imports: [AudioPlayerComponent],
+  template: `
+    &lt;app-audio-player #player src=&quot;/assets/song.mp3&quot;&gt;&lt;/app-audio-player&gt;
+    &lt;button (click)=&quot;playSong()&quot;&gt;Play&lt;/button&gt;
+  `
+})
+export class MusicPageComponent {
+  // Query child component by its class type
+  player = viewChild(AudioPlayerComponent);
+
+  // Or query by template reference variable
+  playerRef = viewChild&lt;AudioPlayerComponent&gt;(&#39;player&#39;);
+
+  playSong() {
+    this.player()?.play();
+  }
+}
+</code></pre>
+<h3 id="2-querying-a-directive">2. Querying a Directive</h3>
+<pre><code class="language-typescript">@Component({
+  selector: &#39;app-form-page&#39;,
+  standalone: true,
+  imports: [TooltipDirective],
+  template: `
+    &lt;button appTooltip=&quot;Click to submit&quot;&gt;Submit&lt;/button&gt;
+  `
+})
+export class FormPageComponent {
+  // Query by directive type
+  tooltip = viewChild(TooltipDirective);
+}
+</code></pre>
+<hr>
+<h2 id="6-the-read-option">6. The `read` Option</h2>
+<p>Sometimes an element has multiple things attached to it (DOM element, component, directives). Use <code>read</code> to specify what to retrieve.</p>
+<pre><code class="language-html">&lt;app-custom-input #myInput appHighlight appTooltip=&quot;Help text&quot;&gt;&lt;/app-custom-input&gt;
+</code></pre>
+<pre><code class="language-typescript">// Default: reads CustomInputComponent instance
+inputComp = viewChild(&#39;myInput&#39;);
+
+// Read the raw DOM ElementRef
+inputEl = viewChild(&#39;myInput&#39;, { read: ElementRef });
+
+// Read the Directive instance attached to the element
+tooltip = viewChild(&#39;myInput&#39;, { read: TooltipDirective });
+highlight = viewChild(&#39;myInput&#39;, { read: HighlightDirective });
+
+// Read ViewContainerRef (for dynamic component insertion)
+container = viewChild(&#39;myInput&#39;, { read: ViewContainerRef });
+</code></pre>
+<hr>
+<h2 id="7-static-true-vs-static-false-">7. `{ static: true }` vs `{ static: false }`</h2>
+<p><em>Applies to decorator queries (<code>@ViewChild</code>). Signal queries handle this automatically!</em></p>
+<pre><code class="language-typescript">// static: true — Query resolved BEFORE ngOnInit
+// ONLY works if element is NOT inside @if, @for, or &lt;ng-template&gt;
+@ViewChild(&#39;staticInput&#39;, { static: true }) staticInput!: ElementRef;
+
+// static: false (DEFAULT) — Query resolved AFTER ngAfterViewInit
+// Works for elements inside @if, @for, etc.
+@ViewChild(&#39;dynamicInput&#39;, { static: false }) dynamicInput?: ElementRef;
+</code></pre>
+<blockquote>
+<p><strong>With Signal <code>viewChild()</code></strong>: You don&#39;t need <code>static</code> options anymore. Signal queries update reactively whenever the element is created or destroyed in the DOM.</p>
+</blockquote>
+<hr>
+<h2 id="8-templateref-and-viewcontainerref">8. `TemplateRef` and `ViewContainerRef`</h2>
+<p>Used for dynamic template rendering and custom structural directives.</p>
+<pre><code class="language-typescript">@Component({
+  selector: &#39;app-modal-wrapper&#39;,
+  standalone: true,
+  imports: [NgTemplateOutlet],
+  template: `
+    &lt;ng-template #defaultHeader&gt;
+      &lt;h2&gt;Default Title&lt;/h2&gt;
+    &lt;/ng-template&gt;
+
+    &lt;div class=&quot;modal&quot;&gt;
+      &lt;ng-container *ngTemplateOutlet=&quot;customHeader() ?? defaultHeaderRef()&quot;&gt;&lt;/ng-container&gt;
+    &lt;/div&gt;
+  `
+})
+export class ModalWrapperComponent {
+  defaultHeaderRef = viewChild.required&lt;TemplateRef&lt;any&gt;&gt;(&#39;defaultHeader&#39;);
+  customHeader = input&lt;TemplateRef&lt;any&gt;&gt;();
+}
+</code></pre>
+<hr>
+<h2 id="9-common-pitfalls">9. Common Pitfalls</h2>
+<h3 id="pitfall-1-accessing-viewchild-in-ngoninit">Pitfall 1: Accessing `@ViewChild` in `ngOnInit`</h3>
+<pre><code class="language-typescript">// ❌ Undefined in ngOnInit with static: false (default)!
+@ViewChild(&#39;input&#39;) input!: ElementRef;
+ngOnInit() {
+  this.input.nativeElement.focus(); // TypeError: Cannot read property of undefined
+}
+
+// ✅ Use Signal viewChild() + effect() instead!
+input = viewChild&lt;ElementRef&gt;(&#39;input&#39;);
+constructor() {
+  effect(() =&gt; this.input()?.nativeElement.focus());
+}
+</code></pre>
+<h3 id="pitfall-2-element-inside-if-returned-undefined">Pitfall 2: Element inside `@if` returned `undefined`</h3>
+<pre><code class="language-typescript">// Element is hidden initially
+showForm = signal(false);
+
+// Query returns undefined until showForm becomes true!
+formEl = viewChild&lt;ElementRef&gt;(&#39;form&#39;);
+
+openForm() {
+  this.showForm.set(true);
+  // ❌ Immediate access after set() is still undefined — DOM hasn&#39;t updated yet!
+  this.formEl()?.nativeElement.focus();
+
+  // ✅ Use effect() or queueMicrotask / setTimeout
+}
+</code></pre>
+<h3 id="pitfall-3-direct-dom-manipulation-breaking-ssr">Pitfall 3: Direct DOM manipulation breaking SSR</h3>
+<pre><code class="language-typescript">// ❌ Crashes Node.js server during SSR!
+this.canvas().nativeElement.getContext(&#39;2d&#39;);
+
+// ✅ Wrap in browser check or afterNextRender()
+constructor() {
+  afterNextRender(() =&gt; {
+    const ctx = this.canvas()?.nativeElement.getContext(&#39;2d&#39;);
+  });
+}
+</code></pre>
+<hr>
+<h2 id="10-try-it-yourself">10. Try It Yourself</h2>
+<p>Build an <code>ImageGalleryComponent</code> that:</p>
+<ol>
+<li>Has 5 thumbnail images in a <code>@for</code> loop</li>
+<li>Uses <code>viewChildren()</code> to query all thumbnail elements</li>
+<li>Has a <code>scrollToThumbnail(index)</code> method that scrolls the chosen thumbnail into view with <code>scrollIntoView({ behavior: &#39;smooth&#39; })</code></li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Component, viewChildren, ElementRef } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-image-gallery&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;thumbnails-track&quot;&gt;
+      @for (img of images; track img.id; let i = $index) {
+        &lt;img
+          #thumb
+          [src]=&quot;img.url&quot;
+          [alt]=&quot;img.title&quot;
+          (click)=&quot;scrollToThumbnail(i)&quot;
+          class=&quot;thumb&quot;
+        &gt;
+      }
+    &lt;/div&gt;
+  `
+})
+export class ImageGalleryComponent {
+  images = [
+    { id: 1, url: &#39;/img1.jpg&#39;, title: &#39;Image 1&#39; },
+    { id: 2, url: &#39;/img2.jpg&#39;, title: &#39;Image 2&#39; },
+    { id: 3, url: &#39;/img3.jpg&#39;, title: &#39;Image 3&#39; },
+    { id: 4, url: &#39;/img4.jpg&#39;, title: &#39;Image 4&#39; },
+    { id: 5, url: &#39;/img5.jpg&#39;, title: &#39;Image 5&#39; }
+  ];
+
+  thumbnails = viewChildren&lt;ElementRef&lt;HTMLImageElement&gt;&gt;(&#39;thumb&#39;);
+
+  scrollToThumbnail(index: number) {
+    const thumbs = this.thumbnails();
+    if (thumbs[index]) {
+      thumbs[index].nativeElement.scrollIntoView({
+        behavior: &#39;smooth&#39;,
+        block: &#39;nearest&#39;,
+        inline: &#39;center&#39;
+      });
+    }
+  }
+}
+</code></pre>
+</details><hr>
+<h2 id="11-knowledge-check">11. Knowledge Check</h2>
+<ol>
+<li>What is the difference between <code>@ViewChild</code> and <code>viewChild()</code>?</li>
+<li>When would you use the <code>{ read: ... }</code> option in a view query?</li>
+<li>Can a view query access an element inside a child component&#39;s template?</li>
+<li>Why is <code>effect()</code> preferred over <code>ngAfterViewInit</code> when working with <code>viewChild()</code> signals?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><code>@ViewChild</code> is a legacy decorator that returns a raw value or <code>undefined</code>, available starting at <code>ngAfterViewInit</code>. <code>viewChild()</code> is a modern signal query introduced in Angular 17.2+ that returns a read-only <code>Signal</code>. Signal queries update reactively whenever the template structure changes (e.g. elements toggled by <code>@if</code>).</p>
+</li>
+<li><p>Use <code>{ read: ... }</code> when an element has multiple features attached (such as a component, host directives, and <code>ElementRef</code>) and you want to read something other than the default. For example, <code>{ read: ElementRef }</code> retrieves the DOM reference of a component element, while <code>{ read: ViewContainerRef }</code> retrieves the container for dynamic rendering.</p>
+</li>
+<li><p><strong>No.</strong> View queries only query within the component&#39;s <strong>own template</strong>. They cannot cross component encapsulation boundaries into a child component&#39;s template. However, you CAN query the child component class instance itself and call public methods on it.</p>
+</li>
+<li><p><code>effect()</code> automatically tracks signal dependencies and re-executes whenever the <code>viewChild()</code> signal updates (e.g. when an element appears inside an <code>@if</code> block later in the component lifecycle). <code>ngAfterViewInit</code> only runs once on initial component rendering, so it misses elements that appear conditionally later.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./contentchild.html">17 - ContentChild &amp; ContentChildren →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Advanced Signals & State Management - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item active">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-advanced-signals-state-management">Angular: Advanced Signals & State Management</h1>
+<blockquote>
+<p><strong>Goal</strong>: Master Angular&#39;s reactive primitive — <code>signal()</code> — and understand how to manage local state, derived state, and complex application state for scalable apps.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-why-signals">Why Signals? The Problem with Zone.js</a></li>
+<li><a href="#2-the-reactivity-graph">The Reactivity Graph — Mental Model</a></li>
+<li><a href="#3-core-signal-types">Core Signal Types</a></li>
+<li><a href="#4-signal-template-binding">Signal Template Binding</a></li>
+<li><a href="#5-two-way-binding-with-model">Two-Way Binding with <code>model()</code></a></li>
+<li><a href="#6-signal-inputs">Signal Inputs: <code>input()</code> &amp; <code>input.required()</code></a></li>
+<li><a href="#7-signal-outputs">Signal Outputs: <code>output()</code></a></li>
+<li><a href="#8-managing-collections-immutably">Managing Collections Immutably</a></li>
+<li><a href="#9-connecting-rxjs-to-signals">Connecting RxJS to Signals</a></li>
+<li><a href="#10-ngrx-signalstore">NgRx SignalStore (Scalable State Management)</a></li>
+<li><a href="#11-signals-vs-rxjs">Signals vs RxJS — When to Use Which</a></li>
+<li><a href="#12-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#13-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#14-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-why-signals">1. Why Signals?</h2>
+<h3 id="the-zonejs-problem">The Zone.js Problem</h3>
+<p>Before Signals, Angular used a library called <strong>Zone.js</strong> to detect when state changed. Zone.js worked by monkey-patching all asynchronous browser APIs (<code>setTimeout</code>, <code>Promise</code>, <code>fetch</code>, DOM events). Whenever any of these fired, Angular would run change detection on the <strong>entire component tree</strong> — even components whose state hadn&#39;t changed at all.</p>
+<p>This approach was clever but had serious drawbacks:</p>
+<ul>
+<li><strong>Unpredictable performance</strong>: A single button click could trigger re-rendering of hundreds of unrelated components.</li>
+<li><strong>&quot;Magic&quot; behavior</strong>: It was hard to understand <em>why</em> a component was re-rendering because Zone.js did it invisibly.</li>
+<li><strong>Large bundle overhead</strong>: Zone.js adds ~98KB to your app.</li>
+</ul>
+<h3 id="the-signal-solution">The Signal Solution</h3>
+<p>Signals create a <strong>precise dependency graph</strong>. Angular knows <em>exactly</em> which piece of UI depends on which signal. When <code>userCount</code> changes, only the components and computed values that read <code>userCount</code> are updated. Everything else is untouched.</p>
+<pre><code>signal(userCount) ──→ computed(isOverCapacity) ──→ Template renders isOverCapacity()
+                    ↘ effect(logToAnalytics)
+</code></pre>
+<hr>
+<h2 id="2-the-reactivity-graph-mental-model">2. The Reactivity Graph — Mental Model</h2>
+<p>Angular&#39;s signal system has three types of nodes:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Role</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Producer</strong></td>
+<td>Holds and emits values</td>
+<td><code>signal()</code></td>
+</tr>
+<tr>
+<td><strong>Consumer</strong></td>
+<td>Reads from producers, reacts to changes</td>
+<td><code>effect()</code>, template</td>
+</tr>
+<tr>
+<td><strong>Intermediary</strong></td>
+<td>Both reads and produces</td>
+<td><code>computed()</code></td>
+</tr>
+</tbody></table>
+<h3 id="how-it-works">How It Works</h3>
+<ol>
+<li>When you call <code>count()</code> inside a <code>computed()</code> or <code>effect()</code>, Angular automatically <strong>tracks</strong> the dependency.</li>
+<li>When <code>count.set(5)</code> is called, Angular marks all consumers as <strong>dirty</strong> (stale).</li>
+<li>Angular evaluates dirty computed values <strong>lazily</strong> — only when something actually reads them.</li>
+<li>This is <strong>glitch-free</strong>: if two signals update simultaneously, Angular ensures effects see a consistent snapshot, not intermediate states.</li>
+</ol>
+<pre><code class="language-typescript">const a = signal(1);
+const b = signal(2);
+// This computed reads both a and b, so it depends on both
+const sum = computed(() =&gt; a() + b());
+
+// Even if a and b update in rapid succession,
+// the effect below will only run ONCE with the final stable values
+effect(() =&gt; console.log(&#39;Sum:&#39;, sum()));
+</code></pre>
+<hr>
+<h2 id="3-core-signal-types">3. Core Signal Types</h2>
+<h3 id="31-writable-signals-signal">3.1 — Writable Signals: `signal()`</h3>
+<p>The root nodes of your reactive graph. They are the <strong>source of truth</strong>.</p>
+<pre><code class="language-typescript">import { signal } from &#39;@angular/core&#39;;
+
+// Primitive values
+const count = signal(0);
+const name = signal(&#39;Angular&#39;);
+const isLoading = signal(false);
+
+// Complex types — always use generics for type safety
+const user = signal&lt;User | null&gt;(null);
+const items = signal&lt;Product[]&gt;([]);
+
+// Reading a signal — always call it like a function!
+console.log(count());    // 0
+console.log(name());     // &#39;Angular&#39;
+
+// Writing: .set() — replaces the value entirely
+count.set(10);
+user.set({ id: 1, name: &#39;Alice&#39; });
+
+// Writing: .update() — updates based on the current value
+count.update(current =&gt; current + 1);       // 11
+items.update(list =&gt; [...list, newItem]);    // Adds to array immutably
+
+// Advanced: Custom equality function
+// By default, signals use === to check if a new value is &quot;different&quot;.
+// You can override this with a deep equality check for objects:
+const config = signal({ theme: &#39;dark&#39;, lang: &#39;en&#39; }, {
+  // If custom equal returns true, the signal does NOT notify consumers
+  equal: (a, b) =&gt; JSON.stringify(a) === JSON.stringify(b)
+});
+</code></pre>
+<h3 id="32-computed-signals-computed">3.2 — Computed Signals: `computed()`</h3>
+<p>Derived values that are <strong>automatically memoized and lazily evaluated</strong>.</p>
+<pre><code class="language-typescript">import { signal, computed } from &#39;@angular/core&#39;;
+
+const price = signal(100);
+const quantity = signal(3);
+const discountRate = signal(0.1); // 10% discount
+
+// This is MEMOIZED. It only recalculates when price, quantity, or discountRate changes.
+const subtotal = computed(() =&gt; price() * quantity());
+const discount = computed(() =&gt; subtotal() * discountRate());
+const total = computed(() =&gt; subtotal() - discount());
+
+// You can read a computed just like a signal:
+console.log(total()); // 270
+
+// Chain computed signals for complex derivations:
+const formattedTotal = computed(() =&gt; `${total().toFixed(2)}`);
+console.log(formattedTotal()); // &quot;$270.00&quot;
+</code></pre>
+<blockquote>
+<p><strong>Key insight</strong>: <code>computed()</code> values are NOT recalculated when you read them — they are recalculated only when a dependency changes. If you read <code>total()</code> 1000 times and nothing has changed, it executes the function only once and caches the result.</p>
+</blockquote>
+<h3 id="33-effects-effect">3.3 — Effects: `effect()`</h3>
+<p>Functions that run as <strong>side effects</strong> when signals change. Use for DOM manipulation, logging, syncing with localStorage, or making API calls in response to state changes.</p>
+<pre><code class="language-typescript">import { effect, untracked, Component, inject } from &#39;@angular/core&#39;;
+import { AnalyticsService } from &#39;./analytics.service&#39;;
+
+@Component({ ... })
+export class ShoppingCartComponent {
+  private analytics = inject(AnalyticsService);
+  cartItems = signal&lt;CartItem[]&gt;([]);
+  userId = signal&lt;string&gt;(&#39;user-123&#39;);
+
+  constructor() {
+    // --- Basic Effect ---
+    // Runs immediately on creation, then again whenever cartItems changes.
+    effect(() =&gt; {
+      console.log(`Cart updated. Now has ${this.cartItems().length} items`);
+    });
+
+    // --- Effect with untracked() ---
+    // You need userId for the analytics call, but you DON&#39;T want this effect
+    // to re-run every time userId changes — only when cartItems changes.
+    effect(() =&gt; {
+      const items = this.cartItems(); // ← TRACKED dependency
+
+      // untracked() reads userId WITHOUT adding it to this effect&#39;s dependency graph
+      const uid = untracked(this.userId); // ← NOT tracked
+
+      this.analytics.track(&#39;cart_updated&#39;, { uid, itemCount: items.length });
+    });
+
+    // --- Cleanup in effects ---
+    // If an effect starts a subscription or timer, you can return a cleanup function:
+    effect((onCleanup) =&gt; {
+      const timer = setInterval(() =&gt; console.log(&#39;polling&#39;), 5000);
+      // This runs before the effect re-runs or when the component is destroyed:
+      onCleanup(() =&gt; clearInterval(timer));
+    });
+  }
+}
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>Warning</strong>: By default, Angular throws an error if you try to call <code>signal.set()</code> inside an <code>effect()</code>. This prevents infinite loops. If you need to derive a new value from a signal, use <code>computed()</code> instead.</p>
+</blockquote>
+<hr>
+<h2 id="4-signal-template-binding">4. Signal Template Binding</h2>
+<p>Signals in templates must be <strong>called with <code>()</code></strong> because they are getter functions.</p>
+<pre><code class="language-html">&lt;!-- ✅ CORRECT: Call the signal to get its value --&gt;
+&lt;h1&gt;Welcome, {{ user().name }}!&lt;/h1&gt;
+
+&lt;!-- ❌ WRONG: Will render &quot;[object Function]&quot; --&gt;
+&lt;h1&gt;Welcome, {{ user.name }}!&lt;/h1&gt;
+
+&lt;!-- Property Binding — value updates automatically when signal changes --&gt;
+&lt;button [disabled]=&quot;isSubmitting()&quot;&gt;Save Changes&lt;/button&gt;
+
+&lt;!-- Class Binding --&gt;
+&lt;div [class.active]=&quot;isMenuOpen()&quot;&gt;&lt;/div&gt;
+&lt;div [ngClass]=&quot;{ &#39;loading&#39;: isLoading(), &#39;error&#39;: hasError() }&quot;&gt;&lt;/div&gt;
+
+&lt;!-- Style Binding --&gt;
+&lt;div [style.opacity]=&quot;opacity()&quot;&gt;&lt;/div&gt;
+
+&lt;!-- Control Flow with Signals --&gt;
+@if (currentUser()) {
+  &lt;p&gt;Hello, {{ currentUser()!.name }}&lt;/p&gt;
+} @else {
+  &lt;p&gt;Please log in.&lt;/p&gt;
+}
+
+&lt;!-- The &#39;as&#39; alias — evaluates once and avoids repeated function calls --&gt;
+@if (currentUser(); as user) {
+  &lt;p&gt;Hello, {{ user.name }}&lt;/p&gt;    &lt;!-- user is now a plain object, not a Signal! --&gt;
+  &lt;p&gt;Email: {{ user.email }}&lt;/p&gt;
+}
+
+@for (item of cartItems(); track item.id) {
+  &lt;li&gt;{{ item.name }} — {{ item.price | currency }}&lt;/li&gt;
+}
+</code></pre>
+<hr>
+<h2 id="5-two-way-binding-with-model">5. Two-Way Binding with `model()`</h2>
+<p><code>model()</code> replaces the old <code>@Input()</code> + <code>@Output() EventEmitter</code> pattern for two-way binding. It creates a writable signal that automatically emits a change event when updated.</p>
+<h3 id="child-component">Child Component</h3>
+<pre><code class="language-typescript">import { Component, model } from &#39;@angular/core&#39;;
+import { FormsModule } from &#39;@angular/forms&#39;;
+
+@Component({
+  selector: &#39;app-quantity-picker&#39;,
+  standalone: true,
+  imports: [FormsModule],
+  template: `
+    &lt;button (click)=&quot;decrement()&quot;&gt;-&lt;/button&gt;
+    &lt;input type=&quot;number&quot; [(ngModel)]=&quot;quantity&quot; min=&quot;1&quot;&gt;
+    &lt;button (click)=&quot;increment()&quot;&gt;+&lt;/button&gt;
+  `
+})
+export class QuantityPickerComponent {
+  // model() = Input AND Output in one declaration
+  // The parent binds with [(quantity)]=&quot;someSignal&quot;
+  quantity = model&lt;number&gt;(1);  // Default value is 1
+
+  increment() {
+    this.quantity.update(q =&gt; q + 1);
+    // Angular automatically emits a &#39;quantityChange&#39; event to the parent!
+  }
+
+  decrement() {
+    if (this.quantity() &gt; 1) {
+      this.quantity.update(q =&gt; q - 1);
+    }
+  }
+}
+</code></pre>
+<h3 id="parent-component">Parent Component</h3>
+<pre><code class="language-typescript">import { Component, signal, computed } from &#39;@angular/core&#39;;
+import { QuantityPickerComponent } from &#39;./quantity-picker.component&#39;;
+import { CurrencyPipe } from &#39;@angular/common&#39;;
+
+@Component({
+  selector: &#39;app-product-page&#39;,
+  standalone: true,
+  imports: [QuantityPickerComponent, CurrencyPipe],
+  template: `
+    &lt;h2&gt;Product: Widget Pro&lt;/h2&gt;
+    &lt;p&gt;Unit Price: {{ unitPrice() | currency }}&lt;/p&gt;
+
+    &lt;!-- Standard two-way banana-in-a-box binding --&gt;
+    &lt;app-quantity-picker [(quantity)]=&quot;selectedQuantity&quot;&gt;&lt;/app-quantity-picker&gt;
+
+    &lt;p&gt;Total: {{ totalPrice() | currency }}&lt;/p&gt;
+  `
+})
+export class ProductPageComponent {
+  unitPrice = signal(29.99);
+  selectedQuantity = signal(1);
+
+  // Reacts automatically when selectedQuantity or unitPrice changes
+  totalPrice = computed(() =&gt; this.unitPrice() * this.selectedQuantity());
+}
+</code></pre>
+<hr>
+<h2 id="6-signal-inputs">6. Signal Inputs</h2>
+<p><code>input()</code> is the modern replacement for <code>@Input()</code>. It returns a <strong>read-only signal</strong>, which means you can use it with <code>computed()</code> and <code>effect()</code> without <code>ngOnChanges</code>.</p>
+<pre><code class="language-typescript">import { Component, input, computed, effect } from &#39;@angular/core&#39;;
+
+export interface User { id: number; name: string; role: &#39;admin&#39; | &#39;user&#39;; }
+
+@Component({
+  selector: &#39;app-user-badge&#39;,
+  standalone: true,
+  template: `
+    &lt;div [class]=&quot;badgeClass()&quot;&gt;
+      {{ user().name }}
+      @if (isAdmin()) {
+        &lt;span class=&quot;crown&quot;&gt;👑&lt;/span&gt;
+      }
+    &lt;/div&gt;
+  `
+})
+export class UserBadgeComponent {
+  // input.required() — TypeScript error if parent forgets to pass it
+  user = input.required&lt;User&gt;();
+
+  // input() — optional with a default value
+  size = input&lt;&#39;sm&#39; | &#39;md&#39; | &#39;lg&#39;&gt;(&#39;md&#39;);
+
+  // input() with an alias — parent uses [userData]=&quot;...&quot;, class uses this.user
+  // user = input.required&lt;User&gt;({ alias: &#39;userData&#39; });
+
+  // Derived values from inputs — automatically recalculate when input changes
+  isAdmin = computed(() =&gt; this.user().role === &#39;admin&#39;);
+  badgeClass = computed(() =&gt; `badge badge-${this.size()} ${this.isAdmin() ? &#39;badge-admin&#39; : &#39;&#39;}`);
+
+  constructor() {
+    // React to input changes without ngOnChanges!
+    effect(() =&gt; {
+      console.log(`User changed to: ${this.user().name}`);
+    });
+  }
+}
+</code></pre>
+<h3 id="using-in-the-parent-template">Using in the Parent Template</h3>
+<pre><code class="language-html">&lt;!-- Required input — must be provided --&gt;
+&lt;app-user-badge [user]=&quot;currentUser()&quot;&gt;&lt;/app-user-badge&gt;
+
+&lt;!-- With optional input --&gt;
+&lt;app-user-badge [user]=&quot;currentUser()&quot; size=&quot;lg&quot;&gt;&lt;/app-user-badge&gt;
+</code></pre>
+<hr>
+<h2 id="7-signal-outputs-output">7. Signal Outputs: `output()`</h2>
+<p><code>output()</code> is the modern replacement for <code>@Output() EventEmitter</code>. It&#39;s type-safe and requires no RxJS.</p>
+<pre><code class="language-typescript">import { Component, input, output } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-product-card&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;h3&gt;{{ product().name }}&lt;/h3&gt;
+      &lt;p&gt;{{ product().price | currency }}&lt;/p&gt;
+      &lt;button (click)=&quot;addToCart()&quot;&gt;Add to Cart&lt;/button&gt;
+      &lt;button (click)=&quot;remove()&quot;&gt;Remove&lt;/button&gt;
+    &lt;/div&gt;
+  `
+})
+export class ProductCardComponent {
+  product = input.required&lt;Product&gt;();
+
+  // Modern output — emits a Product when user clicks &quot;Add to Cart&quot;
+  cartAdd = output&lt;Product&gt;();
+
+  // Modern output — emits the product ID when deleted
+  productRemove = output&lt;number&gt;();
+
+  addToCart() {
+    this.cartAdd.emit(this.product());
+  }
+
+  remove() {
+    this.productRemove.emit(this.product().id);
+  }
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- Parent listens to outputs --&gt;
+&lt;app-product-card
+  [product]=&quot;p&quot;
+  (cartAdd)=&quot;onAddToCart($event)&quot;
+  (productRemove)=&quot;onRemoveProduct($event)&quot;&gt;
+&lt;/app-product-card&gt;
+</code></pre>
+<hr>
+<h2 id="8-managing-collections-immutably">8. Managing Collections Immutably</h2>
+<p><strong>The Golden Rule</strong>: Never mutate an array or object stored in a signal directly. Instead, always create a new reference using spread syntax or <code>.filter()</code> / <code>.map()</code>.</p>
+<pre><code class="language-typescript">import { Injectable, signal, computed } from &#39;@angular/core&#39;;
+
+export interface Task {
+  id: number;
+  title: string;
+  completed: boolean;
+  priority: &#39;low&#39; | &#39;medium&#39; | &#39;high&#39;;
+}
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class TaskStore {
+  private _tasks = signal&lt;Task[]&gt;([]);
+
+  // Public read-only views of the data
+  readonly tasks = this._tasks.asReadonly();
+  readonly completedTasks = computed(() =&gt; this._tasks().filter(t =&gt; t.completed));
+  readonly activeTasks = computed(() =&gt; this._tasks().filter(t =&gt; !t.completed));
+  readonly highPriorityCount = computed(() =&gt;
+    this._tasks().filter(t =&gt; t.priority === &#39;high&#39; &amp;&amp; !t.completed).length
+  );
+
+  // CREATE
+  addTask(title: string, priority: Task[&#39;priority&#39;] = &#39;medium&#39;) {
+    const newTask: Task = {
+      id: Date.now(),       // Use a UUID library in production
+      title,
+      completed: false,
+      priority
+    };
+    // ✅ Correct: create a NEW array
+    this._tasks.update(tasks =&gt; [...tasks, newTask]);
+  }
+
+  // READ — just read the signal
+  getTaskById(id: number): Task | undefined {
+    return this._tasks().find(t =&gt; t.id === id);
+  }
+
+  // UPDATE — map over the array, replace the matching item
+  toggleTask(id: number) {
+    this._tasks.update(tasks =&gt;
+      tasks.map(task =&gt;
+        task.id === id ? { ...task, completed: !task.completed } : task
+      )
+    );
+  }
+
+  updateTask(id: number, changes: Partial&lt;Task&gt;) {
+    this._tasks.update(tasks =&gt;
+      tasks.map(task =&gt;
+        task.id === id ? { ...task, ...changes } : task
+      )
+    );
+  }
+
+  // DELETE — filter it out
+  deleteTask(id: number) {
+    this._tasks.update(tasks =&gt; tasks.filter(task =&gt; task.id !== id));
+  }
+
+  // BULK
+  completeAll() {
+    this._tasks.update(tasks =&gt; tasks.map(t =&gt; ({ ...t, completed: true })));
+  }
+
+  clearCompleted() {
+    this._tasks.update(tasks =&gt; tasks.filter(t =&gt; !t.completed));
+  }
+}
+</code></pre>
+<blockquote>
+<p>❌ <strong>Never do this — it mutates the array reference:</strong></p>
+<pre><code class="language-typescript">// WRONG: This pushes to the EXISTING array. The signal&#39;s reference doesn&#39;t change,
+// so Angular&#39;s reactivity system doesn&#39;t see any change!
+this._tasks().push(newTask);
+</code></pre>
+</blockquote>
+<hr>
+<h2 id="9-connecting-rxjs-to-signals">9. Connecting RxJS to Signals</h2>
+<p>RxJS is still useful for complex async operations (debouncing, combining streams). Angular provides two bridge utilities:</p>
+<h3 id="91-tosignal-observable-to-signal">9.1 — `toSignal()` — Observable to Signal</h3>
+<pre><code class="language-typescript">import { Component, inject, signal } from &#39;@angular/core&#39;;
+import { toSignal } from &#39;@angular/core/rxjs-interop&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+import { debounceTime, distinctUntilChanged, switchMap } from &#39;rxjs&#39;;
+
+@Component({
+  selector: &#39;app-search&#39;,
+  standalone: true,
+  template: `
+    &lt;input (input)=&quot;query.set($any($event.target).value)&quot; placeholder=&quot;Search...&quot;&gt;
+
+    @if (results()) {
+      @for (item of results(); track item.id) {
+        &lt;div&gt;{{ item.name }}&lt;/div&gt;
+      }
+    }
+  `
+})
+export class SearchComponent {
+  private http = inject(HttpClient);
+
+  query = signal(&#39;&#39;);
+
+  // Convert the RxJS pipeline result into a Signal
+  // toSignal() auto-subscribes and auto-unsubscribes when component is destroyed
+  results = toSignal(
+    // We need to bridge from signal to RxJS — use a Subject or toObservable()
+    // (see below), but for simplicity here we use the query signal value
+    this.http.get&lt;any[]&gt;(&#39;/api/search&#39;),
+    { initialValue: [] }
+  );
+}
+</code></pre>
+<h3 id="92-toobservable-signal-to-observable">9.2 — `toObservable()` — Signal to Observable</h3>
+<pre><code class="language-typescript">import { Component, signal, computed, inject } from &#39;@angular/core&#39;;
+import { toObservable, toSignal } from &#39;@angular/core/rxjs-interop&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+import { debounceTime, distinctUntilChanged, switchMap, catchError, of } from &#39;rxjs&#39;;
+
+@Component({
+  selector: &#39;app-user-search&#39;,
+  standalone: true,
+  template: `
+    &lt;input (input)=&quot;searchQuery.set($any($event.target).value)&quot; placeholder=&quot;Search users...&quot;&gt;
+    &lt;p&gt;{{ results().length }} results found&lt;/p&gt;
+    @for (user of results(); track user.id) {
+      &lt;div&gt;{{ user.name }}&lt;/div&gt;
+    }
+  `
+})
+export class UserSearchComponent {
+  private http = inject(HttpClient);
+
+  searchQuery = signal(&#39;&#39;);
+
+  // 1. Convert signal to Observable so we can use RxJS operators
+  private query$ = toObservable(this.searchQuery);
+
+  // 2. Apply RxJS magic: debounce, deduplicate, cancel stale requests
+  private results$ = this.query$.pipe(
+    debounceTime(300),           // Wait 300ms after user stops typing
+    distinctUntilChanged(),       // Ignore if same value as before
+    switchMap(query =&gt;           // Cancel previous request when new query comes in
+      this.http.get&lt;User[]&gt;(`/api/users?q=${query}`).pipe(
+        catchError(() =&gt; of([]))  // Return empty array on error
+      )
+    )
+  );
+
+  // 3. Convert the Observable result back to a Signal for the template
+  results = toSignal(this.results$, { initialValue: [] as User[] });
+}
+</code></pre>
+<hr>
+<h2 id="10-ngrx-signalstore-scalable-state-management">10. NgRx SignalStore (Scalable State Management)</h2>
+<p>For complex applications, plain signals in a service can become unwieldy. <strong>NgRx SignalStore</strong> is the official solution for scalable, feature-level state management.</p>
+<h3 id="installation">Installation</h3>
+<pre><code class="language-bash">npm install @ngrx/signals
+</code></pre>
+<h3 id="defining-the-store">Defining the Store</h3>
+<pre><code class="language-typescript">// products/product.store.ts
+import { signalStore, withState, withComputed, withMethods, patchState } from &#39;@ngrx/signals&#39;;
+import { withEntities, updateEntity, addEntity, removeEntity } from &#39;@ngrx/signals/entities&#39;;
+import { computed, inject } from &#39;@angular/core&#39;;
+import { rxMethod } from &#39;@ngrx/signals/rxjs-interop&#39;;
+import { pipe, tap, switchMap, catchError, of } from &#39;rxjs&#39;;
+import { ProductService } from &#39;./product.service&#39;;
+import { Product } from &#39;./product.model&#39;;
+
+// 1. Define the shape of the state
+type ProductState = {
+  isLoading: boolean;
+  error: string | null;
+  filter: string;
+};
+
+const initialState: ProductState = {
+  isLoading: false,
+  error: null,
+  filter: &#39;&#39;
+};
+
+// 2. Create the store using composable &quot;features&quot;
+export const ProductStore = signalStore(
+  // Provide at feature level (not root) to scope state to the products feature
+  { providedIn: &#39;root&#39; },
+
+  // withState: defines writable signals for each property
+  withState(initialState),
+
+  // withEntities: adds CRUD helpers for a collection of Product objects
+  withEntities&lt;Product&gt;(),
+
+  // withComputed: derived signals (memoized)
+  withComputed((state) =&gt; ({
+    filteredProducts: computed(() =&gt; {
+      const filter = state.filter().toLowerCase();
+      return state.entities().filter(p =&gt;
+        p.name.toLowerCase().includes(filter)
+      );
+    }),
+    productCount: computed(() =&gt; state.entities().length),
+    hasProducts: computed(() =&gt; state.entities().length &gt; 0),
+    errorMessage: computed(() =&gt; state.error() ?? &#39;&#39;),
+  })),
+
+  // withMethods: actions / reducers / effects
+  withMethods((state, productService = inject(ProductService)) =&gt; ({
+
+    // --- Sync actions ---
+    setFilter(filter: string) {
+      patchState(state, { filter });
+    },
+
+    clearError() {
+      patchState(state, { error: null });
+    },
+
+    // --- Async action using rxMethod for RxJS integration ---
+    loadProducts: rxMethod&lt;void&gt;(
+      pipe(
+        tap(() =&gt; patchState(state, { isLoading: true, error: null })),
+        switchMap(() =&gt;
+          productService.getAll().pipe(
+            tap((products) =&gt; {
+              // withEntities provides setAllEntities, addEntity, etc.
+              patchState(state, setAllEntities(products), { isLoading: false });
+            }),
+            catchError((error) =&gt; {
+              patchState(state, { isLoading: false, error: error.message });
+              return of(null);
+            })
+          )
+        )
+      )
+    ),
+
+    addProduct: rxMethod&lt;Omit&lt;Product, &#39;id&#39;&gt;&gt;(
+      pipe(
+        switchMap((newProduct) =&gt;
+          productService.create(newProduct).pipe(
+            tap((created) =&gt; patchState(state, addEntity(created)))
+          )
+        )
+      )
+    ),
+
+    deleteProduct: rxMethod&lt;number&gt;(
+      pipe(
+        switchMap((id) =&gt;
+          productService.delete(id).pipe(
+            tap(() =&gt; patchState(state, removeEntity(id)))
+          )
+        )
+      )
+    ),
+  }))
+);
+</code></pre>
+<h3 id="using-the-store-in-a-component">Using the Store in a Component</h3>
+<pre><code class="language-typescript">import { Component, inject, OnInit } from &#39;@angular/core&#39;;
+import { ProductStore } from &#39;./product.store&#39;;
+import { AsyncPipe, CurrencyPipe } from &#39;@angular/common&#39;;
+
+@Component({
+  selector: &#39;app-products-list&#39;,
+  standalone: true,
+  imports: [CurrencyPipe],
+  template: `
+    &lt;input (input)=&quot;store.setFilter($any($event.target).value)&quot; placeholder=&quot;Filter...&quot;&gt;
+
+    @if (store.isLoading()) {
+      &lt;div class=&quot;skeleton-loader&quot;&gt;Loading products...&lt;/div&gt;
+    }
+
+    @if (store.error()) {
+      &lt;div class=&quot;error-banner&quot;&gt;{{ store.error() }}&lt;/div&gt;
+    }
+
+    &lt;p&gt;Showing {{ store.filteredProducts().length }} of {{ store.productCount() }} products&lt;/p&gt;
+
+    @for (product of store.filteredProducts(); track product.id) {
+      &lt;div class=&quot;product-card&quot;&gt;
+        &lt;h3&gt;{{ product.name }}&lt;/h3&gt;
+        &lt;p&gt;{{ product.price | currency }}&lt;/p&gt;
+        &lt;button (click)=&quot;store.deleteProduct(product.id)&quot;&gt;Delete&lt;/button&gt;
+      &lt;/div&gt;
+    } @empty {
+      &lt;p&gt;No products match your filter.&lt;/p&gt;
+    }
+  `
+})
+export class ProductsListComponent implements OnInit {
+  // Inject like a regular service
+  readonly store = inject(ProductStore);
+
+  ngOnInit() {
+    // rxMethod auto-manages the subscription lifecycle
+    this.store.loadProducts();
+  }
+}
+</code></pre>
+<hr>
+<h2 id="11-signals-vs-rxjs-when-to-use-which">11. Signals vs RxJS — When to Use Which</h2>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Use Signals</th>
+<th>Use RxJS</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Simple component state (toggle, counter)</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>Derived/computed data</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>Two-way binding between components</td>
+<td>✅ (<code>model()</code>)</td>
+<td></td>
+</tr>
+<tr>
+<td>React to @Input changes</td>
+<td>✅ (<code>effect()</code>)</td>
+<td></td>
+</tr>
+<tr>
+<td>Simple HTTP request (no complex flows)</td>
+<td>✅ (with <code>toSignal()</code>)</td>
+<td></td>
+</tr>
+<tr>
+<td>Auto-search with debounce + cancel</td>
+<td></td>
+<td>✅ (<code>switchMap</code> + <code>debounceTime</code>)</td>
+</tr>
+<tr>
+<td>Multiple HTTP calls in sequence/parallel</td>
+<td></td>
+<td>✅ (<code>concatMap</code>, <code>forkJoin</code>)</td>
+</tr>
+<tr>
+<td>WebSocket streams</td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Retry logic with exponential backoff</td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Polling every N seconds</td>
+<td></td>
+<td>✅ (<code>interval</code> + <code>switchMap</code>)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="12-common-pitfalls">12. Common Pitfalls</h2>
+<h3 id="pitfall-1-forgetting-parentheses-in-templates">Pitfall 1: Forgetting parentheses in templates</h3>
+<pre><code class="language-html">&lt;!-- ❌ Renders &quot;[object Function]&quot; --&gt;
+&lt;p&gt;{{ user.name }}&lt;/p&gt;
+
+&lt;!-- ✅ Correct --&gt;
+&lt;p&gt;{{ user().name }}&lt;/p&gt;
+</code></pre>
+<h3 id="pitfall-2-mutating-arrays-directly">Pitfall 2: Mutating arrays directly</h3>
+<pre><code class="language-typescript">// ❌ Angular does NOT detect this change!
+this.tasks().push(newTask);
+
+// ✅ Correct: creates new reference
+this.tasks.update(t =&gt; [...t, newTask]);
+</code></pre>
+<h3 id="pitfall-3-writing-to-signals-inside-effect">Pitfall 3: Writing to signals inside `effect()`</h3>
+<pre><code class="language-typescript">// ❌ Angular throws: &quot;Writing to signals in effects is disabled by default&quot;
+effect(() =&gt; {
+  if (this.count() &gt; 10) {
+    this.isMaxed.set(true);  // ERROR!
+  }
+});
+
+// ✅ Use computed() instead
+isMaxed = computed(() =&gt; this.count() &gt; 10);
+</code></pre>
+<h3 id="pitfall-4-calling-signal-outside-of-injection-context">Pitfall 4: Calling `signal()` outside of injection context</h3>
+<pre><code class="language-typescript">// ❌ Calling toSignal() outside of a component/service constructor
+ngOnInit() {
+  // Error: toSignal() must be called in an injection context
+  this.data = toSignal(this.http.get(&#39;/api/data&#39;));
+}
+
+// ✅ Create signals as class properties or in constructor
+data = toSignal(inject(HttpClient).get&lt;any[]&gt;(&#39;/api/data&#39;), { initialValue: [] });
+</code></pre>
+<h3 id="pitfall-5-not-using-asreadonly-for-public-signals-in-services">Pitfall 5: Not using `asReadonly()` for public signals in services</h3>
+<pre><code class="language-typescript">// ❌ External code can mutate the private state directly
+export class CartService {
+  cartItems = signal&lt;CartItem[]&gt;([]);  // Public and writable — dangerous!
+}
+
+// ✅ Expose only a read-only view
+export class CartService {
+  private _cartItems = signal&lt;CartItem[]&gt;([]);
+  readonly cartItems = this._cartItems.asReadonly();  // Safe!
+
+  addItem(item: CartItem) {
+    this._cartItems.update(items =&gt; [...items, item]);
+  }
+}
+</code></pre>
+<hr>
+<h2 id="13-try-it-yourself">13. Try It Yourself</h2>
+<p>You are building a shopping cart. The cart has a list of items. You want to:</p>
+<ol>
+<li>Track a list of items in a signal</li>
+<li>Compute the total price</li>
+<li>Compute whether the cart is empty</li>
+<li>Be able to add and remove items</li>
+</ol>
+<p><strong>Starter Code:</strong></p>
+<pre><code class="language-typescript">export class ShoppingCartComponent {
+  // TODO 1: Create a writable signal for the cart items array
+  // TODO 2: Compute the total price (sum of item.price * item.quantity)
+  // TODO 3: Compute whether the cart is empty
+  // TODO 4: Write an addItem() and removeItem(id) method
+
+  items = ???;
+  totalPrice = ???;
+  isEmpty = ???;
+
+  addItem(product: Product) { ??? }
+  removeItem(id: number) { ??? }
+}
+</code></pre>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Component, signal, computed } from &#39;@angular/core&#39;;
+
+interface CartItem { id: number; name: string; price: number; quantity: number; }
+
+@Component({
+  selector: &#39;app-shopping-cart&#39;,
+  standalone: true,
+  template: `
+    @if (isEmpty()) {
+      &lt;p&gt;Your cart is empty.&lt;/p&gt;
+    } @else {
+      @for (item of items(); track item.id) {
+        &lt;div&gt;
+          {{ item.name }} × {{ item.quantity }} = {{ item.price * item.quantity | currency }}
+          &lt;button (click)=&quot;removeItem(item.id)&quot;&gt;Remove&lt;/button&gt;
+        &lt;/div&gt;
+      }
+      &lt;strong&gt;Total: {{ totalPrice() | currency }}&lt;/strong&gt;
+    }
+  `
+})
+export class ShoppingCartComponent {
+  // ✅ Writable signal for the cart
+  items = signal&lt;CartItem[]&gt;([]);
+
+  // ✅ Derived values — automatically update when items changes
+  totalPrice = computed(() =&gt;
+    this.items().reduce((sum, item) =&gt; sum + (item.price * item.quantity), 0)
+  );
+  isEmpty = computed(() =&gt; this.items().length === 0);
+
+  addItem(product: { id: number; name: string; price: number }) {
+    const existing = this.items().find(i =&gt; i.id === product.id);
+    if (existing) {
+      // Increment quantity if already in cart
+      this.items.update(items =&gt;
+        items.map(i =&gt; i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i)
+      );
+    } else {
+      // Add new item
+      this.items.update(items =&gt; [...items, { ...product, quantity: 1 }]);
+    }
+  }
+
+  removeItem(id: number) {
+    this.items.update(items =&gt; items.filter(i =&gt; i.id !== id));
+  }
+}
+</code></pre>
+</details><hr>
+<h2 id="14-knowledge-check">14. Knowledge Check</h2>
+<ol>
+<li>What is the difference between <code>signal()</code> and <code>computed()</code>?</li>
+<li>Why can&#39;t you mutate an array inside a signal directly (e.g., <code>.push()</code>)?</li>
+<li>What does <code>untracked()</code> do, and when would you use it in an <code>effect()</code>?</li>
+<li>When should you use <code>toSignal()</code> vs <code>toObservable()</code>?</li>
+<li>What is the advantage of <code>model()</code> over a traditional <code>@Input()</code> + <code>@Output() EventEmitter</code> pair?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><code>signal()</code> is a <strong>writable producer</strong> — you can call <code>.set()</code> or <code>.update()</code> on it. <code>computed()</code> is a <strong>read-only derived value</strong> — you define its formula once and Angular keeps it in sync automatically. You cannot manually set a computed signal.</p>
+</li>
+<li><p>Angular&#39;s reactivity system detects changes by comparing the <strong>object reference</strong>. If you push to the same array, the reference (<code>[]</code>) hasn&#39;t changed, so Angular sees no update. You must use <code>update(items =&gt; [...items, newItem])</code> to create a new array reference.</p>
+</li>
+<li><p><code>untracked()</code> reads a signal without registering a dependency. Use it when your effect depends logically on Signal A, but also <em>needs</em> the value of Signal B without wanting to re-run every time B changes. This prevents unnecessary re-executions.</p>
+</li>
+<li><p>Use <strong><code>toSignal(observable$)</code></strong> to convert an RxJS Observable into a Signal for use in templates or with <code>computed()</code>. Use <strong><code>toObservable(mySignal)</code></strong> when you want to pipe a signal through RxJS operators (like <code>debounceTime</code>, <code>switchMap</code>) before consuming the result.</p>
+</li>
+<li><p><code>model()</code> creates a single, writable, two-way-bindable property. With <code>@Input()</code> + <code>@Output()</code>, you need two separate declarations, the output must be named <code>{inputName}Change</code>, and you manage an <code>EventEmitter</code> instance. <code>model()</code> collapses all of that into one line, is type-safe, and works natively with the signal reactivity graph.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./control-flow.html">03 - Control Flow Syntax →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

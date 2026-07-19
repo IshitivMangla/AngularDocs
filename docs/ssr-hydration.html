@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: SSR & Hydration - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item active">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-ssr-hydration">Angular: SSR & Hydration</h1>
+<blockquote>
+<p><strong>Goal</strong>: Understand Server-Side Rendering (SSR) in Angular — why it exists, how hydration works, and how to write SSR-safe code that works in both Node.js and browser environments.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-csr-vs-ssr">CSR vs SSR — Core Difference</a></li>
+<li><a href="#2-how-angular-ssr-works">How Angular SSR Works</a></li>
+<li><a href="#3-what-is-hydration">What is Hydration?</a></li>
+<li><a href="#4-setting-up-ssr">Setting Up SSR</a></li>
+<li><a href="#5-writing-ssr-safe-code">Writing SSR-Safe Code</a></li>
+<li><a href="#6-http-in-ssr">HTTP in SSR: The Transfer State Problem</a></li>
+<li><a href="#7-partial-hydration">Partial Hydration with <code>@defer</code></a></li>
+<li><a href="#8-ssr-performance-metrics">SSR Performance Metrics</a></li>
+<li><a href="#9-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-csr-vs-ssr">1. CSR vs SSR</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Client-Side Rendering (CSR)</th>
+<th>Server-Side Rendering (SSR)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Initial HTML</strong></td>
+<td>Empty <code>&lt;app-root&gt;&lt;/app-root&gt;</code></td>
+<td>Full HTML with content</td>
+</tr>
+<tr>
+<td><strong>First Content</strong></td>
+<td>After JS parses &amp; executes (2-5s)</td>
+<td>Instant (HTML arrives from server)</td>
+</tr>
+<tr>
+<td><strong>SEO</strong></td>
+<td>Difficult — bots see empty page</td>
+<td>Excellent — bots see full content</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Large JS bundle must load first</td>
+<td>First paint is nearly instant</td>
+</tr>
+<tr>
+<td><strong>Complexity</strong></td>
+<td>Simple</td>
+<td>Must write SSR-safe code</td>
+</tr>
+<tr>
+<td><strong>Server</strong></td>
+<td>Static file hosting</td>
+<td>Node.js server required</td>
+</tr>
+</tbody></table>
+<pre><code>CSR Flow:
+User requests / → Server sends index.html (empty) → Browser downloads main.js (2MB) → Angular bootstraps → UI renders
+                                    ↑ User sees white screen here ↑
+
+SSR Flow:
+User requests / → Angular Universal on Node.js runs the app → Server sends full HTML → Browser shows content immediately
+                → Browser downloads main.js → Angular hydrates the HTML → Interactive
+                  ↑ User sees content here ↑ ← 2-5 seconds earlier!
+</code></pre>
+<hr>
+<h2 id="2-how-angular-ssr-works">2. How Angular SSR Works</h2>
+<ol>
+<li>A <strong>Node.js server</strong> (Express.js) runs your Angular app</li>
+<li>Angular renders the app into an HTML string using the <strong>Platform Server</strong></li>
+<li>The HTML string is sent to the browser — user sees content immediately</li>
+<li>JavaScript files download in the background</li>
+<li>Angular <strong>hydrates</strong> the static HTML (attaches event listeners)</li>
+<li>The page becomes interactive</li>
+</ol>
+<pre><code class="language-typescript">// server.ts — the Node.js/Express server that drives SSR
+import { APP_BASE_HREF } from &#39;@angular/common&#39;;
+import { CommonEngine } from &#39;@angular/ssr&#39;;
+import express from &#39;express&#39;;
+import { AppServerModule } from &#39;./src/main.server&#39;;
+import bootstrap from &#39;./src/main.server&#39;;
+
+const app = express();
+const commonEngine = new CommonEngine();
+
+// Serve static files
+app.get(&#39;*.*&#39;, express.static(&#39;dist/browser&#39;));
+
+// SSR handler — Angular renders the page for every non-file request
+app.get(&#39;*&#39;, async (req, res, next) =&gt; {
+  try {
+    const html = await commonEngine.render({
+      bootstrap,
+      documentFilePath: &#39;dist/browser/index.html&#39;,
+      url: `${req.protocol}://${req.headers.host}/${req.url}`,
+      publicPath: &#39;dist/browser&#39;,
+      providers: [{ provide: APP_BASE_HREF, useValue: req.baseUrl }],
+    });
+    res.send(html);
+  } catch (err) {
+    next(err);
+  }
+});
+</code></pre>
+<hr>
+<h2 id="3-what-is-hydration">3. What is Hydration?</h2>
+<p>Before Angular v16, SSR would:</p>
+<ol>
+<li>Server sends full HTML → user sees content ✅</li>
+<li>Angular downloads and runs → <strong>destroys the HTML and rebuilds everything</strong> → flicker, layout shift ❌</li>
+</ol>
+<p><strong>Hydration</strong> (Angular v16+) means:</p>
+<ol>
+<li>Server sends full HTML → user sees content ✅</li>
+<li>Angular downloads and runs → <strong>reuses the existing DOM</strong>, only attaches event listeners ✅</li>
+</ol>
+<pre><code class="language-typescript">// app.config.ts — enable hydration (required for SSR)
+import { provideClientHydration } from &#39;@angular/platform-browser&#39;;
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes),
+    provideClientHydration(),  // ← Required for Angular SSR hydration!
+  ]
+};
+</code></pre>
+<hr>
+<h2 id="4-setting-up-ssr">4. Setting Up SSR</h2>
+<pre><code class="language-bash"># Add SSR to an existing Angular project
+ng add @angular/ssr
+
+# Create a new project with SSR from the start
+ng new my-app --ssr
+</code></pre>
+<p>This generates:</p>
+<ul>
+<li><code>server.ts</code> — Express server entry point</li>
+<li><code>src/app/app.config.server.ts</code> — Server-specific providers</li>
+<li><code>src/main.server.ts</code> — Server bootstrap module</li>
+</ul>
+<hr>
+<h2 id="5-writing-ssr-safe-code">5. Writing SSR-Safe Code</h2>
+<p>In SSR, your code runs in <strong>Node.js</strong>. Node.js has NO browser APIs:</p>
+<pre><code>❌ window           ❌ document         ❌ localStorage
+❌ navigator        ❌ location          ❌ history
+❌ HTMLElement      ❌ canvas.getContext ❌ CSS media queries
+</code></pre>
+<p>Accessing any of these on the server will crash the Node.js process!</p>
+<h3 id="method-1-afternextrender-safest-approach-angular-17">Method 1: `afterNextRender()` — Safest Approach (Angular 17+)</h3>
+<pre><code class="language-typescript">import { Component, afterNextRender, signal } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-analytics&#39;,
+  standalone: true,
+  template: `&lt;canvas #chart&gt;&lt;/canvas&gt;`
+})
+export class AnalyticsComponent {
+  constructor() {
+    // This code NEVER runs on the server — only in the browser after first render!
+    afterNextRender(() =&gt; {
+      // Safe to use: localStorage, document, window, canvas, third-party libraries
+      const savedPreference = localStorage.getItem(&#39;chartType&#39;) ?? &#39;bar&#39;;
+
+      const canvas = document.querySelector(&#39;canvas&#39;);
+      // Initialize Chart.js here...
+    });
+  }
+}
+</code></pre>
+<h3 id="method-2-isplatformbrowser-for-services">Method 2: `isPlatformBrowser()` — For Services</h3>
+<pre><code class="language-typescript">import { Injectable, inject, PLATFORM_ID } from &#39;@angular/core&#39;;
+import { isPlatformBrowser, isPlatformServer } from &#39;@angular/common&#39;;
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class StorageService {
+  private platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly isServer = isPlatformServer(this.platformId);
+
+  get(key: string): string | null {
+    if (!this.isBrowser) return null;
+    return localStorage.getItem(key);
+  }
+
+  set(key: string, value: string): void {
+    if (!this.isBrowser) return;  // Silently skip on server
+    localStorage.setItem(key, value);
+  }
+
+  // Reading cookies — works on both server and browser
+  getCookie(name: string): string | undefined {
+    if (this.isBrowser) {
+      return document.cookie.split(&#39;; &#39;).find(row =&gt; row.startsWith(`${name}=`))?.split(&#39;=&#39;)[1];
+    }
+    // On server, cookies come from the request — use REQUEST injection token
+    return undefined;
+  }
+}
+</code></pre>
+<h3 id="method-3-if-the-dangerous-code-out">Method 3: `@if` the Dangerous Code Out</h3>
+<pre><code class="language-typescript">@Component({
+  standalone: true,
+  template: `
+    @if (isBrowser) {
+      &lt;!-- This component uses browser-only APIs --&gt;
+      &lt;app-3d-viewer [model]=&quot;modelUrl()&quot;&gt;&lt;/app-3d-viewer&gt;
+    } @else {
+      &lt;!-- Render a static image on the server instead --&gt;
+      &lt;img [src]=&quot;thumbnailUrl()&quot; [alt]=&quot;productName()&quot;&gt;
+    }
+  `
+})
+export class ProductViewComponent {
+  private platformId = inject(PLATFORM_ID);
+  isBrowser = isPlatformBrowser(this.platformId);
+}
+</code></pre>
+<hr>
+<h2 id="6-http-in-ssr">6. HTTP in SSR</h2>
+<p><strong>The Transfer State Problem</strong>: Without transfer state, a request that runs on the server will ALSO run in the browser after hydration, sending the same HTTP request twice!</p>
+<pre><code>Without Transfer State:
+1. Server fetches /api/products → renders HTML with 50 products ← sent to browser
+2. Browser receives HTML, shows 50 products (fast!)
+3. Browser hydrates → Angular bootstraps → ngOnInit fires → fetches /api/products AGAIN! ← Wasted request!
+
+With Transfer State:
+1. Server fetches /api/products → renders HTML → STORES result in hidden script tag
+2. Browser receives HTML, shows 50 products (fast!)
+3. Browser hydrates → Angular reads stored result from script tag → no second HTTP call!
+</code></pre>
+<pre><code class="language-typescript">// Angular automatically handles this with provideHttpClient(withFetch())!
+import { provideHttpClient, withFetch } from &#39;@angular/common/http&#39;;
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideHttpClient(
+      withFetch()  // Required for SSR! Uses fetch API compatible with both Node and browser
+    ),
+    provideClientHydration()  // Automatically enables HttpTransferCache!
+  ]
+};
+</code></pre>
+<p>With these two providers, <code>HttpClient</code> requests made during SSR are automatically cached and reused in the browser — zero double-fetching!</p>
+<hr>
+<h2 id="7-partial-hydration">7. Partial Hydration</h2>
+<p><code>@defer</code> and SSR work together: SSR renders the <code>@placeholder</code> on the server, and the actual component is loaded lazily in the browser.</p>
+<pre><code class="language-html">&lt;!-- Server renders the placeholder immediately (fast first paint!) --&gt;
+&lt;!-- Browser lazy-loads the heavy chart component when needed --&gt;
+@defer (on viewport) {
+  &lt;app-analytics-chart&gt;&lt;/app-analytics-chart&gt;
+} @placeholder {
+  &lt;!-- This is what the server renders and what the user sees instantly! --&gt;
+  &lt;div class=&quot;chart-placeholder&quot; style=&quot;min-height: 400px&quot;&gt;
+    &lt;img src=&quot;/assets/chart-preview.jpg&quot; alt=&quot;Analytics chart loading...&quot;&gt;
+  &lt;/div&gt;
+}
+</code></pre>
+<hr>
+<h2 id="8-ssr-performance-metrics">8. SSR Performance Metrics</h2>
+<p>SSR primarily improves:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>Impact of SSR</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>FCP</strong> (First Contentful Paint)</td>
+<td>Time until first content appears</td>
+<td>⬇️ Dramatically reduced</td>
+</tr>
+<tr>
+<td><strong>LCP</strong> (Largest Contentful Paint)</td>
+<td>Time until main content renders</td>
+<td>⬇️ Significantly reduced</td>
+</tr>
+<tr>
+<td><strong>TTI</strong> (Time to Interactive)</td>
+<td>Time until page responds to clicks</td>
+<td>Similar (hydration still needed)</td>
+</tr>
+<tr>
+<td><strong>SEO Score</strong></td>
+<td>Search engine indexability</td>
+<td>⬆️ Dramatically improved</td>
+</tr>
+<tr>
+<td><strong>Core Web Vitals</strong></td>
+<td>Google&#39;s ranking signals</td>
+<td>⬆️ Improved (LCP, CLS)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-common-pitfalls">9. Common Pitfalls</h2>
+<h3 id="pitfall-1-using-window-document-localstorage-directly">Pitfall 1: Using `window`, `document`, `localStorage` directly</h3>
+<pre><code class="language-typescript">// ❌ Crashes the Node.js server!
+ngOnInit() {
+  document.title = &#39;My Page&#39;;   // ReferenceError: document is not defined
+  localStorage.getItem(&#39;user&#39;); // ReferenceError: localStorage is not defined
+}
+
+// ✅ Use afterNextRender() or isPlatformBrowser()
+constructor() {
+  afterNextRender(() =&gt; {
+    document.title = &#39;My Page&#39;;
+    localStorage.getItem(&#39;user&#39;);
+  });
+}
+</code></pre>
+<h3 id="pitfall-2-setinterval-in-ngoninit-on-the-server">Pitfall 2: `setInterval` in `ngOnInit` on the server</h3>
+<pre><code class="language-typescript">// ❌ The interval runs on the server and never completes — server hangs!
+ngOnInit() {
+  setInterval(() =&gt; this.updateClock(), 1000);
+}
+
+// ✅ Only run in browser
+ngOnInit() {
+  afterNextRender(() =&gt; {
+    const id = setInterval(() =&gt; this.updateClock(), 1000);
+    this.destroyRef.onDestroy(() =&gt; clearInterval(id));
+  });
+}
+</code></pre>
+<h3 id="pitfall-3-not-using-withfetch-double-http-requests">Pitfall 3: Not using `withFetch()` — double HTTP requests</h3>
+<pre><code class="language-typescript">// ❌ Without withFetch, uses XMLHttpRequest (not available in Node.js)
+// Falls back to a Node-compatible shim, but no transfer caching!
+provideHttpClient()
+
+// ✅ With withFetch — uses Fetch API, compatible with Node.js AND enables transfer cache
+provideHttpClient(withFetch())
+</code></pre>
+<h3 id="pitfall-4-hydration-mismatch">Pitfall 4: Hydration mismatch</h3>
+<pre><code class="language-typescript">// ❌ If server renders different HTML than client, Angular throws hydration mismatch error!
+// This happens when you access Date.now() or Math.random() in templates
+
+template: `&lt;p&gt;Random: {{ getRandomId() }}&lt;/p&gt;`
+// Server: renders &quot;42&quot;, Browser: renders &quot;17&quot; → MISMATCH!
+
+// ✅ Pre-compute such values as signals before rendering
+randomId = signal(Math.random());
+template: `&lt;p&gt;Random: {{ randomId() }}&lt;/p&gt;`
+// Both server and browser use the same pre-computed value
+</code></pre>
+<hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>What is the difference between SSR and hydration?</li>
+<li>Why does Angular SSR need Node.js?</li>
+<li>What does <code>provideClientHydration()</code> do?</li>
+<li>Why must you use <code>withFetch()</code> with <code>provideHttpClient()</code> in SSR apps?</li>
+<li>What happens if your server-rendered HTML is different from the client-rendered HTML?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><strong>SSR</strong> is the process of rendering your Angular app into HTML on the server (Node.js) and sending it to the browser — giving users content before JavaScript loads. <strong>Hydration</strong> is what happens next: Angular &quot;wakes up&quot; the static HTML by attaching event listeners and making the page interactive, WITHOUT destroying and rebuilding the DOM.</p>
+</li>
+<li><p>Angular SSR uses <strong>Angular Universal</strong>, which is built on <code>@angular/platform-server</code>. This package implements Angular&#39;s rendering engine in a Node.js environment. A Node.js server (often Express) receives requests, runs the Angular app in Node.js, and sends back the rendered HTML string.</p>
+</li>
+<li><p><code>provideClientHydration()</code> enables Angular&#39;s incremental hydration feature, which allows Angular to reuse the server-rendered DOM instead of destroying it. It also automatically sets up <code>HttpTransferCache</code>, which serializes HTTP responses from the server into the HTML so the browser can reuse them without making duplicate API calls.</p>
+</li>
+<li><p><code>withFetch()</code> makes Angular&#39;s <code>HttpClient</code> use the <strong>Fetch API</strong> instead of <code>XMLHttpRequest</code>. <code>XMLHttpRequest</code> is browser-only and doesn&#39;t work in Node.js. The Fetch API works in both environments. Additionally, <code>withFetch()</code> enables <code>HttpTransferCache</code> (when combined with <code>provideClientHydration()</code>), which prevents duplicate HTTP requests between server and browser.</p>
+</li>
+<li><p>Angular throws a <strong>hydration mismatch error</strong>. When the server-rendered HTML doesn&#39;t match what the client would render, Angular can&#39;t reliably attach event listeners to the correct DOM elements. Common causes: using <code>Date.now()</code>, <code>Math.random()</code>, or any browser-only data (like screen width) in templates. The solution is to pre-compute these values as signals and ensure server and client always produce identical output.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./viewchild.html">16 - ViewChild →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

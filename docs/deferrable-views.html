@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Deferrable Views (`@defer`) - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item active">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-deferrable-views-defer">Angular: Deferrable Views (`@defer`)</h1>
+<blockquote>
+<p><strong>Goal</strong>: Use Angular&#39;s <code>@defer</code> block to dramatically reduce initial bundle size by lazy-loading heavy components exactly when they&#39;re needed.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-why-defer">Why <code>@defer</code>?</a></li>
+<li><a href="#2-the-four-blocks">The Four Blocks</a></li>
+<li><a href="#3-all-trigger-types">All Trigger Types</a></li>
+<li><a href="#4-prefetch-strategies">Prefetch Strategies</a></li>
+<li><a href="#5-real-world-patterns">Real-World Patterns</a></li>
+<li><a href="#6-testing-defer-blocks">Testing Defer Blocks</a></li>
+<li><a href="#7-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#8-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#9-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-why-defer">1. Why `@defer`?</h2>
+<p>Before <code>@defer</code>, lazy-loading a component either required:</p>
+<ul>
+<li>Putting it on a separate route (<code>loadComponent</code> / <code>loadChildren</code>)</li>
+<li>Complex boilerplate with <code>ViewContainerRef</code> + <code>ComponentRef</code> + dynamic imports</li>
+</ul>
+<p><code>@defer</code> makes <strong>template-level lazy loading</strong> declarative and zero-boilerplate. The Angular compiler automatically:</p>
+<ol>
+<li>Detects everything inside the <code>@defer</code> block</li>
+<li>Bundles those dependencies into a <strong>separate JS file</strong></li>
+<li>Downloads that file <strong>only when the trigger condition is met</strong></li>
+</ol>
+<h3 id="impact-on-bundle-size">Impact on Bundle Size</h3>
+<pre><code>Before @defer:
+main.js → 1.2MB (includes charts, editor, video player, etc.)
+
+After @defer:
+main.js → 180KB   ← User downloads this on first visit
+chunk-charts.js → 400KB  ← Downloaded only when Charts section is in viewport
+chunk-editor.js → 320KB  ← Downloaded only when user clicks &quot;Edit&quot;
+chunk-video.js  → 280KB  ← Downloaded only on interaction
+</code></pre>
+<hr>
+<h2 id="2-the-four-blocks">2. The Four Blocks</h2>
+<pre><code class="language-html">@defer (on viewport; prefetch on idle) {
+  &lt;!-- 📦 LAZY BLOCK --&gt;
+  &lt;!-- All imports inside here become a separate JavaScript bundle! --&gt;
+  &lt;!-- Angular knows to lazy-load: ChartComponent, its dependencies, etc. --&gt;
+  &lt;app-analytics-chart [data]=&quot;salesData()&quot;&gt;&lt;/app-analytics-chart&gt;
+  &lt;app-data-table [rows]=&quot;tableData()&quot;&gt;&lt;/app-data-table&gt;
+}
+
+@placeholder (minimum 500ms) {
+  &lt;!-- 🖼️ PLACEHOLDER — shown while the chunk is not yet downloaded --&gt;
+  &lt;!-- &#39;minimum: 500ms&#39; prevents a quick flash if the chunk loads fast --&gt;
+  &lt;!-- Always give it a height! (see Pitfalls) --&gt;
+  &lt;div class=&quot;chart-skeleton&quot; style=&quot;min-height: 400px&quot;&gt;
+    &lt;p&gt;Scroll down to load the analytics chart...&lt;/p&gt;
+  &lt;/div&gt;
+}
+
+@loading (after 200ms; minimum 1s) {
+  &lt;!-- ⏳ LOADING — shown only when the browser is actively downloading the chunk --&gt;
+  &lt;!-- &#39;after 200ms&#39;: don&#39;t show for instant downloads (fast connections) --&gt;
+  &lt;!-- &#39;minimum 1s&#39;: ensure spinner stays visible enough to be seen (not just a flash) --&gt;
+  &lt;div class=&quot;spinner-container&quot;&gt;
+    &lt;div class=&quot;spinner&quot;&gt;&lt;/div&gt;
+    &lt;p&gt;Loading chart data...&lt;/p&gt;
+  &lt;/div&gt;
+}
+
+@error {
+  &lt;!-- ❌ ERROR — shown if the chunk fails to download (e.g., user went offline) --&gt;
+  &lt;div class=&quot;error-state&quot;&gt;
+    &lt;p&gt;⚠️ Failed to load this section.&lt;/p&gt;
+    &lt;button (click)=&quot;retryLoad()&quot;&gt;Retry&lt;/button&gt;
+  &lt;/div&gt;
+}
+</code></pre>
+<h3 id="block-timing-summary">Block Timing Summary</h3>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Renders When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@placeholder</code></td>
+<td>Immediately, before the chunk downloads</td>
+</tr>
+<tr>
+<td><code>@loading</code></td>
+<td>When the browser starts downloading the JS chunk</td>
+</tr>
+<tr>
+<td><code>@defer</code> content</td>
+<td>When the chunk downloads and the trigger is active</td>
+</tr>
+<tr>
+<td><code>@error</code></td>
+<td>If the chunk download fails</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="3-all-trigger-types">3. All Trigger Types</h2>
+<h3 id="on-idle-default">`on idle` (Default)</h3>
+<pre><code class="language-html">&lt;!-- Waits until the browser is idle (requestIdleCallback) --&gt;
+&lt;!-- Best for: Below-the-fold content, non-critical sections --&gt;
+@defer (on idle) {
+  &lt;app-recommendations&gt;&lt;/app-recommendations&gt;
+}
+</code></pre>
+<h3 id="on-viewport">`on viewport`</h3>
+<pre><code class="language-html">&lt;!-- Uses IntersectionObserver — loads when placeholder enters the viewport --&gt;
+&lt;!-- Best for: Infinite scrolling, below-fold heavy content --&gt;
+@defer (on viewport) {
+  &lt;app-analytics-dashboard [data]=&quot;metrics()&quot;&gt;&lt;/app-analytics-dashboard&gt;
+} @placeholder {
+  &lt;!-- CRITICAL: Give the placeholder height! Otherwise it&#39;s always &quot;in viewport&quot; --&gt;
+  &lt;div style=&quot;min-height: 500px&quot; class=&quot;dashboard-skeleton&quot;&gt;&lt;/div&gt;
+}
+</code></pre>
+<h3 id="on-interaction">`on interaction`</h3>
+<pre><code class="language-html">&lt;!-- Loads when the user clicks or focusses the placeholder element --&gt;
+&lt;!-- Best for: Video players, rich text editors, complex modals --&gt;
+@defer (on interaction) {
+  &lt;app-video-player [src]=&quot;videoUrl()&quot;&gt;&lt;/app-video-player&gt;
+} @placeholder {
+  &lt;div class=&quot;video-thumbnail&quot; style=&quot;min-height: 300px&quot;&gt;
+    &lt;img [src]=&quot;thumbnailUrl()&quot; alt=&quot;Click to play&quot;&gt;
+    &lt;div class=&quot;play-button&quot;&gt;▶&lt;/div&gt;
+  &lt;/div&gt;
+}
+</code></pre>
+<h3 id="on-hover">`on hover`</h3>
+<pre><code class="language-html">&lt;!-- Loads when the user hovers over the placeholder --&gt;
+&lt;!-- Best for: Tooltips, dropdowns, preview panels --&gt;
+@defer (on hover) {
+  &lt;app-user-preview-card [userId]=&quot;hoveredUserId()&quot;&gt;&lt;/app-user-preview-card&gt;
+} @placeholder {
+  &lt;span class=&quot;username-link&quot;&gt;{{ username() }}&lt;/span&gt;
+}
+</code></pre>
+<h3 id="on-timerms">`on timer(ms)`</h3>
+<pre><code class="language-html">&lt;!-- Loads after a specified delay, regardless of user action --&gt;
+&lt;!-- Best for: Non-critical sections below the fold, chat widgets --&gt;
+@defer (on timer(3000)) {
+  &lt;app-cookie-consent-banner&gt;&lt;/app-cookie-consent-banner&gt;
+}
+</code></pre>
+<h3 id="when-conditional-trigger">`when <condition>` — Conditional Trigger</h3>
+<pre><code class="language-html">&lt;!-- Loads when the expression becomes truthy --&gt;
+&lt;!-- Best for: Feature flags, permission-based components --&gt;
+@defer (when isAdmin() &amp;&amp; featureEnabled()) {
+  &lt;app-admin-controls&gt;&lt;/app-admin-controls&gt;
+} @placeholder {
+  &lt;div&gt;&lt;/div&gt;  &lt;!-- Empty placeholder — nothing shows until condition is met --&gt;
+}
+</code></pre>
+<h3 id="on-immediate-no-delay">`on immediate` — No Delay</h3>
+<pre><code class="language-html">&lt;!-- Loads as soon as the component renders — but still as a separate chunk! --&gt;
+&lt;!-- Best for: Important content that you still want in a lazy bundle for code-splitting --&gt;
+@defer (on immediate) {
+  &lt;app-above-fold-hero&gt;&lt;/app-above-fold-hero&gt;
+}
+</code></pre>
+<hr>
+<h2 id="4-prefetch-strategies">4. Prefetch Strategies</h2>
+<p>The <code>prefetch</code> keyword starts downloading the JS chunk <strong>before</strong> the main trigger fires, so the component is instantly available when needed.</p>
+<pre><code class="language-html">&lt;!-- Trigger: load on click (interaction) --&gt;
+&lt;!-- Prefetch: start downloading when user hovers --&gt;
+&lt;!-- Result: By the time they click, the download is already done! --&gt;
+@defer (on interaction; prefetch on hover) {
+  &lt;app-document-editor [doc]=&quot;currentDoc()&quot;&gt;&lt;/app-document-editor&gt;
+} @placeholder {
+  &lt;button class=&quot;open-editor-btn&quot;&gt;📝 Open Editor&lt;/button&gt;
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- Trigger: show when admin flag is set (when) --&gt;
+&lt;!-- Prefetch: start downloading when the app is idle --&gt;
+&lt;!-- Result: Admin panel is ready before admin even navigates there --&gt;
+@defer (when showAdminPanel(); prefetch on idle) {
+  &lt;app-admin-panel&gt;&lt;/app-admin-panel&gt;
+}
+</code></pre>
+<p>All trigger types work as prefetch strategies: <code>prefetch on idle</code>, <code>prefetch on viewport</code>, <code>prefetch on hover</code>, <code>prefetch on timer(2000)</code>, <code>prefetch when condition</code>.</p>
+<hr>
+<h2 id="5-real-world-patterns">5. Real-World Patterns</h2>
+<h3 id="pattern-1-analytics-dashboard-below-the-fold">Pattern 1: Analytics Dashboard (Below the Fold)</h3>
+<pre><code class="language-html">&lt;!-- Hero section — loaded eagerly (no defer needed) --&gt;
+&lt;app-hero-banner&gt;&lt;/app-hero-banner&gt;
+
+&lt;!-- Analytics charts — defer with viewport trigger --&gt;
+@defer (on viewport; prefetch on idle) {
+  &lt;section class=&quot;analytics&quot;&gt;
+    &lt;app-revenue-chart [data]=&quot;revenueData()&quot;&gt;&lt;/app-revenue-chart&gt;
+    &lt;app-user-growth-chart [data]=&quot;userGrowthData()&quot;&gt;&lt;/app-user-growth-chart&gt;
+    &lt;app-conversion-funnel [data]=&quot;funnelData()&quot;&gt;&lt;/app-conversion-funnel&gt;
+  &lt;/section&gt;
+} @placeholder {
+  &lt;div class=&quot;analytics-skeleton&quot; style=&quot;min-height: 800px&quot;&gt;
+    &lt;div class=&quot;skeleton-bar&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;skeleton-bar&quot; style=&quot;height: 200px&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+} @loading (after 200ms; minimum 800ms) {
+  &lt;div class=&quot;loading-charts&quot;&gt;
+    &lt;div class=&quot;spinner&quot;&gt;&lt;/div&gt;
+    &lt;p&gt;Loading analytics data...&lt;/p&gt;
+  &lt;/div&gt;
+}
+</code></pre>
+<h3 id="pattern-2-rich-text-editor-on-user-action">Pattern 2: Rich Text Editor (On User Action)</h3>
+<pre><code class="language-html">&lt;div class=&quot;article-view&quot;&gt;
+  &lt;!-- Read-only view always loads --&gt;
+  &lt;div [innerHTML]=&quot;article().html&quot;&gt;&lt;/div&gt;
+
+  @if (currentUser()?.canEdit) {
+    &lt;!-- Editor only loads when the edit button is clicked --&gt;
+    @defer (on interaction; prefetch on hover) {
+      &lt;app-rich-text-editor
+        [content]=&quot;article().html&quot;
+        (contentChange)=&quot;onContentChange($event)&quot;&gt;
+      &lt;/app-rich-text-editor&gt;
+    } @placeholder {
+      &lt;button class=&quot;edit-btn&quot;&gt;✏️ Edit Article&lt;/button&gt;
+    } @loading (after 100ms; minimum 500ms) {
+      &lt;div class=&quot;editor-loading&quot;&gt;
+        &lt;div class=&quot;spinner-sm&quot;&gt;&lt;/div&gt; Loading editor...
+      &lt;/div&gt;
+    }
+  }
+&lt;/div&gt;
+</code></pre>
+<h3 id="pattern-3-tabbed-content">Pattern 3: Tabbed Content</h3>
+<pre><code class="language-html">&lt;div class=&quot;tabs&quot;&gt;
+  &lt;button (click)=&quot;activeTab.set(&#39;overview&#39;)&quot; [class.active]=&quot;activeTab() === &#39;overview&#39;&quot;&gt;Overview&lt;/button&gt;
+  &lt;button (click)=&quot;activeTab.set(&#39;reviews&#39;)&quot; [class.active]=&quot;activeTab() === &#39;reviews&#39;&quot;&gt;Reviews&lt;/button&gt;
+  &lt;button (click)=&quot;activeTab.set(&#39;specs&#39;)&quot; [class.active]=&quot;activeTab() === &#39;specs&#39;&quot;&gt;Specifications&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- Each tab is a separate lazy chunk --&gt;
+@defer (when activeTab() === &#39;overview&#39;) {
+  &lt;app-product-overview [product]=&quot;product()&quot;&gt;&lt;/app-product-overview&gt;
+}
+
+@defer (when activeTab() === &#39;reviews&#39;; prefetch on idle) {
+  &lt;app-reviews-section [productId]=&quot;product().id&quot;&gt;&lt;/app-reviews-section&gt;
+}
+
+@defer (when activeTab() === &#39;specs&#39;; prefetch on idle) {
+  &lt;app-specifications-table [specs]=&quot;product().specs&quot;&gt;&lt;/app-specifications-table&gt;
+}
+</code></pre>
+<hr>
+<h2 id="6-testing-defer-blocks">6. Testing Defer Blocks</h2>
+<p>Angular provides <code>DeferBlockBehavior</code> for testing:</p>
+<pre><code class="language-typescript">import { TestBed, ComponentFixture } from &#39;@angular/core/testing&#39;;
+import { DeferBlockBehavior, DeferBlockState } from &#39;@angular/core/testing&#39;;
+
+describe(&#39;ProductPageComponent&#39;, () =&gt; {
+  let fixture: ComponentFixture&lt;ProductPageComponent&gt;;
+
+  beforeEach(() =&gt; {
+    TestBed.configureTestingModule({
+      // Control defer behavior in tests
+      deferBlockBehavior: DeferBlockBehavior.Manual  // Control manually
+    });
+    fixture = TestBed.createComponent(ProductPageComponent);
+  });
+
+  it(&#39;should show placeholder initially&#39;, async () =&gt; {
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain(&#39;Scroll down to load&#39;);
+  });
+
+  it(&#39;should render chart after defer resolves&#39;, async () =&gt; {
+    fixture.detectChanges();
+
+    // Manually trigger the defer block
+    const deferBlocks = await fixture.getDeferBlocks();
+    await deferBlocks[0].render(DeferBlockState.Complete);
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(&#39;app-analytics-chart&#39;)).toBeTruthy();
+  });
+});
+</code></pre>
+<hr>
+<h2 id="7-common-pitfalls">7. Common Pitfalls</h2>
+<h3 id="pitfall-1-empty-placeholder-zero-height-breaks-on-viewport">Pitfall 1: Empty placeholder (zero height breaks `on viewport`)</h3>
+<pre><code class="language-html">&lt;!-- ❌ Placeholder has zero height — it&#39;s always &quot;in the viewport&quot; — loads immediately! --&gt;
+@defer (on viewport) {
+  &lt;app-heavy-chart&gt;&lt;/app-heavy-chart&gt;
+} @placeholder {
+  &lt;div&gt;&lt;/div&gt;  &lt;!-- 0px height! --&gt;
+}
+
+&lt;!-- ✅ Give the placeholder realistic dimensions --&gt;
+@defer (on viewport) {
+  &lt;app-heavy-chart&gt;&lt;/app-heavy-chart&gt;
+} @placeholder {
+  &lt;div class=&quot;chart-placeholder&quot; style=&quot;min-height: 400px&quot;&gt;
+    📊 Chart loads when you scroll here
+  &lt;/div&gt;
+}
+</code></pre>
+<h3 id="pitfall-2-deferring-tiny-components">Pitfall 2: Deferring tiny components</h3>
+<pre><code class="language-html">&lt;!-- ❌ Overkill — creates an HTTP request for a 3KB button! --&gt;
+@defer {
+  &lt;app-simple-button&gt;&lt;/app-simple-button&gt;
+}
+
+&lt;!-- ✅ Only defer heavy components (&gt;50KB dependencies) --&gt;
+@defer {
+  &lt;app-pdf-viewer&gt;&lt;/app-pdf-viewer&gt;   &lt;!-- Heavy PDF.js library inside --&gt;
+}
+</code></pre>
+<h3 id="pitfall-3-not-having-an-error-block">Pitfall 3: Not having an `@error` block</h3>
+<pre><code class="language-html">&lt;!-- ❌ If the user goes offline, the component just never loads — silent failure! --&gt;
+@defer (on viewport) {
+  &lt;app-chart&gt;&lt;/app-chart&gt;
+}
+
+&lt;!-- ✅ Always add error handling for production apps --&gt;
+@defer (on viewport) {
+  &lt;app-chart&gt;&lt;/app-chart&gt;
+} @error {
+  &lt;div class=&quot;error&quot;&gt;Failed to load chart. &lt;button (click)=&quot;reload()&quot;&gt;Retry&lt;/button&gt;&lt;/div&gt;
+}
+</code></pre>
+<hr>
+<h2 id="8-try-it-yourself">8. Try It Yourself</h2>
+<p><strong>Scenario</strong>: You have a product page with:</p>
+<ol>
+<li>An eager-loading product hero section (always visible)</li>
+<li>A heavy reviews section (below the fold)</li>
+<li>A 3D product viewer (only when the user clicks &quot;View in 3D&quot;)</li>
+<li>A recommendations widget (load when browser is idle, but start when viewport is triggered)</li>
+</ol>
+<p>Build the <code>@defer</code> structure for all three.</p>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-html">&lt;!-- 1. Hero section — no defer, always loads immediately --&gt;
+&lt;app-product-hero [product]=&quot;product()&quot;&gt;&lt;/app-product-hero&gt;
+
+&lt;!-- 2. Reviews section — lazy-load when scrolled to --&gt;
+@defer (on viewport; prefetch on idle) {
+  &lt;app-reviews-section [productId]=&quot;product().id&quot;&gt;&lt;/app-reviews-section&gt;
+} @placeholder {
+  &lt;div style=&quot;min-height: 600px&quot; class=&quot;reviews-placeholder&quot;&gt;
+    &lt;p&gt;⭐ Reviews loading as you scroll...&lt;/p&gt;
+  &lt;/div&gt;
+} @loading (after 150ms; minimum 500ms) {
+  &lt;div class=&quot;reviews-loading&quot;&gt;Loading reviews...&lt;/div&gt;
+} @error {
+  &lt;p&gt;Failed to load reviews. &lt;a href=&quot;&quot; (click)=&quot;$event.preventDefault()&quot;&gt;Retry&lt;/a&gt;&lt;/p&gt;
+}
+
+&lt;!-- 3. 3D Viewer — only download on user click, prefetch on hover --&gt;
+@defer (on interaction; prefetch on hover) {
+  &lt;app-product-3d-viewer [model]=&quot;product().model3dUrl&quot;&gt;&lt;/app-product-3d-viewer&gt;
+} @placeholder {
+  &lt;button class=&quot;view-3d-btn&quot; style=&quot;min-height: 100px&quot;&gt;
+    🎮 Click to View in 3D
+  &lt;/button&gt;
+} @loading (after 200ms; minimum 1s) {
+  &lt;div class=&quot;viewer-loading&quot;&gt;Loading 3D viewer...&lt;/div&gt;
+} @error {
+  &lt;p&gt;3D viewer failed to load.&lt;/p&gt;
+}
+
+&lt;!-- 4. Recommendations — prefetch on idle, show when in viewport --&gt;
+@defer (on viewport; prefetch on idle) {
+  &lt;app-recommendations [productId]=&quot;product().id&quot;&gt;&lt;/app-recommendations&gt;
+} @placeholder {
+  &lt;div style=&quot;min-height: 300px&quot; class=&quot;recommendations-placeholder&quot;&gt;&lt;/div&gt;
+}
+</code></pre>
+</details><hr>
+<h2 id="9-knowledge-check">9. Knowledge Check</h2>
+<ol>
+<li>What does <code>@loading (after 200ms; minimum 1s)</code> mean?</li>
+<li>If a component inside <code>@defer</code> imports <code>chart.js</code>, does <code>chart.js</code> end up in the main bundle?</li>
+<li>What is the difference between <code>on interaction</code> and <code>when &lt;condition&gt;</code> triggers?</li>
+<li>Why must <code>@placeholder</code> elements have a minimum height when using <code>on viewport</code>?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>The <code>@loading</code> block only starts showing after <strong>200ms</strong> have elapsed since downloading started (to avoid showing a spinner for fast network downloads). Once the spinner appears, it stays visible for <strong>at least 1 second</strong> (<code>minimum 1s</code>) — preventing it from flashing too quickly for the user to see.</p>
+</li>
+<li><p><strong>No.</strong> The Angular compiler detects that <code>chart.js</code> is only imported by a component inside a <code>@defer</code> block, so it automatically extracts <code>chart.js</code> into a separate lazy-loaded JavaScript chunk. It will NOT be included in the main bundle. This is the primary performance benefit of <code>@defer</code>.</p>
+</li>
+<li><p><code>on interaction</code> is a <strong>DOM event trigger</strong> — it fires when the user clicks or focuses on the placeholder element. <code>when &lt;condition&gt;</code> is a <strong>programmatic trigger</strong> — it fires when the TypeScript expression evaluates to <code>true</code> (e.g., a signal changes). Use <code>on interaction</code> for user-driven loading, <code>when</code> for state-driven loading.</p>
+</li>
+<li><p>The <code>on viewport</code> trigger uses <code>IntersectionObserver</code> to detect when the placeholder enters the visible screen area. If the placeholder has zero height (<code>0px</code>), it technically occupies space &quot;in&quot; the viewport (an invisible line). The observer fires immediately on load — defeating the lazy-loading purpose entirely. Always give placeholders a <code>min-height</code> that approximates the final content&#39;s size.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./ssr-hydration.html">15 - SSR &amp; Hydration →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

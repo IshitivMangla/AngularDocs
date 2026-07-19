@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Component Communication - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item active">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-component-communication">Angular: Component Communication</h1>
+<blockquote>
+<p><strong>Goal</strong>: Master every pattern for sharing data between components — from simple parent-child bindings to sibling components communicating through shared services.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-data-flow-architecture">Data Flow Architecture</a></li>
+<li><a href="#2-parent--child-signal-input">Parent → Child: Signal <code>input()</code></a></li>
+<li><a href="#3-child--parent-signal-output">Child → Parent: Signal <code>output()</code></a></li>
+<li><a href="#4-two-way-binding-model">Two-Way Binding: <code>model()</code></a></li>
+<li><a href="#5-sibling-communication-via-service">Sibling Communication via Service</a></li>
+<li><a href="#6-legacy-input--output-decorators">Legacy: <code>@Input()</code> &amp; <code>@Output()</code> Decorators</a></li>
+<li><a href="#7-choosing-the-right-pattern">Choosing the Right Pattern</a></li>
+<li><a href="#8-real-world-example">Real-World Example: Product List with Filters</a></li>
+<li><a href="#9-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-data-flow-architecture">1. Data Flow Architecture</h2>
+<p>Angular enforces <strong>Unidirectional Data Flow (UDF)</strong>:</p>
+<pre><code>Parent Component
+    ↓ [data] = input          Data flows DOWN via inputs
+Child Component
+    ↑ (event) = output        Events flow UP via outputs
+</code></pre>
+<p>For non-parent-child communication:</p>
+<pre><code>Component A  ←→  Shared Service (Signal)  ←→  Component B
+</code></pre>
+<p>This architecture makes state changes <strong>predictable and debuggable</strong> — you always know where data comes from.</p>
+<hr>
+<h2 id="2-parent-child-signal-input">2. Parent → Child: Signal `input()`</h2>
+<p><code>input()</code> is the modern replacement for <code>@Input()</code>. It returns a <strong>read-only Signal</strong> directly.</p>
+<pre><code class="language-typescript">// child: product-card.component.ts
+import { Component, input, computed, ChangeDetectionStrategy } from &#39;@angular/core&#39;;
+import { CurrencyPipe } from &#39;@angular/common&#39;;
+import { Product } from &#39;../models/product.model&#39;;
+
+@Component({
+  selector: &#39;app-product-card&#39;,
+  standalone: true,
+  imports: [CurrencyPipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,  // Optimal with signals!
+  template: `
+    &lt;div class=&quot;card&quot; [class.featured]=&quot;isFeatured()&quot;&gt;
+      &lt;img [src]=&quot;product().imageUrl&quot; [alt]=&quot;product().name&quot;&gt;
+      &lt;h3&gt;{{ product().name }}&lt;/h3&gt;
+      &lt;p&gt;{{ product().price | currency }}&lt;/p&gt;
+      @if (showDescription()) {
+        &lt;p class=&quot;description&quot;&gt;{{ product().description }}&lt;/p&gt;
+      }
+      &lt;span class=&quot;badge&quot;&gt;{{ stockLabel() }}&lt;/span&gt;
+    &lt;/div&gt;
+  `
+})
+export class ProductCardComponent {
+  // Required input — TypeScript error if parent forgets to pass it
+  product = input.required&lt;Product&gt;();
+
+  // Optional input with default value
+  showDescription = input&lt;boolean&gt;(false);
+
+  // Input with alias — parent uses [isFeaturedProduct]=&quot;...&quot; in template
+  isFeatured = input&lt;boolean&gt;(false, { alias: &#39;isFeaturedProduct&#39; });
+
+  // Computed value derived from input — reactive and memoized
+  stockLabel = computed(() =&gt; {
+    const stock = this.product().stock;
+    if (stock === 0) return &#39;❌ Out of Stock&#39;;
+    if (stock &lt; 5) return `⚠️ Only ${stock} left!`;
+    return `✅ In Stock`;
+  });
+}
+</code></pre>
+<pre><code class="language-typescript">// parent: product-list.component.ts
+import { Component, signal } from &#39;@angular/core&#39;;
+import { ProductCardComponent } from &#39;./product-card.component&#39;;
+import { Product } from &#39;../models/product.model&#39;;
+
+@Component({
+  selector: &#39;app-product-list&#39;,
+  standalone: true,
+  imports: [ProductCardComponent],
+  template: `
+    &lt;div class=&quot;grid&quot;&gt;
+      @for (product of products(); track product.id; let i = $index) {
+        &lt;app-product-card
+          [product]=&quot;product&quot;
+          [showDescription]=&quot;true&quot;
+          [isFeaturedProduct]=&quot;i === 0&quot;&gt;
+        &lt;/app-product-card&gt;
+      }
+    &lt;/div&gt;
+  `
+})
+export class ProductListComponent {
+  products = signal&lt;Product[]&gt;([]);
+}
+</code></pre>
+<h3 id="reacting-to-input-changes">Reacting to Input Changes</h3>
+<p>With <code>input()</code>, you no longer need <code>ngOnChanges</code>. Use <code>effect()</code> or <code>computed()</code>:</p>
+<pre><code class="language-typescript">export class ProductCardComponent {
+  product = input.required&lt;Product&gt;();
+
+  // React to changes with computed()
+  discountedPrice = computed(() =&gt; this.product().price * 0.9);
+
+  constructor() {
+    // React to changes with effect()
+    effect(() =&gt; {
+      console.log(&#39;Product changed:&#39;, this.product().name);
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="3-child-parent-signal-output">3. Child → Parent: Signal `output()`</h2>
+<p><code>output()</code> replaces <code>@Output() EventEmitter</code>. It&#39;s a typed event emitter with no RxJS dependency.</p>
+<pre><code class="language-typescript">// child: product-card.component.ts
+import { Component, input, output, computed } from &#39;@angular/core&#39;;
+import { Product } from &#39;../models/product.model&#39;;
+
+@Component({
+  selector: &#39;app-product-card&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;h3&gt;{{ product().name }}&lt;/h3&gt;
+      &lt;button (click)=&quot;addToCart()&quot;&gt;Add to Cart&lt;/button&gt;
+      &lt;button (click)=&quot;wishlist()&quot;&gt;♡ Save&lt;/button&gt;
+      &lt;button (click)=&quot;remove()&quot;&gt;🗑 Remove&lt;/button&gt;
+    &lt;/div&gt;
+  `
+})
+export class ProductCardComponent {
+  product = input.required&lt;Product&gt;();
+
+  // output() replaces @Output() EventEmitter — cleaner, type-safe
+  cartAdd = output&lt;Product&gt;();
+  wishlistAdd = output&lt;Product&gt;();
+  productDelete = output&lt;number&gt;();  // Emits the product ID
+
+  addToCart() {
+    this.cartAdd.emit(this.product());
+  }
+
+  wishlist() {
+    this.wishlistAdd.emit(this.product());
+  }
+
+  remove() {
+    this.productDelete.emit(this.product().id);
+  }
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- parent template --&gt;
+&lt;app-product-card
+  [product]=&quot;p&quot;
+  (cartAdd)=&quot;handleAddToCart($event)&quot;
+  (wishlistAdd)=&quot;handleWishlist($event)&quot;
+  (productDelete)=&quot;handleDelete($event)&quot;&gt;
+&lt;/app-product-card&gt;
+</code></pre>
+<hr>
+<h2 id="4-two-way-binding-model">4. Two-Way Binding: `model()`</h2>
+<p><code>model()</code> is for two-way binding — the child can update a value AND notify the parent simultaneously. Replaces the <code>@Input()</code> + <code>@Output() XxxChange</code> boilerplate.</p>
+<pre><code class="language-typescript">// child: star-rating.component.ts
+import { Component, model } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-star-rating&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;stars&quot;&gt;
+      @for (star of stars; track star) {
+        &lt;span
+          [class.filled]=&quot;star &lt;= rating()&quot;
+          (click)=&quot;rating.set(star)&quot;
+          (mouseenter)=&quot;hovered.set(star)&quot;
+          (mouseleave)=&quot;hovered.set(0)&quot;&gt;
+          {{ (hovered() &gt;= star || (!hovered() &amp;&amp; rating() &gt;= star)) ? &#39;★&#39; : &#39;☆&#39; }}
+        &lt;/span&gt;
+      }
+    &lt;/div&gt;
+  `
+})
+export class StarRatingComponent {
+  // model() = two-way bindable input
+  rating = model&lt;number&gt;(0);
+
+  stars = [1, 2, 3, 4, 5];
+  hovered = signal(0);
+}
+</code></pre>
+<pre><code class="language-typescript">// parent
+@Component({
+  selector: &#39;app-product-review&#39;,
+  standalone: true,
+  imports: [StarRatingComponent],
+  template: `
+    &lt;h2&gt;Rate this product:&lt;/h2&gt;
+    &lt;!-- [(rating)] = two-way binding syntax --&gt;
+    &lt;app-star-rating [(rating)]=&quot;myRating&quot;&gt;&lt;/app-star-rating&gt;
+    &lt;p&gt;You selected: {{ myRating() }} stars&lt;/p&gt;
+  `
+})
+export class ProductReviewComponent {
+  myRating = signal(0);
+}
+</code></pre>
+<hr>
+<h2 id="5-sibling-communication-via-service">5. Sibling Communication via Service</h2>
+<p>When components are not in a parent-child relationship, use a <strong>shared service with signals</strong> as the single source of truth.</p>
+<pre><code class="language-typescript">// src/app/features/products/services/product-filter.service.ts
+import { Injectable, signal, computed } from &#39;@angular/core&#39;;
+
+export interface FilterState {
+  search: string;
+  category: string;
+  minPrice: number;
+  maxPrice: number;
+  inStockOnly: boolean;
+}
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class ProductFilterService {
+  // Centralized filter state
+  private _filters = signal&lt;FilterState&gt;({
+    search: &#39;&#39;,
+    category: &#39;all&#39;,
+    minPrice: 0,
+    maxPrice: 1000,
+    inStockOnly: false
+  });
+
+  // Expose read-only to prevent direct mutation
+  readonly filters = this._filters.asReadonly();
+  readonly hasActiveFilters = computed(() =&gt; {
+    const f = this._filters();
+    return f.search !== &#39;&#39; || f.category !== &#39;all&#39; || f.inStockOnly;
+  });
+
+  setSearch(search: string) {
+    this._filters.update(f =&gt; ({ ...f, search }));
+  }
+
+  setCategory(category: string) {
+    this._filters.update(f =&gt; ({ ...f, category }));
+  }
+
+  setPriceRange(min: number, max: number) {
+    this._filters.update(f =&gt; ({ ...f, minPrice: min, maxPrice: max }));
+  }
+
+  toggleInStock() {
+    this._filters.update(f =&gt; ({ ...f, inStockOnly: !f.inStockOnly }));
+  }
+
+  resetFilters() {
+    this._filters.set({ search: &#39;&#39;, category: &#39;all&#39;, minPrice: 0, maxPrice: 1000, inStockOnly: false });
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">// Component A: FilterPanelComponent (sibling 1)
+@Component({
+  selector: &#39;app-filter-panel&#39;,
+  template: `
+    &lt;input (input)=&quot;filterService.setSearch($any($event.target).value)&quot; placeholder=&quot;Search...&quot;&gt;
+    &lt;select (change)=&quot;filterService.setCategory($any($event.target).value)&quot;&gt;
+      &lt;option value=&quot;all&quot;&gt;All&lt;/option&gt;
+      &lt;option value=&quot;electronics&quot;&gt;Electronics&lt;/option&gt;
+    &lt;/select&gt;
+    @if (filterService.hasActiveFilters()) {
+      &lt;button (click)=&quot;filterService.resetFilters()&quot;&gt;Clear Filters&lt;/button&gt;
+    }
+  `
+})
+export class FilterPanelComponent {
+  readonly filterService = inject(ProductFilterService);
+}
+
+// Component B: ProductsGridComponent (sibling 2)
+@Component({
+  selector: &#39;app-products-grid&#39;,
+  template: `
+    &lt;p&gt;Showing filtered results for: &quot;{{ filterService.filters().search }}&quot;&lt;/p&gt;
+    &lt;!-- Products grid here, filtered by filterService.filters() --&gt;
+  `
+})
+export class ProductsGridComponent {
+  readonly filterService = inject(ProductFilterService);
+  // This component reads the same filterService instance — changes from FilterPanel
+  // are immediately reflected here!
+}
+</code></pre>
+<hr>
+<h2 id="6-legacy-input-output-decorators">6. Legacy: `@Input()` & `@Output()` Decorators</h2>
+<p>Still valid and widely used in existing codebases. Understand both.</p>
+<pre><code class="language-typescript">import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from &#39;@angular/core&#39;;
+
+@Component({ selector: &#39;app-user-card&#39;, template: `&lt;h2&gt;{{ user.name }}&lt;/h2&gt;` })
+export class UserCardComponent implements OnChanges {
+  @Input({ required: true }) user!: { name: string; email: string };
+  @Input() showEmail = false;
+  @Output() userDelete = new EventEmitter&lt;string&gt;(); // Emits user ID
+
+  // The OLD way to react to input changes — replaced by effect() in modern Angular
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes[&#39;user&#39;]) {
+      console.log(&#39;User changed from&#39;, changes[&#39;user&#39;].previousValue, &#39;to&#39;, changes[&#39;user&#39;].currentValue);
+    }
+  }
+
+  delete() {
+    this.userDelete.emit(this.user.email);
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>Recommendation</strong>: For <strong>new components</strong>, use <code>input()</code>, <code>output()</code>, and <code>model()</code>. For <strong>existing components</strong>, <code>@Input()</code> / <code>@Output()</code> are perfectly fine.</p>
+</blockquote>
+<hr>
+<h2 id="7-choosing-the-right-pattern">7. Choosing the Right Pattern</h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Pattern</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Parent passes data to child</td>
+<td><code>input()</code> or <code>@Input()</code></td>
+</tr>
+<tr>
+<td>Child notifies parent of an event</td>
+<td><code>output()</code> or <code>@Output()</code></td>
+</tr>
+<tr>
+<td>Child reads AND writes a parent value</td>
+<td><code>model()</code></td>
+</tr>
+<tr>
+<td>Sibling A updates, Sibling B reacts</td>
+<td>Shared <code>Injectable</code> service with signals</td>
+</tr>
+<tr>
+<td>Deeply nested component needs root state</td>
+<td><code>providedIn: &#39;root&#39;</code> service</td>
+</tr>
+<tr>
+<td>Feature-scoped state</td>
+<td>Service provided at feature route level</td>
+</tr>
+<tr>
+<td>Descendant needs ancestor&#39;s data without passing through every level</td>
+<td><code>inject()</code> with a service OR Content Projection</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="8-real-world-example-product-list-with-filters">8. Real-World Example: Product List with Filters</h2>
+<pre><code>AppShellComponent
+  ├── FilterSidebarComponent    ← writes to ProductFilterService
+  └── ProductsPageComponent
+        ├── SortBarComponent    ← writes to ProductFilterService
+        └── ProductGridComponent ← reads ProductFilterService + ProductService
+</code></pre>
+<pre><code class="language-typescript">// product-filter.service.ts — the shared &quot;state bus&quot;
+@Injectable({ providedIn: &#39;root&#39; })
+export class ProductFilterService {
+  search = signal(&#39;&#39;);
+  sortBy = signal&lt;&#39;price&#39; | &#39;name&#39; | &#39;rating&#39;&gt;(&#39;name&#39;);
+  page = signal(1);
+
+  // Reset page when search or sort changes
+  constructor() {
+    effect(() =&gt; {
+      this.search();   // Track search
+      this.sortBy();   // Track sort
+      this.page.set(1); // Reset to page 1
+    });
+  }
+}
+
+// FilterSidebarComponent
+export class FilterSidebarComponent {
+  filterService = inject(ProductFilterService);
+}
+
+// SortBarComponent — same service, different location in the tree
+export class SortBarComponent {
+  filterService = inject(ProductFilterService);
+}
+
+// ProductGridComponent — consumes the current filter state
+export class ProductGridComponent {
+  private filterService = inject(ProductFilterService);
+  private productService = inject(ProductService);
+
+  private params = computed(() =&gt; ({
+    q: this.filterService.search(),
+    sort: this.filterService.sortBy(),
+    page: this.filterService.page()
+  }));
+
+  // Automatically refetches when any filter changes
+  products = toSignal(
+    toObservable(this.params).pipe(
+      debounceTime(300),
+      switchMap(params =&gt; this.productService.getAll(params))
+    ),
+    { initialValue: [] }
+  );
+}
+</code></pre>
+<hr>
+<h2 id="9-common-pitfalls">9. Common Pitfalls</h2>
+<h3 id="pitfall-1-mutating-input-input-data-in-the-child">Pitfall 1: Mutating `@Input()` / `input()` data in the child</h3>
+<pre><code class="language-typescript">// ❌ NEVER modify input data directly — this breaks unidirectional data flow!
+export class UserCardComponent {
+  user = input.required&lt;User&gt;();
+
+  updateName() {
+    this.user().name = &#39;Bob&#39;;  // WRONG! Mutating received data!
+  }
+}
+
+// ✅ Emit an output so the parent handles the change
+export class UserCardComponent {
+  user = input.required&lt;User&gt;();
+  userChange = output&lt;User&gt;();
+
+  updateName(newName: string) {
+    this.userChange.emit({ ...this.user(), name: newName });
+  }
+}
+</code></pre>
+<h3 id="pitfall-2-forgetting-event-in-output-binding">Pitfall 2: Forgetting `$event` in output binding</h3>
+<pre><code class="language-html">&lt;!-- ❌ $event is not passed — handler receives undefined! --&gt;
+&lt;app-product-card (cartAdd)=&quot;handleAdd()&quot;&gt;&lt;/app-product-card&gt;
+
+&lt;!-- ✅ Pass $event to capture the emitted payload --&gt;
+&lt;app-product-card (cartAdd)=&quot;handleAdd($event)&quot;&gt;&lt;/app-product-card&gt;
+</code></pre>
+<h3 id="pitfall-3-using-property-binding-for-strings">Pitfall 3: Using property binding for strings</h3>
+<pre><code class="language-html">&lt;!-- ❌ Passes the STRING &quot;currentUser&quot; to the child — not the variable! --&gt;
+&lt;app-user-card user=&quot;currentUser&quot;&gt;&lt;/app-user-card&gt;
+
+&lt;!-- ✅ Property binding [] evaluates the expression --&gt;
+&lt;app-user-card [user]=&quot;currentUser&quot;&gt;&lt;/app-user-card&gt;
+&lt;!-- Or for simple string literals: --&gt;
+&lt;app-user-card [user]=&quot;{ name: &#39;Alice&#39;, email: &#39;alice@example.com&#39; }&quot;&gt;&lt;/app-user-card&gt;
+</code></pre>
+<h3 id="pitfall-4-prop-drilling-passing-data-through-many-layers">Pitfall 4: Prop drilling (passing data through many layers)</h3>
+<pre><code class="language-typescript">// ❌ Data passed through A → B → C → D just to get to D
+// Components B and C become &quot;middlemen&quot; that pass-through data they don&#39;t use
+
+// ✅ Use a service — D can inject the service directly
+// No need for B and C to know about the data
+</code></pre>
+<hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>What are the three main advantages of Signal <code>input()</code> over the <code>@Input()</code> decorator?</li>
+<li>When should you use <code>model()</code> instead of a separate <code>@Input()</code> + <code>@Output()</code> pair?</li>
+<li>If components A and B are on completely different branches of the component tree (not parent-child), how should they share state?</li>
+<li>What is the <code>{ alias: &#39;xxx&#39; }</code> option in <code>input()</code> used for?</li>
+<li>Why should you never mutate data received via <code>@Input()</code> or <code>input()</code> in the child component?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><strong>(a) Reactive by default</strong>: An <code>input()</code> is a Signal, so you can use it directly with <code>computed()</code> and <code>effect()</code> without needing <code>ngOnChanges</code>. <strong>(b) Type safety</strong>: <code>input.required&lt;T&gt;()</code> provides a compile-time error if the parent forgets to pass the value. <strong>(c) Derived state is simpler</strong>: <code>computed(() =&gt; this.user().role === &#39;admin&#39;)</code> is cleaner than creating a property and updating it in <code>ngOnChanges</code>.</p>
+</li>
+<li><p>Use <code>model()</code> when the child component needs to <strong>both receive a value from the parent AND update it</strong>. Classic examples: custom form inputs (star ratings, color pickers, toggles), where the parent cares about the current value and the child can change it. It replaces the <code>@Input() value</code> + <code>@Output() valueChange</code> boilerplate.</p>
+</li>
+<li><p>Use a <strong>shared <code>Injectable</code> service</strong> with Signals as the source of truth. Both components inject the same service instance and read/write to it. Changes made by one component are immediately reflected in the other through signal reactivity.</p>
+</li>
+<li><p><code>{ alias: &#39;xxx&#39; }</code> allows the parent to use a <strong>different attribute name</strong> in the template than the property name inside the child class. For example, <code>input.required&lt;User&gt;({ alias: &#39;userData&#39; })</code> means the parent writes <code>[userData]=&quot;user&quot;</code> in HTML, but inside the child component class, the property is accessed as <code>this.user()</code>. Useful for creating more descriptive template APIs.</p>
+</li>
+<li><p>Mutating <code>@Input()</code> / <code>input()</code> data violates Angular&#39;s <strong>Unidirectional Data Flow</strong> principle. The parent owns the data — the child only has a reference to it. If the child mutates it directly, the parent doesn&#39;t know about the change, making state unpredictable and debugging very difficult. Instead, the child should emit an <code>output()</code> event requesting the parent to make the change.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./lifecycle-hooks.html">09 - Lifecycle Hooks →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Testing Services & HTTP - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item active">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-testing-services-http">Angular: Testing Services & HTTP</h1>
+<blockquote>
+<p><strong>Goal</strong>: Master unit testing for Angular services and HTTP requests using <code>TestBed</code>, <code>HttpTestingController</code>, and modern mock patterns.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-why-testing-services-is-easy">Why Testing Services is Easy</a></li>
+<li><a href="#2-testing-synchronous-services">Testing Synchronous Services</a></li>
+<li><a href="#3-testing-http-services">Testing HTTP Services with <code>HttpTestingController</code></a></li>
+<li><a href="#4-testing-http-errors">Testing HTTP Errors</a></li>
+<li><a href="#5-testing-services-with-dependent-services">Testing Services with Dependent Services</a></li>
+<li><a href="#6-testing-rxjs-streams-in-services">Testing RxJS Streams in Services</a></li>
+<li><a href="#7-testing-signal-based-services">Testing Signal-Based Services</a></li>
+<li><a href="#8-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#9-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-why-testing-services-is-easy">1. Why Testing Services is Easy</h2>
+<p>Services are pure TypeScript classes without HTML templates or DOM bindings. They are fast, reliable, and straightforward to unit test.</p>
+<pre><code class="language-typescript">// Simple service test structure
+describe(&#39;CalculatorService&#39;, () =&gt; {
+  let service: CalculatorService;
+
+  beforeEach(() =&gt; {
+    TestBed.configureTestingModule({
+      providers: [CalculatorService]
+    });
+    service = TestBed.inject(CalculatorService);
+  });
+
+  it(&#39;should add numbers&#39;, () =&gt; {
+    expect(service.add(2, 3)).toBe(5);
+  });
+});
+</code></pre>
+<hr>
+<h2 id="2-testing-synchronous-services">2. Testing Synchronous Services</h2>
+<pre><code class="language-typescript">// cart.service.ts
+@Injectable({ providedIn: &#39;root&#39; })
+export class CartService {
+  private _items = signal&lt;CartItem[]&gt;([]);
+  readonly items = this._items.asReadonly();
+  readonly total = computed(() =&gt;
+    this._items().reduce((sum, item) =&gt; sum + (item.price * item.quantity), 0)
+  );
+
+  addItem(item: CartItem) {
+    this._items.update(list =&gt; [...list, item]);
+  }
+
+  clear() {
+    this._items.set([]);
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">// cart.service.spec.ts
+describe(&#39;CartService&#39;, () =&gt; {
+  let service: CartService;
+
+  beforeEach(() =&gt; {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(CartService);
+  });
+
+  it(&#39;should start with an empty cart&#39;, () =&gt; {
+    expect(service.items()).toEqual([]);
+    expect(service.total()).toBe(0);
+  });
+
+  it(&#39;should add item and update total&#39;, () =&gt; {
+    service.addItem({ id: 1, name: &#39;Shirt&#39;, price: 20, quantity: 2 });
+
+    expect(service.items().length).toBe(1);
+    expect(service.total()).toBe(40);
+  });
+
+  it(&#39;should clear all items&#39;, () =&gt; {
+    service.addItem({ id: 1, name: &#39;Shirt&#39;, price: 20, quantity: 1 });
+    service.clear();
+
+    expect(service.items()).toEqual([]);
+    expect(service.total()).toBe(0);
+  });
+});
+</code></pre>
+<hr>
+<h2 id="3-testing-http-services-with-httptestingcontroller">3. Testing HTTP Services with `HttpTestingController`</h2>
+<p><code>provideHttpClientTesting()</code> intercepts all HTTP calls, allowing you to verify request parameters and flush mock data.</p>
+<pre><code class="language-typescript">// product.service.ts
+@Injectable({ providedIn: &#39;root&#39; })
+export class ProductService {
+  private http = inject(HttpClient);
+
+  getProducts(category?: string): Observable&lt;Product[]&gt; {
+    let params = new HttpParams();
+    if (category) params = params.set(&#39;category&#39;, category);
+
+    return this.http.get&lt;Product[]&gt;(&#39;/api/products&#39;, { params });
+  }
+
+  createProduct(product: CreateProductDto): Observable&lt;Product&gt; {
+    return this.http.post&lt;Product&gt;(&#39;/api/products&#39;, product);
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">// product.service.spec.ts
+import { TestBed } from &#39;@angular/core/testing&#39;;
+import { HttpTestingController, provideHttpClientTesting } from &#39;@angular/common/http/testing&#39;;
+import { provideHttpClient } from &#39;@angular/common/http&#39;;
+import { ProductService } from &#39;./product.service&#39;;
+
+describe(&#39;ProductService&#39;, () =&gt; {
+  let service: ProductService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() =&gt; {
+    TestBed.configureTestingModule({
+      providers: [
+        ProductService,
+        provideHttpClient(),
+        provideHttpClientTesting()
+      ]
+    });
+
+    service = TestBed.inject(ProductService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() =&gt; {
+    // CRITICAL: Ensures no unexpected extra HTTP requests were made!
+    httpMock.verify();
+  });
+
+  it(&#39;should fetch products via GET&#39;, () =&gt; {
+    const dummyProducts: Product[] = [
+      { id: 1, name: &#39;Item A&#39;, price: 10 },
+      { id: 2, name: &#39;Item B&#39;, price: 20 }
+    ];
+
+    service.getProducts().subscribe(products =&gt; {
+      expect(products.length).toBe(2);
+      expect(products).toEqual(dummyProducts);
+    });
+
+    const req = httpMock.expectOne(&#39;/api/products&#39;);
+    expect(req.request.method).toBe(&#39;GET&#39;);
+    req.flush(dummyProducts); // Resolve with mock data
+  });
+
+  it(&#39;should pass query params when category is provided&#39;, () =&gt; {
+    service.getProducts(&#39;electronics&#39;).subscribe();
+
+    const req = httpMock.expectOne(r =&gt; r.url === &#39;/api/products&#39;);
+    expect(req.request.params.get(&#39;category&#39;)).toBe(&#39;electronics&#39;);
+    req.flush([]);
+  });
+
+  it(&#39;should send POST request with body&#39;, () =&gt; {
+    const newProduct = { name: &#39;New Item&#39;, price: 99 };
+
+    service.createProduct(newProduct).subscribe(res =&gt; {
+      expect(res.id).toBe(101);
+    });
+
+    const req = httpMock.expectOne(&#39;/api/products&#39;);
+    expect(req.request.method).toBe(&#39;POST&#39;);
+    expect(req.request.body).toEqual(newProduct);
+    req.flush({ id: 101, ...newProduct });
+  });
+});
+</code></pre>
+<hr>
+<h2 id="4-testing-http-errors">4. Testing HTTP Errors</h2>
+<pre><code class="language-typescript">it(&#39;should handle 404 error gracefully&#39;, () =&gt; {
+  service.getProducts().subscribe({
+    next: () =&gt; fail(&#39;Should have failed with 404 error&#39;),
+    error: (error) =&gt; {
+      expect(error.status).toBe(404);
+      expect(error.statusText).toBe(&#39;Not Found&#39;);
+    }
+  });
+
+  const req = httpMock.expectOne(&#39;/api/products&#39;);
+  req.flush(&#39;Product not found&#39;, { status: 404, statusText: &#39;Not Found&#39; });
+});
+
+it(&#39;should handle network connection error&#39;, () =&gt; {
+  service.getProducts().subscribe({
+    next: () =&gt; fail(&#39;Should have failed with network error&#39;),
+    error: (error) =&gt; {
+      expect(error.error.type).toBe(&#39;error&#39;);
+    }
+  });
+
+  const req = httpMock.expectOne(&#39;/api/products&#39;);
+  // Simulate network failure
+  req.error(new ProgressEvent(&#39;error&#39;));
+});
+</code></pre>
+<hr>
+<h2 id="5-testing-services-with-dependent-services">5. Testing Services with Dependent Services</h2>
+<pre><code class="language-typescript">// auth-facade.service.ts
+@Injectable({ providedIn: &#39;root&#39; })
+export class AuthFacadeService {
+  private api = inject(AuthApiService);
+  private storage = inject(StorageService);
+
+  login(credentials: LoginDto): Observable&lt;boolean&gt; {
+    return this.api.login(credentials).pipe(
+      map(res =&gt; {
+        this.storage.setToken(res.accessToken);
+        return true;
+      })
+    );
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">describe(&#39;AuthFacadeService&#39;, () =&gt; {
+  let facade: AuthFacadeService;
+  let apiSpy: jasmine.SpyObj&lt;AuthApiService&gt;;
+  let storageSpy: jasmine.SpyObj&lt;StorageService&gt;;
+
+  beforeEach(() =&gt; {
+    apiSpy = jasmine.createSpyObj(&#39;AuthApiService&#39;, [&#39;login&#39;]);
+    storageSpy = jasmine.createSpyObj(&#39;StorageService&#39;, [&#39;setToken&#39;]);
+
+    TestBed.configureTestingModule({
+      providers: [
+        AuthFacadeService,
+        { provide: AuthApiService, useValue: apiSpy },
+        { provide: StorageService, useValue: storageSpy }
+      ]
+    });
+
+    facade = TestBed.inject(AuthFacadeService);
+  });
+
+  it(&#39;should store token on successful login&#39;, () =&gt; {
+    apiSpy.login.and.returnValue(of({ accessToken: &#39;test-jwt-token&#39; }));
+
+    facade.login({ email: &#39;a@b.com&#39;, password: &#39;secret&#39; }).subscribe(success =&gt; {
+      expect(success).toBeTrue();
+      expect(storageSpy.setToken).toHaveBeenCalledWith(&#39;test-jwt-token&#39;);
+    });
+  });
+});
+</code></pre>
+<hr>
+<h2 id="6-testing-rxjs-streams-in-services">6. Testing RxJS Streams in Services</h2>
+<pre><code class="language-typescript">it(&#39;should debounce search queries&#39;, fakeAsync(() =&gt; {
+  const service = TestBed.inject(SearchService);
+  const emittedResults: any[] = [];
+
+  service.searchResults$.subscribe(res =&gt; emittedResults.push(res));
+
+  service.search(&#39;a&#39;);
+  service.search(&#39;ab&#39;);
+  service.search(&#39;abc&#39;);
+
+  tick(200); // Before debounce threshold (300ms)
+  expect(emittedResults.length).toBe(0);
+
+  tick(100); // Reaches 300ms threshold
+  expect(emittedResults.length).toBe(1);
+}));
+</code></pre>
+<hr>
+<h2 id="7-testing-signal-based-services">7. Testing Signal-Based Services</h2>
+<pre><code class="language-typescript">describe(&#39;ThemeService&#39;, () =&gt; {
+  let service: ThemeService;
+
+  beforeEach(() =&gt; {
+    TestBed.configureTestingModule({ providers: [ThemeService] });
+    service = TestBed.inject(ThemeService);
+  });
+
+  it(&#39;should toggle theme signal state&#39;, () =&gt; {
+    expect(service.isDark()).toBeFalse();
+
+    service.toggleTheme();
+    expect(service.isDark()).toBeTrue();
+
+    service.toggleTheme();
+    expect(service.isDark()).toBeFalse();
+  });
+});
+</code></pre>
+<hr>
+<h2 id="8-common-pitfalls">8. Common Pitfalls</h2>
+<h3 id="pitfall-1-forgetting-httpmockverify">Pitfall 1: Forgetting `httpMock.verify()`</h3>
+<pre><code class="language-typescript">// ❌ If an extra unexpected HTTP request occurs, the test might silently pass!
+afterEach(() =&gt; {
+  httpMock.verify(); // Always include this to catch unhandled requests!
+});
+</code></pre>
+<h3 id="pitfall-2-expecting-sync-evaluation-of-observables-before-flush">Pitfall 2: Expecting sync evaluation of observables before `flush()`</h3>
+<pre><code class="language-typescript">// ❌ Subscription callback won&#39;t execute until flush() is called!
+service.getData().subscribe(data =&gt; expect(data).toBeDefined());
+// Assertion hasn&#39;t run yet!
+req.flush({ id: 1 });
+</code></pre>
+<hr>
+<h2 id="9-try-it-yourself">9. Try It Yourself</h2>
+<p>Write a complete unit test for <code>UserService.updateUser(id, changes)</code> that:</p>
+<ol>
+<li>Sends a <code>PATCH</code> request to <code>/api/users/42</code></li>
+<li>Verifies the request payload matches <code>{ name: &#39;Updated&#39; }</code></li>
+<li>Flushes the updated user object</li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">it(&#39;should update user via PATCH request&#39;, () =&gt; {
+  const changes = { name: &#39;Updated Name&#39; };
+  const mockResponse = { id: 42, name: &#39;Updated Name&#39;, email: &#39;user@app.com&#39; };
+
+  service.updateUser(42, changes).subscribe(user =&gt; {
+    expect(user).toEqual(mockResponse);
+  });
+
+  const req = httpMock.expectOne(&#39;/api/users/42&#39;);
+  expect(req.request.method).toBe(&#39;PATCH&#39;);
+  expect(req.request.body).toEqual(changes);
+
+  req.flush(mockResponse);
+});
+</code></pre>
+</details><hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>Why should you never hit a real backend API during service unit testing?</li>
+<li>What is the purpose of <code>httpMock.verify()</code> in <code>afterEach()</code>?</li>
+<li>How do you simulate a 500 server error when testing an HTTP service?</li>
+<li>Why are service tests generally faster and easier to write than component tests?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>Hitting real APIs makes tests slow, flaky (fails if the network drops or server is down), requires active server infrastructure, and pollutes production/test databases with junk test data.</p>
+</li>
+<li><p><code>httpMock.verify()</code> asserts that there are <strong>no outstanding, unhandled HTTP requests</strong> left unverified by <code>expectOne()</code>. This catches subtle bugs where your code triggers unexpected secondary HTTP requests.</p>
+</li>
+<li><p>Use <code>req.flush(&#39;Server error message&#39;, { status: 500, statusText: &#39;Internal Server Error&#39; })</code> on the <code>TestRequest</code> object returned by <code>httpMock.expectOne()</code>.</p>
+</li>
+<li><p>Services have no HTML templates, DOM manipulation, dynamic rendering, or Angular change detection cycles. They are pure TypeScript classes that can be instantiated and tested directly in memory.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./zoneless-angular.html">23 - Zoneless Angular →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Zoneless Angular & Fine-Grained Reactivity - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item active">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-zoneless-angular-fine-grained-reactivity">Angular: Zoneless Angular & Fine-Grained Reactivity</h1>
+<blockquote>
+<p><strong>Goal</strong>: Understand the shift from Zone.js monkey-patching to Zoneless Angular — why it&#39;s the biggest performance leap in Angular history, and how to write 100% zoneless-compatible code.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-what-is-zonejs">What is Zone.js?</a></li>
+<li><a href="#2-the-problems-with-zonejs">The Problems with Zone.js</a></li>
+<li><a href="#3-how-zoneless-angular-works">How Zoneless Angular Works</a></li>
+<li><a href="#4-enabling-zoneless-mode">Enabling Zoneless Mode</a></li>
+<li><a href="#5-writing-zoneless-compatible-code">Writing Zoneless-Compatible Code</a></li>
+<li><a href="#6-signals-as-the-engine-of-zoneless">Signals as the Engine of Zoneless</a></li>
+<li><a href="#7-migrating-existing-apps-to-zoneless">Migrating Existing Apps to Zoneless</a></li>
+<li><a href="#8-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#9-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-what-is-zonejs">1. What is Zone.js?</h2>
+<p>Zone.js creates a global execution context (&quot;zone&quot;) around your Angular app. It <strong>monkey-patches</strong> (overrides) all browser async APIs:</p>
+<ul>
+<li><code>setTimeout</code>, <code>setInterval</code>, <code>requestAnimationFrame</code></li>
+<li>Promises (<code>Promise.then</code>, <code>async/await</code>)</li>
+<li>Event listeners (<code>click</code>, <code>mousemove</code>, <code>keyup</code>, <code>scroll</code>, <code>fetch</code>)</li>
+</ul>
+<pre><code>Async event finishes (click, timer, HTTP response)
+                     │
+                     ▼
+             Zone.js intercepts it
+                     │
+                     ▼
+&quot;Hey Angular, something happened! Run top-down change detection on the ENTIRE APP component tree!&quot;
+</code></pre>
+<hr>
+<h2 id="2-the-problems-with-zonejs">2. The Problems with Zone.js</h2>
+<ol>
+<li><strong>Massive Over-Rendering</strong>: A single <code>mousemove</code> event triggers a full top-down check of every single component in the app — 60 times a second!</li>
+<li><strong>Bundle Size</strong>: Zone.js adds ~13KB of heavy JS polyfills to your initial download bundle.</li>
+<li><strong>Debugging Nightmare</strong>: Error stack traces are polluted with 50+ lines of unreadable Zone.js internal frames.</li>
+<li><strong>Web Worker Incompatibility</strong>: Zone.js struggles in Web Workers, Service Workers, and SSR edge runtimes.</li>
+</ol>
+<hr>
+<h2 id="3-how-zoneless-angular-works">3. How Zoneless Angular Works</h2>
+<p>With <strong>Signals</strong>, Angular has fine-grained reactivity. When a Signal&#39;s value changes (<code>.set()</code> or <code>.update()</code>), Angular knows <strong>exactly which component and DOM node needs updating</strong>.</p>
+<pre><code>Signal value changes (mySignal.set(newValue))
+                     │
+                     ▼
+Angular knows EXACTLY which component node depends on mySignal
+                     │
+                     ▼
+Targeted update: ONLY that specific DOM node is re-rendered! (Zero top-down tree checking!)
+</code></pre>
+<hr>
+<h2 id="4-enabling-zoneless-mode">4. Enabling Zoneless Mode</h2>
+<pre><code class="language-typescript">// src/app/app.config.ts (Angular 18+)
+import { ApplicationConfig, provideExperimentalZonelessChangeDetection } from &#39;@angular/core&#39;;
+import { provideRouter } from &#39;@angular/router&#39;;
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // Enable Zoneless Change Detection!
+    provideExperimentalZonelessChangeDetection(),
+    provideRouter(routes)
+  ]
+};
+</code></pre>
+<h3 id="remove-zonejs-from-angularjson">Remove Zone.js from `angular.json`</h3>
+<pre><code class="language-json">// angular.json — remove zone.js from polyfills!
+&quot;polyfills&quot;: [
+  // ❌ REMOVE THIS: &quot;zone.js&quot;
+]
+</code></pre>
+<hr>
+<h2 id="5-writing-zoneless-compatible-code">5. Writing Zoneless-Compatible Code</h2>
+<p>In a Zoneless app, <strong>plain mutable variables do NOT update the UI when changed asynchronously</strong>.</p>
+<pre><code class="language-typescript">// ❌ FAILS IN ZONELESS: UI will NEVER update!
+export class StopwatchComponent {
+  seconds = 0;
+
+  start() {
+    setInterval(() =&gt; {
+      this.seconds++; // Plain variable — Angular doesn&#39;t know it changed!
+    }, 1000);
+  }
+}
+
+// ✅ WORKS IN ZONELESS: Signal notifies Angular automatically!
+export class StopwatchComponent {
+  seconds = signal(0);
+
+  start() {
+    setInterval(() =&gt; {
+      this.seconds.update(s =&gt; s + 1); // Signal update notifies framework!
+    }, 1000);
+  }
+}
+</code></pre>
+<hr>
+<h2 id="6-signals-as-the-engine-of-zoneless">6. Signals as the Engine of Zoneless</h2>
+<p>Every piece of state in a Zoneless application should be driven by:</p>
+<ul>
+<li><code>signal()</code>, <code>computed()</code>, <code>model()</code>, <code>input()</code></li>
+<li>Observables converted via <code>toSignal()</code></li>
+<li><code>ChangeDetectorRef.markForCheck()</code> (for legacy migration)</li>
+</ul>
+<pre><code class="language-typescript">// Modern Zoneless Component Pattern
+@Component({
+  selector: &#39;app-user-profile&#39;,
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @if (isLoading()) {
+      &lt;div class=&quot;spinner&quot;&gt;Loading...&lt;/div&gt;
+    } @else if (user(); as u) {
+      &lt;h1&gt;{{ u.name }}&lt;/h1&gt;
+      &lt;p&gt;{{ u.email }}&lt;/p&gt;
+    }
+  `
+})
+export class UserProfileComponent {
+  private userService = inject(UserService);
+
+  // Observable converted directly to Signal
+  user = toSignal(this.userService.getCurrentUser(), { initialValue: null });
+  isLoading = computed(() =&gt; this.user() === null);
+}
+</code></pre>
+<hr>
+<h2 id="7-migrating-existing-apps-to-zoneless">7. Migrating Existing Apps to Zoneless</h2>
+<pre><code>Step 1: Set ChangeDetectionStrategy.OnPush on ALL components
+Step 2: Replace @Input() / @Output() with input() / output() signals
+Step 3: Convert local state to signals
+Step 4: Enable provideExperimentalZonelessChangeDetection() in app.config.ts
+Step 5: Remove zone.js from polyfills in angular.json
+</code></pre>
+<hr>
+<h2 id="8-common-pitfalls">8. Common Pitfalls</h2>
+<h3 id="pitfall-1-mutating-plain-variables-in-async-callbacks">Pitfall 1: Mutating plain variables in async callbacks</h3>
+<pre><code class="language-typescript">// ❌ UI will not update in Zoneless mode
+fetch(&#39;/api/user&#39;).then(res =&gt; res.json()).then(data =&gt; {
+  this.user = data; // Plain variable assignment ignored!
+});
+
+// ✅ Use signals
+fetch(&#39;/api/user&#39;).then(res =&gt; res.json()).then(data =&gt; {
+  this.userSignal.set(data); // Triggers DOM update!
+});
+</code></pre>
+<h3 id="pitfall-2-using-legacy-3rd-party-libraries-without-signals-or-markforcheck">Pitfall 2: Using legacy 3rd-party libraries without Signals or `markForCheck()`</h3>
+<pre><code class="language-typescript">// Legacy library callback
+thirdPartyLib.on(&#39;update&#39;, (data) =&gt; {
+  // If library doesn&#39;t use signals, notify Angular manually:
+  this.cdr.markForCheck();
+});
+</code></pre>
+<hr>
+<h2 id="9-try-it-yourself">9. Try It Yourself</h2>
+<p>Convert this legacy Zone-dependent component to 100% Zoneless-compatible code:</p>
+<pre><code class="language-typescript">// ❌ Legacy Zone-dependent code
+export class LiveClockComponent implements OnInit {
+  currentTime = &#39;Loading...&#39;;
+
+  ngOnInit() {
+    setInterval(() =&gt; {
+      this.currentTime = new Date().toLocaleTimeString();
+    }, 1000);
+  }
+}
+</code></pre>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Component, signal, OnInit, DestroyRef, inject } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-live-clock&#39;,
+  standalone: true,
+  template: `&lt;p class=&quot;clock&quot;&gt;{{ currentTime() }}&lt;/p&gt;`
+})
+export class LiveClockComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+
+  // ✅ Driven by Signal
+  currentTime = signal(new Date().toLocaleTimeString());
+
+  ngOnInit() {
+    const timerId = setInterval(() =&gt; {
+      this.currentTime.set(new Date().toLocaleTimeString());
+    }, 1000);
+
+    this.destroyRef.onDestroy(() =&gt; clearInterval(timerId));
+  }
+}
+</code></pre>
+</details><hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>What is monkey-patching, and how did Zone.js use it?</li>
+<li>Why does Zoneless mode drastically improve app performance during events like <code>mousemove</code> or <code>scroll</code>?</li>
+<li>What happens when you update a plain variable inside <code>setTimeout()</code> in a Zoneless Angular app?</li>
+<li>What Angular feature makes Zoneless mode possible?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>Monkey-patching is the practice of overriding built-in browser functions at runtime. Zone.js monkey-patched all browser async APIs (<code>setTimeout</code>, <code>Promise</code>, <code>addEventListener</code>, <code>fetch</code>) so it could intercept when async work finished and trigger framework-wide change detection.</p>
+</li>
+<li><p>In Zone.js mode, every single <code>mousemove</code> or <code>scroll</code> event triggers a top-down change detection check of the <strong>entire component tree</strong>. In Zoneless mode, event listeners do NOT trigger tree-wide change detection — Angular only updates DOM nodes associated with Signals that actually changed value.</p>
+</li>
+<li><p>The plain variable value in memory will change, but <strong>the UI will never update</strong>. In Zoneless mode, Angular does not automatically scan components for plain variable changes. You must use Signals (<code>.set()</code>, <code>.update()</code>) or explicitly call <code>ChangeDetectorRef.markForCheck()</code>.</p>
+</li>
+<li><p><strong>Signals</strong>. Signals provide explicit dependency tracking and notifications when values change, allowing Angular to perform pinpoint, surgical DOM updates without needing Zone.js to guess when change detection should run.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./angular-cli.html">24 - Angular CLI Commands →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

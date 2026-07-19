@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular Complete Study Guide — Master Index - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item active">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-complete-study-guide-master-index">Angular Complete Study Guide — Master Index</h1>
+<blockquote>
+<p>A comprehensive set of notes for building scalable, production-grade Angular applications. All notes use modern Angular patterns (Signals, Standalone Components, Functional APIs).</p>
+</blockquote>
+<hr>
+<h2 id="-learning-path">🗺️ Learning Path</h2>
+<p>Follow this sequence for the most effective learning experience:</p>
+<pre><code>Foundation → Reactivity → Template → Data Flow → Architecture → Advanced → Tooling
+</code></pre>
+<hr>
+<h2 id="-all-notes">📚 All Notes</h2>
+<h3 id="-foundation">🏗️ Foundation</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Key Concepts</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="./architecture-and-standalone.html"><strong>Architecture &amp; Standalone</strong></a></td>
+<td>Folder structure, <code>app.config.ts</code>, bootstrapping, standalone vs NgModule</td>
+</tr>
+<tr>
+<td><a href="./angular-cli.html"><strong>Angular CLI</strong></a></td>
+<td><code>ng generate</code>, <code>ng serve</code>, <code>ng build</code>, <code>ng update</code>, <code>angular.json</code></td>
+</tr>
+<tr>
+<td><a href="./environments.html"><strong>Environments</strong></a></td>
+<td><code>environment.ts</code>, file replacements, multi-environment builds</td>
+</tr>
+</tbody></table>
+<h3 id="-reactivity-core-of-modern-angular">⚡ Reactivity (Core of Modern Angular)</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Key Concepts</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="./signals.html"><strong>Signals</strong> ⭐</a></td>
+<td><code>signal()</code>, <code>computed()</code>, <code>effect()</code>, <code>input()</code>, <code>output()</code>, <code>model()</code>, NgRx SignalStore</td>
+</tr>
+<tr>
+<td><a href="./zoneless-angular.html"><strong>Zoneless Angular</strong></a></td>
+<td>Zone.js removal, <code>provideExperimentalZonelessChangeDetection()</code></td>
+</tr>
+</tbody></table>
+<h3 id="-templates-component-design">🖼️ Templates & Component Design</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Key Concepts</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="./control-flow.html"><strong>Control Flow</strong></a></td>
+<td><code>@if</code>, <code>@for</code>, <code>@switch</code>, <code>@empty</code>, <code>track</code>, type narrowing</td>
+</tr>
+<tr>
+<td><a href="./pipes.html"><strong>Pipes</strong></a></td>
+<td>Built-in pipes, custom pipes, pure vs impure, <code>AsyncPipe</code></td>
+</tr>
+<tr>
+<td><a href="./directives.html"><strong>Directives</strong></a></td>
+<td>Attribute directives, <code>@HostListener</code>, <code>@HostBinding</code>, Directive Composition API</td>
+</tr>
+<tr>
+<td><a href="./deferrable-views.html"><strong>Deferrable Views</strong></a></td>
+<td><code>@defer</code>, triggers, prefetch, progressive loading</td>
+</tr>
+</tbody></table>
+<h3 id="-data-flow-communication">🔀 Data Flow & Communication</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Key Concepts</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="./component-communication.html"><strong>Component Communication</strong></a></td>
+<td><code>input()</code>, <code>output()</code>, <code>model()</code>, shared services</td>
+</tr>
+<tr>
+<td><a href="./lifecycle-hooks.html"><strong>Lifecycle Hooks</strong></a></td>
+<td><code>ngOnInit</code>, <code>ngOnDestroy</code>, <code>DestroyRef</code>, <code>afterRender</code>, <code>takeUntilDestroyed</code></td>
+</tr>
+<tr>
+<td><a href="./content-projection.html"><strong>Content Projection</strong></a></td>
+<td><code>ng-content</code>, multi-slot, <code>ngTemplateOutlet</code>, <code>ContentChild</code></td>
+</tr>
+<tr>
+<td><a href="./viewchild.html"><strong>ViewChild &amp; ViewChildren</strong></a></td>
+<td><code>viewChild()</code> signal, <code>@ViewChild</code>, template reference variables</td>
+</tr>
+<tr>
+<td><a href="./contentchild.html"><strong>ContentChild</strong></a></td>
+<td><code>contentChildren()</code> signal, accordion pattern</td>
+</tr>
+</tbody></table>
+<h3 id="-architecture-services">🏛️ Architecture & Services</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Key Concepts</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="./services-di.html"><strong>Services &amp; DI</strong> ⭐</a></td>
+<td><code>inject()</code>, DI tree, <code>InjectionToken</code>, <code>providedIn</code>, <code>useClass</code>, <code>useFactory</code></td>
+</tr>
+<tr>
+<td><a href="./routing.html"><strong>Routing</strong> ⭐</a></td>
+<td><code>loadComponent</code>, <code>loadChildren</code>, route params, <code>withComponentInputBinding()</code></td>
+</tr>
+<tr>
+<td><a href="./route-guards-resolvers.html"><strong>Guards &amp; Resolvers</strong></a></td>
+<td><code>canActivate</code>, <code>canDeactivate</code>, <code>canMatch</code>, <code>ResolveFn</code>, <code>EMPTY</code></td>
+</tr>
+<tr>
+<td><a href="./http-interceptors.html"><strong>HTTP Interceptors</strong></a></td>
+<td>Auth tokens, loading spinner, error handling, token refresh</td>
+</tr>
+</tbody></table>
+<h3 id="-http-state">🌐 HTTP & State</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Key Concepts</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="./http-rxjs.html"><strong>HttpClient &amp; RxJS</strong> ⭐</a></td>
+<td><code>switchMap</code>, <code>forkJoin</code>, <code>toSignal()</code>, <code>catchError</code>, <code>takeUntilDestroyed</code></td>
+</tr>
+<tr>
+<td><a href="./reactive-forms.html"><strong>Reactive Forms</strong> ⭐</a></td>
+<td><code>FormBuilder</code>, typed forms, <code>FormArray</code>, <code>nonNullable</code>, validation</td>
+</tr>
+<tr>
+<td><a href="./custom-validators.html"><strong>Custom Validators</strong></a></td>
+<td>Sync validators, async validators, cross-field validation</td>
+</tr>
+</tbody></table>
+<h3 id="-advanced-features">🔧 Advanced Features</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Key Concepts</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="./ssr-hydration.html"><strong>SSR &amp; Hydration</strong></a></td>
+<td>Server rendering, <code>isPlatformBrowser()</code>, <code>afterNextRender()</code>, <code>withFetch()</code></td>
+</tr>
+<tr>
+<td><a href="./error-handling.html"><strong>Error Handling</strong></a></td>
+<td>Global <code>ErrorHandler</code>, <code>catchError</code>, error boundaries</td>
+</tr>
+</tbody></table>
+<h3 id="-testing">🧪 Testing</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Key Concepts</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="./testing-components.html"><strong>Testing Components</strong></a></td>
+<td><code>TestBed</code>, <code>ComponentFixture</code>, mocking, signal inputs, <code>fakeAsync</code></td>
+</tr>
+<tr>
+<td><a href="./testing-services.html"><strong>Testing Services</strong></a></td>
+<td><code>HttpTestingController</code>, service mocks, observable testing</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="-most-important-files-for-scalable-apps">⭐ Most Important Files for Scalable Apps</h2>
+<p>If you only have time to master a subset, prioritize these:</p>
+<ol>
+<li><strong><a href="./signals.html">Signals</a></strong> — Foundation of all modern Angular reactivity</li>
+<li><strong><a href="./services-di.html">Services &amp; DI</a></strong> — How Angular&#39;s entire architecture connects</li>
+<li><strong><a href="./routing.html">Routing</a></strong> — Essential for multi-page SPAs</li>
+<li><strong><a href="./http-rxjs.html">HttpClient &amp; RxJS</a></strong> — Data fetching is in every app</li>
+<li><strong><a href="./reactive-forms.html">Reactive Forms</a></strong> — Forms are ubiquitous in enterprise apps</li>
+<li><strong><a href="./route-guards-resolvers.html">Guards &amp; Resolvers</a></strong> — Security and UX</li>
+<li><strong><a href="./http-interceptors.html">HTTP Interceptors</a></strong> — Cross-cutting HTTP concerns</li>
+</ol>
+<hr>
+<h2 id="-modern-angular-patterns-quick-reference">🔑 Modern Angular Patterns Quick Reference</h2>
+<h3 id="component-template">Component Template</h3>
+<pre><code class="language-typescript">@Component({
+  selector: &#39;app-example&#39;,
+  standalone: true,
+  imports: [/* pipes, directives, child components */],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `...`
+})
+export class ExampleComponent {
+  // ✅ DI with inject()
+  private service = inject(ExampleService);
+
+  // ✅ Signal inputs (replace @Input())
+  itemId = input.required&lt;string&gt;();
+
+  // ✅ Signal outputs (replace @Output() EventEmitter)
+  itemSelected = output&lt;Item&gt;();
+
+  // ✅ Two-way binding (replace @Input() + @Output() XxxChange)
+  value = model&lt;string&gt;(&#39;&#39;);
+
+  // ✅ Local state
+  items = signal&lt;Item[]&gt;([]);
+  isLoading = signal(false);
+
+  // ✅ Derived state
+  filteredItems = computed(() =&gt;
+    this.items().filter(i =&gt; i.active)
+  );
+
+  // ✅ Side effects
+  constructor() {
+    effect(() =&gt; {
+      console.log(&#39;itemId changed:&#39;, this.itemId());
+    });
+  }
+}
+</code></pre>
+<h3 id="service-template">Service Template</h3>
+<pre><code class="language-typescript">@Injectable({ providedIn: &#39;root&#39; })
+export class ExampleService {
+  private http = inject(HttpClient);
+
+  // Private writable state
+  private _items = signal&lt;Item[]&gt;([]);
+
+  // Public read-only signals
+  readonly items = this._items.asReadonly();
+  readonly count = computed(() =&gt; this._items().length);
+
+  // HTTP method
+  loadItems(): Observable&lt;Item[]&gt; {
+    return this.http.get&lt;Item[]&gt;(&#39;/api/items&#39;).pipe(
+      tap(items =&gt; this._items.set(items)),
+      catchError(err =&gt; throwError(() =&gt; err))
+    );
+  }
+}
+</code></pre>
+<h3 id="route-configuration">Route Configuration</h3>
+<pre><code class="language-typescript">export const routes: Routes = [
+  { path: &#39;&#39;, redirectTo: &#39;home&#39;, pathMatch: &#39;full&#39; },
+  {
+    path: &#39;protected&#39;,
+    canActivate: [authGuard],
+    loadChildren: () =&gt; import(&#39;./features/protected/protected.routes&#39;)
+                          .then(m =&gt; m.PROTECTED_ROUTES)
+  },
+  { path: &#39;**&#39;, loadComponent: () =&gt; import(&#39;./not-found.component&#39;).then(m =&gt; m.NotFoundComponent) }
+];
+</code></pre>
+<h3 id="app-config-template">App Config Template</h3>
+<pre><code class="language-typescript">export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes, withComponentInputBinding(), withPreloading(PreloadAllModules)),
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor, errorInterceptor])),
+    provideClientHydration(),  // For SSR projects
+    // provideExperimentalZonelessChangeDetection()  // For zoneless projects
+  ]
+};
+</code></pre>
+<hr>
+<h2 id="-scalable-folder-structure">📐 Scalable Folder Structure</h2>
+<pre><code>src/
+├── app/
+│   ├── core/                         # App-wide singletons
+│   │   ├── guards/                   # Route guards
+│   │   ├── interceptors/             # HTTP interceptors
+│   │   ├── models/                   # TypeScript interfaces
+│   │   ├── services/                 # Global services (AuthService, etc.)
+│   │   └── tokens/                   # InjectionTokens
+│   ├── features/                     # Lazy-loaded feature modules
+│   │   ├── dashboard/
+│   │   │   ├── dashboard.routes.ts
+│   │   │   ├── dashboard.component.ts
+│   │   │   └── services/
+│   │   └── products/
+│   │       ├── products.routes.ts
+│   │       ├── list/
+│   │       ├── detail/
+│   │       └── services/
+│   ├── shared/                       # Reusable across features
+│   │   ├── components/               # Dumb/presentational components
+│   │   ├── directives/               # Custom directives
+│   │   ├── pipes/                    # Custom pipes
+│   │   └── validators/               # Custom form validators
+│   ├── app.component.ts
+│   ├── app.config.ts
+│   └── app.routes.ts
+├── environments/
+│   ├── environment.ts                # Development
+│   └── environment.production.ts    # Production
+└── assets/
+</code></pre>
+<hr>
+<h2 id="-key-rules-to-remember">💡 Key Rules to Remember</h2>
+<ol>
+<li><strong>Always <code>track</code> in <code>@for</code></strong> — by unique ID, not <code>$index</code> (unless static data)</li>
+<li><strong><code>inject()</code> over constructor injection</strong> — cleaner, works in functional guards</li>
+<li><strong><code>input.required&lt;T&gt;()</code> over <code>@Input()</code></strong> — type-safe, reactive signals</li>
+<li><strong><code>asReadonly()</code> for public signals in services</strong> — prevent unauthorized mutations</li>
+<li><strong><code>takeUntilDestroyed()</code> for all subscriptions</strong> — prevent memory leaks</li>
+<li><strong><code>loadComponent</code> / <code>loadChildren</code> for all routes</strong> — code splitting</li>
+<li><strong><code>withComponentInputBinding()</code></strong> — auto-bind route params to component inputs</li>
+<li><strong><code>nonNullable: true</code> in FormBuilder</strong> — <code>reset()</code> restores initial value, not null</li>
+<li><strong>Never access <code>window</code>/<code>document</code> directly</strong> — use <code>afterNextRender()</code> or <code>isPlatformBrowser()</code></li>
+<li><strong><code>switchMap</code> for search, <code>exhaustMap</code> for form submit</strong> — correct cancellation behavior</li>
+</ol>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

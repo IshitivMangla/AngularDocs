@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Angular CLI — Essential Commands - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item active">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-angular-cli-essential-commands">Angular: Angular CLI — Essential Commands</h1>
+<blockquote>
+<p><strong>Goal</strong>: Master the Angular CLI to scaffold, develop, build, test, and maintain Angular applications efficiently and consistently.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-how-the-cli-works">How the CLI Works</a></li>
+<li><a href="#2-project-commands">Project Commands</a></li>
+<li><a href="#3-code-generation">Code Generation (<code>ng generate</code>)</a></li>
+<li><a href="#4-serving--building">Serving &amp; Building</a></li>
+<li><a href="#5-testing-commands">Testing Commands</a></li>
+<li><a href="#6-updating-angular">Updating Angular</a></li>
+<li><a href="#7-key-flags-reference">Key Flags Reference</a></li>
+<li><a href="#8-angularjson">Angular.json — Key Sections</a></li>
+<li><a href="#9-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#10-quick-reference-card">Quick Reference Card</a></li>
+</ol>
+<hr>
+<h2 id="1-how-the-cli-works">1. How the CLI Works</h2>
+<p>The CLI reads <code>angular.json</code> in your workspace root. This file defines:</p>
+<ul>
+<li><strong>Architect targets</strong>: <code>build</code>, <code>serve</code>, <code>test</code>, <code>lint</code>, <code>extract-i18n</code></li>
+<li><strong>Configurations</strong>: <code>development</code>, <code>production</code>, <code>staging</code></li>
+<li><strong>File replacements</strong>: How environment files are swapped per build</li>
+<li><strong>Assets</strong>: Which files get copied to the output (<code>dist/</code>) folder</li>
+<li><strong>Styles/Scripts</strong>: Global CSS files and scripts to include in every page</li>
+</ul>
+<p>The CLI uses <strong>esbuild</strong> (default in Angular 17+) for extremely fast builds — typically 3-5x faster than the old Webpack builder.</p>
+<hr>
+<h2 id="2-project-commands">2. Project Commands</h2>
+<pre><code class="language-bash"># Create a new Angular project
+ng new my-app
+
+# With flags:
+ng new my-app \
+  --style=scss \          # Use SCSS instead of CSS
+  --routing=true \         # Generate app.routes.ts
+  --standalone=true \      # Use standalone components (default in modern Angular)
+  --ssr=true              # Include SSR from the start
+
+# Check Angular version
+ng version
+ng v
+
+# Get help for any command
+ng help
+ng generate --help
+ng build --help
+</code></pre>
+<hr>
+<h2 id="3-code-generation">3. Code Generation</h2>
+<pre><code class="language-bash"># === COMPONENTS ===
+ng generate component features/users/user-list
+ng g c features/users/user-list                         # Shorthand
+
+# Generate with inline template and styles (single file)
+ng g c shared/components/loading-spinner --inline-template --inline-style
+
+# Without test file
+ng g c pages/about --skip-tests
+
+# Generate in a specific path (relative to src/app)
+ng g c features/products/list/products-list
+
+# === SERVICES ===
+ng g service core/services/auth
+ng g s core/services/user
+
+# === GUARDS ===
+ng g guard core/guards/auth
+# CLI prompts: CanActivate? CanDeactivate? CanMatch?
+
+# === DIRECTIVES ===
+ng g directive shared/directives/tooltip
+ng g d shared/directives/highlight
+
+# === PIPES ===
+ng g pipe shared/pipes/truncate
+ng g p shared/pipes/time-ago
+
+# === INTERFACES / CLASSES ===
+ng g interface core/models/user
+ng g class core/models/product
+
+# === ENVIRONMENTS ===
+ng generate environments     # Creates src/environments/ folder
+
+# === ENTIRE FEATURE (schematic) ===
+# Some teams use custom schematics to scaffold entire features at once
+</code></pre>
+<h3 id="generated-file-structure">Generated File Structure</h3>
+<p>When you run <code>ng g c features/products/detail/product-detail</code>, it creates:</p>
+<pre><code>src/app/features/products/detail/
+├── product-detail.component.ts      ← TypeScript class
+├── product-detail.component.html    ← Template (unless inline)
+├── product-detail.component.scss    ← Styles (unless inline)
+└── product-detail.component.spec.ts ← Tests (unless --skip-tests)
+</code></pre>
+<hr>
+<h2 id="4-serving-building">4. Serving & Building</h2>
+<pre><code class="language-bash"># === DEVELOPMENT SERVER ===
+ng serve                          # Start dev server at localhost:4200
+ng serve --open                   # Open browser automatically
+ng serve -o --port 8080           # Open on port 8080
+ng serve --host 0.0.0.0           # Expose to local network (mobile testing)
+ng serve --ssl                    # Serve over HTTPS
+
+# Using a specific configuration
+ng serve --configuration staging  # Uses staging environment + build settings
+
+# === PRODUCTION BUILDS ===
+ng build                          # Build with production defaults (AOT, minification, etc.)
+ng build --configuration production  # Explicit (same as default)
+ng build --configuration staging     # Staging build
+
+# === ANALYZE BUNDLE SIZE ===
+# Install: npm install -g webpack-bundle-analyzer
+ng build --stats-json
+npx webpack-bundle-analyzer dist/my-app/stats.json
+</code></pre>
+<h3 id="what-ng-build-does">What `ng build` Does</h3>
+<ul>
+<li><strong>AOT Compilation</strong>: Compiles templates at build time (not runtime) — faster app startup</li>
+<li><strong>Tree Shaking</strong>: Removes unused code (including unused Angular modules)</li>
+<li><strong>Minification</strong>: Shrinks JS/CSS by removing whitespace, shortening names</li>
+<li><strong>Code Splitting</strong>: Lazy-loaded routes become separate chunks</li>
+<li><strong>Source Maps</strong>: (Development only) Maps minified code back to TypeScript</li>
+</ul>
+<hr>
+<h2 id="5-testing-commands">5. Testing Commands</h2>
+<pre><code class="language-bash"># Run unit tests (Karma + Jasmine by default)
+ng test
+ng test --watch=false   # Run once without file watcher
+ng test --code-coverage # Generate coverage report in coverage/
+
+# Run end-to-end tests (requires separate e2e setup, e.g., Cypress, Playwright)
+ng e2e
+
+# Check code style
+ng lint
+
+# Run tests for a specific file
+ng test --include=&#39;**/*.spec.ts&#39; --include=&#39;**/user.service.spec.ts&#39;
+</code></pre>
+<h3 id="switching-to-jest-faster-more-popular">Switching to Jest (Faster, More Popular)</h3>
+<pre><code class="language-bash">ng add jest-preset-angular
+# OR
+npm install jest jest-preset-angular --save-dev
+</code></pre>
+<hr>
+<h2 id="6-updating-angular">6. Updating Angular</h2>
+<pre><code class="language-bash"># 1. See what can be updated
+ng update
+
+# 2. Update to the next major version
+ng update @angular/core @angular/cli
+
+# 3. For cross-version jumps (e.g., v16 → v19)
+ng update @angular/core@19 @angular/cli@19
+
+# 4. Update all packages to their latest compatible versions
+ng update @angular/cdk @angular/material @ngrx/store
+
+# 5. Check for outdated packages (npm command)
+npm outdated
+</code></pre>
+<p>The <code>ng update</code> command also runs <strong>automatic code migrations</strong> — it rewrites your source code to fix breaking changes between versions!</p>
+<hr>
+<h2 id="7-key-flags-reference">7. Key Flags Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--dry-run</code></td>
+<td><code>ng g ...</code></td>
+<td>Preview what would be generated without creating files</td>
+</tr>
+<tr>
+<td><code>--skip-tests</code></td>
+<td><code>ng g ...</code></td>
+<td>Don&#39;t generate <code>.spec.ts</code> test file</td>
+</tr>
+<tr>
+<td><code>--inline-template</code></td>
+<td><code>ng g c ...</code></td>
+<td>Put template inside the component TS file</td>
+</tr>
+<tr>
+<td><code>--inline-style</code></td>
+<td><code>ng g c ...</code></td>
+<td>Put styles inside the component TS file</td>
+</tr>
+<tr>
+<td><code>--flat</code></td>
+<td><code>ng g c ...</code></td>
+<td>Don&#39;t create a subdirectory</td>
+</tr>
+<tr>
+<td><code>--standalone</code></td>
+<td><code>ng g c ...</code></td>
+<td>Standalone component (default in Angular 19+)</td>
+</tr>
+<tr>
+<td><code>-o</code> / <code>--open</code></td>
+<td><code>ng serve</code></td>
+<td>Automatically open browser</td>
+</tr>
+<tr>
+<td><code>--port</code></td>
+<td><code>ng serve</code></td>
+<td>Serve on a different port</td>
+</tr>
+<tr>
+<td><code>--watch=false</code></td>
+<td><code>ng test</code></td>
+<td>Run tests once without watching</td>
+</tr>
+<tr>
+<td><code>--configuration</code></td>
+<td><code>ng build/serve</code></td>
+<td>Use a specific build configuration</td>
+</tr>
+<tr>
+<td><code>--stats-json</code></td>
+<td><code>ng build</code></td>
+<td>Output bundle stats for analysis</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="8-angularjson">8. Angular.json</h2>
+<pre><code class="language-json">{
+  &quot;projects&quot;: {
+    &quot;my-app&quot;: {
+      &quot;architect&quot;: {
+        &quot;build&quot;: {
+          &quot;options&quot;: {
+            &quot;outputPath&quot;: &quot;dist/my-app&quot;,          // Where built files go
+            &quot;index&quot;: &quot;src/index.html&quot;,             // HTML shell
+            &quot;browser&quot;: &quot;src/main.ts&quot;,              // Entry point
+            &quot;polyfills&quot;: [&quot;zone.js&quot;],              // Polyfills (remove for zoneless)
+            &quot;assets&quot;: [
+              &quot;src/favicon.ico&quot;,
+              &quot;src/assets&quot;                         // Copied to dist/ as-is
+            ],
+            &quot;styles&quot;: [
+              &quot;src/styles.scss&quot;                    // Global CSS/SCSS
+            ],
+            &quot;scripts&quot;: []                          // Global JS scripts
+          },
+          &quot;configurations&quot;: {
+            &quot;production&quot;: {
+              &quot;budgets&quot;: [
+                {
+                  &quot;type&quot;: &quot;initial&quot;,
+                  &quot;maximumWarning&quot;: &quot;500kB&quot;,       // Warn if bundle &gt; 500KB
+                  &quot;maximumError&quot;: &quot;1MB&quot;            // Fail build if bundle &gt; 1MB
+                }
+              ],
+              &quot;outputHashing&quot;: &quot;all&quot;               // Adds hash to filenames for cache busting
+            },
+            &quot;staging&quot;: {
+              &quot;fileReplacements&quot;: [{
+                &quot;replace&quot;: &quot;src/environments/environment.ts&quot;,
+                &quot;with&quot;: &quot;src/environments/environment.staging.ts&quot;
+              }]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<hr>
+<h2 id="9-common-pitfalls">9. Common Pitfalls</h2>
+<h3 id="pitfall-1-generating-in-the-wrong-directory">Pitfall 1: Generating in the wrong directory</h3>
+<pre><code class="language-bash"># ❌ Creates at src/app/user-list (root level)
+ng g c user-list
+
+# ✅ Creates at src/app/features/users/user-list
+ng g c features/users/user-list
+</code></pre>
+<h3 id="pitfall-2-using-ng-serve-in-production">Pitfall 2: Using `ng serve` in production</h3>
+<pre><code class="language-bash"># ❌ ng serve is a development-only server — not secure, not optimized!
+ng serve  # For production? NEVER!
+
+# ✅ Build first, then serve the static files with a real server
+ng build
+# Then use: nginx, express, firebase serve, netlify serve, etc.
+</code></pre>
+<h3 id="pitfall-3-not-using---dry-run-before-generating">Pitfall 3: Not using `--dry-run` before generating</h3>
+<pre><code class="language-bash"># ✅ Preview what will be generated BEFORE actually creating files
+ng g c features/users/user-detail --dry-run
+# Shows all files that WOULD be created, without touching the filesystem
+</code></pre>
+<hr>
+<h2 id="10-quick-reference-card">10. Quick Reference Card</h2>
+<pre><code class="language-bash"># Project
+ng new my-app                           # Create new project
+ng serve -o                             # Start dev server + open browser
+
+# Generate
+ng g c features/dash/dashboard          # Component
+ng g s core/services/auth               # Service
+ng g g core/guards/auth                 # Guard
+ng g d shared/directives/tooltip        # Directive
+ng g p shared/pipes/truncate            # Pipe
+ng g i core/models/user                 # Interface
+ng generate environments                # Environments folder
+
+# Build &amp; Test
+ng build                                # Production build → dist/
+ng test                                 # Run unit tests
+ng test --watch=false --code-coverage   # Coverage report
+ng lint                                 # Run linter
+
+# Maintenance
+ng update                               # Show available updates
+ng update @angular/core @angular/cli    # Update Angular
+ng add @angular/material                # Add Material Design
+ng add @angular/pwa                     # Add PWA support
+ng add @angular/ssr                     # Add SSR
+</code></pre>
+<hr>
+<p><em>Next: <a href="./environments.html">25 - Environments →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

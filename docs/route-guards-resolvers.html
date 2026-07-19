@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Route Guards & Resolvers - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item active">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-route-guards-resolvers">Angular: Route Guards & Resolvers</h1>
+<blockquote>
+<p><strong>Goal</strong>: Protect routes from unauthorized access and pre-fetch data before components render — essential patterns for any production application.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-guards-vs-resolvers">Guards vs Resolvers — Mental Model</a></li>
+<li><a href="#2-guard-types-reference">Guard Types Reference</a></li>
+<li><a href="#3-functional-guards">Functional Guards (Modern Approach)</a></li>
+<li><a href="#4-canactivate--authentication-guard"><code>canActivate</code> — Authentication Guard</a></li>
+<li><a href="#5-canactivatechild"><code>canActivateChild</code> — Protect All Children</a></li>
+<li><a href="#6-canmatch"><code>canMatch</code> — Conditional Route Matching</a></li>
+<li><a href="#7-candeactivate--unsaved-changes-guard"><code>canDeactivate</code> — Unsaved Changes Guard</a></li>
+<li><a href="#8-canload-prevent-lazy-loading"><code>canLoad</code> — Prevent Lazy Loading</a></li>
+<li><a href="#9-resolvers">Resolvers — Pre-fetch Data</a></li>
+<li><a href="#10-composing-multiple-guards">Composing Multiple Guards</a></li>
+<li><a href="#11-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#12-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#13-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-guards-vs-resolvers-mental-model">1. Guards vs Resolvers — Mental Model</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Guards</th>
+<th>Resolvers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Job</strong></td>
+<td>Bouncer — decides if you can enter</td>
+<td>Personal shopper — prepares what you need before you enter</td>
+</tr>
+<tr>
+<td><strong>Returns</strong></td>
+<td><code>true</code> (allow), <code>false</code> (block), <code>UrlTree</code> (redirect)</td>
+<td>Data (Observable, Promise, or raw value)</td>
+</tr>
+<tr>
+<td><strong>Controls</strong></td>
+<td>Whether navigation proceeds</td>
+<td>Whether navigation waits for data</td>
+</tr>
+<tr>
+<td><strong>Failure</strong></td>
+<td>Blocks navigation or redirects</td>
+<td>Cancels navigation (if EMPTY or error)</td>
+</tr>
+<tr>
+<td><strong>Use case</strong></td>
+<td>Auth checks, permission checks</td>
+<td>Pre-loading required page data</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="2-guard-types-reference">2. Guard Types Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Guard</th>
+<th>When it runs</th>
+<th>Use case</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>canActivate</code></td>
+<td>Before component is activated</td>
+<td>Require login</td>
+</tr>
+<tr>
+<td><code>canActivateChild</code></td>
+<td>Before any child route activates</td>
+<td>Protect entire feature&#39;s children</td>
+</tr>
+<tr>
+<td><code>canMatch</code></td>
+<td>Before route even tries to match</td>
+<td>Choose different routes based on user role</td>
+</tr>
+<tr>
+<td><code>canDeactivate</code></td>
+<td>Before leaving the current route</td>
+<td>Warn about unsaved form changes</td>
+</tr>
+<tr>
+<td><code>canLoad</code></td>
+<td>Before a lazy chunk is loaded</td>
+<td>Prevent downloading code for unauthorized users</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="3-functional-guards-modern-approach">3. Functional Guards (Modern Approach)</h2>
+<p>Since Angular v15, guards are just <strong>plain functions</strong> — no need for classes or decorating with <code>@Injectable()</code>. You can use <code>inject()</code> inside them.</p>
+<pre><code class="language-typescript">// Modern functional guard — clean, composable, testable
+import { inject } from &#39;@angular/core&#39;;
+import { CanActivateFn, Router } from &#39;@angular/router&#39;;
+import { AuthService } from &#39;../services/auth.service&#39;;
+
+export const authGuard: CanActivateFn = (route, state) =&gt; {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  if (auth.isAuthenticated()) {
+    return true;
+  }
+
+  // Return a UrlTree to redirect (never call router.navigate() and return void!)
+  return router.createUrlTree([&#39;/login&#39;], {
+    queryParams: { returnUrl: state.url }
+  });
+};
+</code></pre>
+<hr>
+<h2 id="4-canactivate-authentication-guard">4. `canActivate` — Authentication Guard</h2>
+<p>The most common guard. Checks if a user is authenticated before allowing access to a route.</p>
+<h3 id="complete-auth-guard">Complete Auth Guard</h3>
+<pre><code class="language-typescript">// src/app/core/guards/auth.guard.ts
+import { inject } from &#39;@angular/core&#39;;
+import { CanActivateFn, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from &#39;@angular/router&#39;;
+import { AuthService } from &#39;../services/auth.service&#39;;
+
+export const authGuard: CanActivateFn = (
+  route: ActivatedRouteSnapshot,
+  state: RouterStateSnapshot
+) =&gt; {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  // Check if user has a valid session/token
+  if (auth.isAuthenticated()) {
+    return true;
+  }
+
+  // Save the URL they were trying to access so we can redirect after login
+  return router.createUrlTree([&#39;/auth/login&#39;], {
+    queryParams: { returnUrl: state.url }
+  });
+};
+</code></pre>
+<h3 id="role-based-permission-guard">Role-Based Permission Guard</h3>
+<pre><code class="language-typescript">// src/app/core/guards/permission.guard.ts
+import { inject } from &#39;@angular/core&#39;;
+import { CanActivateFn, Router, ActivatedRouteSnapshot } from &#39;@angular/router&#39;;
+import { AuthService } from &#39;../services/auth.service&#39;;
+
+export const permissionGuard: CanActivateFn = (route: ActivatedRouteSnapshot) =&gt; {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  // Read required permission from route&#39;s data property
+  const requiredPermission = route.data[&#39;requiredPermission&#39;] as string;
+
+  if (!requiredPermission || auth.hasPermission(requiredPermission)) {
+    return true;
+  }
+
+  // Redirect to an &quot;access denied&quot; page
+  return router.createUrlTree([&#39;/access-denied&#39;]);
+};
+</code></pre>
+<pre><code class="language-typescript">// Using in routes
+{
+  path: &#39;admin&#39;,
+  loadComponent: () =&gt; import(&#39;./admin/admin.component&#39;).then(m =&gt; m.AdminComponent),
+  canActivate: [authGuard, permissionGuard],
+  data: { requiredPermission: &#39;admin:access&#39; }  // ← Read by permissionGuard
+}
+</code></pre>
+<h3 id="consuming-returnurl-after-login">Consuming `returnUrl` After Login</h3>
+<pre><code class="language-typescript">// login.component.ts
+export class LoginComponent {
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
+
+  onLogin(credentials: LoginDto) {
+    this.authService.login(credentials).subscribe(() =&gt; {
+      // Redirect to where the user was trying to go
+      const returnUrl = this.route.snapshot.queryParams[&#39;returnUrl&#39;] ?? &#39;/dashboard&#39;;
+      this.router.navigateByUrl(returnUrl, { replaceUrl: true });
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="5-canactivatechild">5. `canActivateChild`</h2>
+<p>Protects all child routes under a parent without adding the guard to each child individually.</p>
+<pre><code class="language-typescript">// src/app/core/guards/auth.guard.ts — same function handles both!
+import { CanActivateFn, CanActivateChildFn } from &#39;@angular/router&#39;;
+
+export const authGuard: CanActivateFn = (route, state) =&gt; { /* ... */ };
+
+// Re-export as canActivateChild type (same logic)
+export const authChildGuard: CanActivateChildFn = (childRoute, state) =&gt; {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  return auth.isAuthenticated() || router.createUrlTree([&#39;/login&#39;]);
+};
+</code></pre>
+<pre><code class="language-typescript">// Applying to protect all children
+{
+  path: &#39;app&#39;,
+  component: AppLayoutComponent,
+  canActivateChild: [authChildGuard],  // ← Protects ALL children automatically
+  children: [
+    { path: &#39;dashboard&#39;, component: DashboardComponent },  // Protected!
+    { path: &#39;profile&#39;, component: ProfileComponent },      // Protected!
+    { path: &#39;settings&#39;, component: SettingsComponent },    // Protected!
+  ]
+}
+</code></pre>
+<hr>
+<h2 id="6-canmatch">6. `canMatch`</h2>
+<p><code>canMatch</code> controls whether a <strong>route even tries to match</strong> the URL. If it returns false, the router continues to the next route in the array. This is powerful for showing completely different layouts/components based on user role.</p>
+<pre><code class="language-typescript">// admin-route.guard.ts
+import { inject } from &#39;@angular/core&#39;;
+import { CanMatchFn } from &#39;@angular/router&#39;;
+import { AuthService } from &#39;../services/auth.service&#39;;
+
+export const adminRouteGuard: CanMatchFn = () =&gt; {
+  return inject(AuthService).isAdmin();
+};
+</code></pre>
+<pre><code class="language-typescript">// routes.ts — same URL, different components based on role!
+export const routes: Routes = [
+  {
+    path: &#39;dashboard&#39;,
+    canMatch: [adminRouteGuard],                    // ← Only matches if admin
+    loadComponent: () =&gt; import(&#39;./admin-dashboard.component&#39;).then(m =&gt; m.AdminDashboardComponent)
+  },
+  {
+    path: &#39;dashboard&#39;,
+    // ← This matches for non-admins (adminRouteGuard returned false above)
+    loadComponent: () =&gt; import(&#39;./user-dashboard.component&#39;).then(m =&gt; m.UserDashboardComponent)
+  }
+];
+</code></pre>
+<hr>
+<h2 id="7-candeactivate-unsaved-changes-guard">7. `canDeactivate` — Unsaved Changes Guard</h2>
+<p>Prevents users from accidentally losing their work when navigating away from a form with unsaved changes.</p>
+<h3 id="define-the-guard-interface">Define the Guard Interface</h3>
+<pre><code class="language-typescript">// src/app/core/guards/unsaved-changes.guard.ts
+import { CanDeactivateFn } from &#39;@angular/router&#39;;
+import { inject } from &#39;@angular/core&#39;;
+import { DialogService } from &#39;../services/dialog.service&#39;;
+
+// Interface that &quot;deactivatable&quot; components must implement
+export interface HasUnsavedChanges {
+  hasUnsavedChanges(): boolean;
+}
+
+export const unsavedChangesGuard: CanDeactivateFn&lt;HasUnsavedChanges&gt; = async (component) =&gt; {
+  if (!component.hasUnsavedChanges()) {
+    return true; // No changes — allow navigation
+  }
+
+  // Use a proper modal dialog instead of window.confirm (which blocks the UI)
+  const dialogService = inject(DialogService);
+  const confirmed = await dialogService.confirm({
+    title: &#39;Unsaved Changes&#39;,
+    message: &#39;You have unsaved changes. If you leave, your changes will be lost.&#39;,
+    confirmText: &#39;Leave anyway&#39;,
+    cancelText: &#39;Stay and save&#39;
+  });
+
+  return confirmed;
+};
+</code></pre>
+<h3 id="apply-to-a-form-component">Apply to a Form Component</h3>
+<pre><code class="language-typescript">// product-edit.component.ts
+import { Component, inject, signal } from &#39;@angular/core&#39;;
+import { HasUnsavedChanges } from &#39;../../core/guards/unsaved-changes.guard&#39;;
+
+@Component({ ... })
+export class ProductEditComponent implements HasUnsavedChanges {
+  private originalValue = signal&lt;any&gt;(null);
+  form = inject(FormBuilder).group({ /* ... */ });
+
+  ngOnInit() {
+    // Store the original state
+    this.originalValue.set(this.form.value);
+  }
+
+  // Guard calls this to check if navigation should be blocked
+  hasUnsavedChanges(): boolean {
+    return this.form.dirty; // True if any control has been modified
+  }
+
+  save() {
+    // After saving, mark form as pristine (no longer &quot;dirty&quot;)
+    this.form.markAsPristine();
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">// Route configuration
+{
+  path: &#39;products/:id/edit&#39;,
+  loadComponent: () =&gt; import(&#39;./product-edit.component&#39;).then(m =&gt; m.ProductEditComponent),
+  canDeactivate: [unsavedChangesGuard]
+}
+</code></pre>
+<hr>
+<h2 id="8-canload-prevent-lazy-loading">8. `canLoad` — Prevent Lazy Loading</h2>
+<p>Prevents the router from even <strong>downloading the JavaScript bundle</strong> for a route if the user doesn&#39;t have access. More security than <code>canActivate</code> because the code is never sent to the client.</p>
+<pre><code class="language-typescript">import { CanLoadFn } from &#39;@angular/router&#39;;
+
+export const adminLoadGuard: CanLoadFn = () =&gt; {
+  const auth = inject(AuthService);
+  if (auth.isAdmin()) {
+    return true;
+  }
+  inject(Router).navigate([&#39;/access-denied&#39;]);
+  return false;
+};
+</code></pre>
+<pre><code class="language-typescript">// Route — prevents downloading admin bundle entirely for non-admins
+{
+  path: &#39;admin&#39;,
+  canLoad: [adminLoadGuard],
+  loadChildren: () =&gt; import(&#39;./features/admin/admin.routes&#39;).then(m =&gt; m.ADMIN_ROUTES)
+}
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>: In Angular v15+, <code>canMatch</code> largely supersedes <code>canLoad</code> because it&#39;s more flexible. Use <code>canMatch</code> in new code.</p>
+</blockquote>
+<hr>
+<h2 id="9-resolvers-pre-fetch-data">9. Resolvers — Pre-fetch Data</h2>
+<p>A resolver fetches data <strong>before</strong> the component renders, so the component always receives its data immediately without flashing empty states.</p>
+<h3 id="when-to-use-resolvers">When to Use Resolvers</h3>
+<p>✅ Use resolvers when:</p>
+<ul>
+<li>The data is small/fast to load</li>
+<li>The component CANNOT function without the data</li>
+<li>You want to prevent the user from seeing an empty/broken state</li>
+</ul>
+<p>❌ Avoid resolvers when:</p>
+<ul>
+<li>The API is slow (user sees a frozen page with no feedback)</li>
+<li>The data isn&#39;t critical (show a skeleton loader instead)</li>
+</ul>
+<h3 id="complete-resolver-example">Complete Resolver Example</h3>
+<pre><code class="language-typescript">// src/app/features/products/resolvers/product.resolver.ts
+import { inject } from &#39;@angular/core&#39;;
+import { ResolveFn, Router, ActivatedRouteSnapshot } from &#39;@angular/router&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+import { catchError, EMPTY } from &#39;rxjs&#39;;
+import { Product } from &#39;../product.model&#39;;
+
+export const productResolver: ResolveFn&lt;Product&gt; = (route: ActivatedRouteSnapshot) =&gt; {
+  const http = inject(HttpClient);
+  const router = inject(Router);
+  const productId = route.paramMap.get(&#39;id&#39;);
+
+  if (!productId) {
+    router.navigate([&#39;/404&#39;]);
+    return EMPTY;  // EMPTY completes without emitting — cancels navigation
+  }
+
+  return http.get&lt;Product&gt;(`/api/products/${productId}`).pipe(
+    catchError(error =&gt; {
+      if (error.status === 404) {
+        router.navigate([&#39;/404&#39;]);
+      } else {
+        router.navigate([&#39;/error&#39;]);
+      }
+      return EMPTY;
+    })
+  );
+};
+</code></pre>
+<h3 id="using-resolved-data-in-the-component">Using Resolved Data in the Component</h3>
+<pre><code class="language-typescript">// Route definition
+{
+  path: &#39;products/:id&#39;,
+  loadComponent: () =&gt; import(&#39;./product-detail.component&#39;).then(m =&gt; m.ProductDetailComponent),
+  resolve: { product: productResolver },  // ← Resolver result available as &#39;product&#39;
+  data: { breadcrumb: &#39;Product Details&#39; }
+}
+</code></pre>
+<pre><code class="language-typescript">// product-detail.component.ts
+// With withComponentInputBinding() — resolved data is auto-bound to @Input()
+import { Component, input } from &#39;@angular/core&#39;;
+import { Product } from &#39;../product.model&#39;;
+
+@Component({
+  selector: &#39;app-product-detail&#39;,
+  standalone: true,
+  template: `
+    @if (product(); as p) {
+      &lt;h1&gt;{{ p.name }}&lt;/h1&gt;
+      &lt;p&gt;{{ p.description }}&lt;/p&gt;
+      &lt;span&gt;{{ p.price | currency }}&lt;/span&gt;
+    }
+  `
+})
+export class ProductDetailComponent {
+  // ✅ The resolver&#39;s result is automatically passed as an input!
+  product = input&lt;Product&gt;();
+}
+</code></pre>
+<h3 id="multiple-resolvers">Multiple Resolvers</h3>
+<pre><code class="language-typescript">// Resolve multiple data sources before showing the component
+{
+  path: &#39;checkout&#39;,
+  loadComponent: () =&gt; import(&#39;./checkout.component&#39;).then(m =&gt; m.CheckoutComponent),
+  resolve: {
+    cart: cartResolver,        // Cart items
+    user: currentUserResolver, // User profile
+    addresses: addressResolver // Saved addresses
+  }
+}
+
+// All three are available as inputs in CheckoutComponent!
+export class CheckoutComponent {
+  cart = input&lt;CartItem[]&gt;([]);
+  user = input&lt;User | null&gt;(null);
+  addresses = input&lt;Address[]&gt;([]);
+}
+</code></pre>
+<hr>
+<h2 id="10-composing-multiple-guards">10. Composing Multiple Guards</h2>
+<p>Guards in the same array are evaluated in order. If any guard returns <code>false</code> or a <code>UrlTree</code>, navigation stops.</p>
+<pre><code class="language-typescript">// Order matters: auth first, then permissions
+{
+  path: &#39;admin/users&#39;,
+  canActivate: [
+    authGuard,         // ← Must be logged in first
+    permissionGuard,   // ← Then check admin permission
+  ],
+  data: { requiredPermission: &#39;users:manage&#39; }
+}
+</code></pre>
+<h3 id="utility-creating-a-guard-factory">Utility: Creating a Guard Factory</h3>
+<pre><code class="language-typescript">// A guard factory that creates a guard for a specific permission
+export function requirePermission(permission: string): CanActivateFn {
+  return () =&gt; {
+    const auth = inject(AuthService);
+    const router = inject(Router);
+    return auth.hasPermission(permission) || router.createUrlTree([&#39;/access-denied&#39;]);
+  };
+}
+
+// Usage — clean and readable!
+{
+  path: &#39;reports&#39;,
+  canActivate: [authGuard, requirePermission(&#39;reports:view&#39;)],
+}
+{
+  path: &#39;billing&#39;,
+  canActivate: [authGuard, requirePermission(&#39;billing:manage&#39;)],
+}
+</code></pre>
+<hr>
+<h2 id="11-common-pitfalls">11. Common Pitfalls</h2>
+<h3 id="pitfall-1-calling-routernavigate-and-returning-void-in-a-guard">Pitfall 1: Calling `router.navigate()` and returning void in a guard</h3>
+<pre><code class="language-typescript">// ❌ Guard returns void (undefined) — Angular doesn&#39;t know what to do
+export const badGuard: CanActivateFn = () =&gt; {
+  const router = inject(Router);
+  if (!isLoggedIn()) {
+    router.navigate([&#39;/login&#39;]);  // Fires, but guard returns nothing!
+    return;                       // undefined — navigation may continue!
+  }
+  return true;
+};
+
+// ✅ Always return a UrlTree for redirects
+export const goodGuard: CanActivateFn = () =&gt; {
+  const router = inject(Router);
+  return isLoggedIn() || router.createUrlTree([&#39;/login&#39;]);
+};
+</code></pre>
+<h3 id="pitfall-2-guarding-the-login-route-with-authguard">Pitfall 2: Guarding the login route with authGuard</h3>
+<pre><code class="language-typescript">// ❌ Infinite redirect loop!
+// authGuard on /login redirects to /login, which runs authGuard again...
+{ path: &#39;login&#39;, component: LoginComponent, canActivate: [authGuard] }
+
+// ✅ Login page should be PUBLIC
+{ path: &#39;login&#39;, component: LoginComponent }  // No guard!
+</code></pre>
+<h3 id="pitfall-3-slow-resolvers-with-bad-ux">Pitfall 3: Slow resolvers with bad UX</h3>
+<pre><code class="language-typescript">// ❌ If /api/products takes 3 seconds, the user sees a frozen screen for 3 seconds
+// after clicking a link. No progress indicator, no feedback.
+resolve: { products: productsResolver }
+
+// ✅ Better: Use resolver only for critical, fast data.
+// For slow data, let the component show a skeleton loader.
+</code></pre>
+<h3 id="pitfall-4-resolver-returning-an-error-observable-instead-of-empty">Pitfall 4: Resolver returning an error observable instead of EMPTY</h3>
+<pre><code class="language-typescript">// ❌ If the observable errors out (not EMPTY), Angular may throw an unhandled error
+return http.get(&#39;/api/product/999&#39;).pipe(
+  catchError(() =&gt; throwError(() =&gt; new Error(&#39;Not found&#39;)))  // ERROR!
+);
+
+// ✅ Return EMPTY to cancel navigation silently
+return http.get(&#39;/api/product/999&#39;).pipe(
+  catchError(() =&gt; {
+    router.navigate([&#39;/404&#39;]);
+    return EMPTY;  // Silently cancels navigation
+  })
+);
+</code></pre>
+<hr>
+<h2 id="12-try-it-yourself">12. Try It Yourself</h2>
+<p>You need a <code>roleGuard</code> that:</p>
+<ol>
+<li>Checks if the user is logged in (if not, redirect to <code>/login</code>)</li>
+<li>Checks if the user has the role <code>&#39;admin&#39;</code> (if not, redirect to <code>/home</code>)</li>
+<li>Reads the required role from <code>route.data[&#39;role&#39;]</code> so it can be reused</li>
+</ol>
+<p><strong>Broken Code:</strong></p>
+<pre><code class="language-typescript">export const roleGuard: CanActivateFn = (route) =&gt; {
+  const auth = inject(AuthService);
+  const requiredRole = route.data[&#39;role&#39;];
+
+  // ❌ BUG 1: not returning the redirect UrlTree properly
+  // ❌ BUG 2: doesn&#39;t check if user is logged in first
+  if (auth.userRole !== requiredRole) {
+    inject(Router).navigate([&#39;/home&#39;]);
+  }
+  return true;
+};
+</code></pre>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { inject } from &#39;@angular/core&#39;;
+import { CanActivateFn, Router, ActivatedRouteSnapshot } from &#39;@angular/router&#39;;
+import { AuthService } from &#39;../services/auth.service&#39;;
+
+export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) =&gt; {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  const requiredRole = route.data[&#39;role&#39;] as string;
+
+  // ✅ Step 1: Check authentication first
+  if (!auth.isAuthenticated()) {
+    return router.createUrlTree([&#39;/login&#39;]);
+  }
+
+  // ✅ Step 2: Check role
+  if (requiredRole &amp;&amp; !auth.hasRole(requiredRole)) {
+    return router.createUrlTree([&#39;/home&#39;]);
+  }
+
+  // ✅ Step 3: All good — allow navigation
+  return true;
+};
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-typescript">{
+  path: &#39;admin/reports&#39;,
+  canActivate: [roleGuard],
+  data: { role: &#39;admin&#39; },
+  loadComponent: () =&gt; import(&#39;./reports.component&#39;).then(m =&gt; m.ReportsComponent)
+}
+</code></pre>
+</details><hr>
+<h2 id="13-knowledge-check">13. Knowledge Check</h2>
+<ol>
+<li>What is the difference between <code>canActivate</code> and <code>canMatch</code>?</li>
+<li>Why should you return <code>router.createUrlTree([&#39;/login&#39;])</code> instead of calling <code>router.navigate([&#39;/login&#39;])</code> and returning <code>false</code> in a guard?</li>
+<li>What happens to router navigation when a resolver returns <code>EMPTY</code>?</li>
+<li>Why is <code>canDeactivate</code> important for forms?</li>
+<li>In what order do <code>canActivate</code> guards in an array execute?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><code>canActivate</code> runs <strong>after</strong> the route has been matched (Angular already decided this route applies). If it returns <code>false</code>, the component is not rendered, but the URL has already &quot;matched&quot;. <code>canMatch</code> runs <strong>before</strong> matching — if it returns <code>false</code>, Angular skips this route entirely and tries the next one in the routes array. <code>canMatch</code> is more powerful: the same URL can render different components based on user role.</p>
+</li>
+<li><p><code>router.navigate()</code> is imperative and doesn&#39;t tell the router what to do with the guard&#39;s return value. By returning <code>void</code> after a navigate, the guard technically returns <code>undefined</code>, which Angular treats as a failed guard without a clean redirect. Returning a <code>UrlTree</code> from <code>router.createUrlTree()</code> cleanly instructs the router&#39;s internal navigation pipeline to perform a redirect, handling browser history correctly.</p>
+</li>
+<li><p>When a resolver returns <code>EMPTY</code> (an Observable that completes without emitting any values), Angular <strong>cancels the navigation entirely</strong>. The user stays on their current page. This is the correct pattern for &quot;data not found&quot; scenarios where you also want to redirect to a 404 page.</p>
+</li>
+<li><p>Without <code>canDeactivate</code>, if a user has filled out a form and accidentally clicks the Back button or navigates to another page, all their input is silently lost. <code>canDeactivate</code> intercepts the navigation event and gives the user a chance to confirm they want to leave, preventing accidental data loss.</p>
+</li>
+<li><p>Guards in the <code>canActivate</code> array execute <strong>in order from left to right</strong>. If the first guard returns <code>false</code> or a <code>UrlTree</code>, the remaining guards <strong>do not execute</strong>. This means you should put cheaper/faster guards first (e.g., <code>authGuard</code> before <code>permissionGuard</code>) to avoid unnecessary computation.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./deferrable-views.html">14 - Deferrable Views →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

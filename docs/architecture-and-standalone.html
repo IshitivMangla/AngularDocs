@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Architecture & Standalone Components - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item active">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-architecture-standalone-components">Angular: Architecture & Standalone Components</h1>
+<blockquote>
+<p><strong>Goal</strong>: Understand how modern Angular applications are structured, why <code>NgModules</code> are being phased out, and how to set up a scalable project from scratch using Standalone Components.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-the-mental-model">The Mental Model: What is Angular?</a></li>
+<li><a href="#2-the-problem-with-ngmodules">The Problem with NgModules</a></li>
+<li><a href="#3-standalone-components">Standalone Components — The Solution</a></li>
+<li><a href="#4-anatomy-of-a-standalone-component">Anatomy of a Standalone Component</a></li>
+<li><a href="#5-bootstrapping-the-application">Bootstrapping the Application</a></li>
+<li><a href="#6-scalable-project-folder-structure">Scalable Project Folder Structure</a></li>
+<li><a href="#7-feature-modules-vs-feature-folders">Feature Modules vs. Feature Folders</a></li>
+<li><a href="#8-mixing-standalone--ngmodules">Mixing Standalone &amp; NgModules</a></li>
+<li><a href="#9-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#10-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#11-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-the-mental-model">1. The Mental Model</h2>
+<p>Angular is a <strong>platform and framework</strong> for building client-side applications in HTML and TypeScript. It provides:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Components</strong></td>
+<td>The UI — what the user sees and interacts with</td>
+</tr>
+<tr>
+<td><strong>Services</strong></td>
+<td>Business logic, data fetching, shared state</td>
+</tr>
+<tr>
+<td><strong>Router</strong></td>
+<td>Maps URLs to components</td>
+</tr>
+<tr>
+<td><strong>DI (Dependency Injection)</strong></td>
+<td>Wires services into components automatically</td>
+</tr>
+<tr>
+<td><strong>Change Detection</strong></td>
+<td>Syncs TypeScript data to the DOM</td>
+</tr>
+</tbody></table>
+<p>The key architectural principle is <strong>Separation of Concerns</strong>: your HTML knows nothing about HTTP, your service knows nothing about the DOM, and your component acts as the glue between them.</p>
+<hr>
+<h2 id="2-the-problem-with-ngmodules">2. The Problem with NgModules</h2>
+<p>In Angular v2–v13, every component had to be declared in an <code>NgModule</code>. The module acted as a &quot;registry&quot; for its components, directives, and pipes.</p>
+<pre><code class="language-typescript">// ❌ The OLD way — 30+ lines just to declare ONE component!
+@NgModule({
+  declarations: [
+    AppComponent,
+    HeaderComponent,
+    FooterComponent,
+    ProductCardComponent,
+    // ...imagine 20 more entries
+  ],
+  imports: [
+    BrowserModule,
+    CommonModule,
+    ReactiveFormsModule,
+    RouterModule.forRoot(routes),
+    HttpClientModule,
+    MatButtonModule,
+    // ...
+  ],
+  providers: [UserService, AuthService],
+  bootstrap: [AppComponent]
+})
+export class AppModule {}
+</code></pre>
+<h3 id="core-problems">Core Problems</h3>
+<ol>
+<li><strong>Mental Overhead</strong>: Developers had to learn TWO systems — Components AND Modules — before writing a single line of actual app logic.</li>
+<li><strong>Hidden Dependencies</strong>: If <code>ButtonComponent</code> was in <code>SharedModule</code>, importing <code>SharedModule</code> gave you <code>ButtonComponent</code> even if you didn&#39;t need it. This made dependency tracking nearly impossible.</li>
+<li><strong>Poor Tree-Shaking</strong>: Because dependencies were bundled at the Module level, unused code frequently shipped to the browser, increasing bundle size.</li>
+<li><strong>Lazy Loading Complexity</strong>: To lazy-load a single route, you had to create an entire <code>NgModule</code> wrapper just for that one route. Total boilerplate.</li>
+<li><strong>Declaration Conflicts</strong>: Accidentally declaring a component in two modules caused a runtime crash — a confusing error to debug.</li>
+</ol>
+<hr>
+<h2 id="3-standalone-components-the-solution">3. Standalone Components — The Solution</h2>
+<p>Angular v15 made standalone components the official, recommended approach. With <code>standalone: true</code>, <strong>the component itself becomes its own module</strong>. It explicitly imports only what its own template uses.</p>
+<h3 id="the-key-shift-in-thinking">The Key Shift in Thinking</h3>
+<table>
+<thead>
+<tr>
+<th>Old Way (NgModules)</th>
+<th>New Way (Standalone)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Module declares components</td>
+<td>Component declares its own dependencies</td>
+</tr>
+<tr>
+<td>Dependencies are implicit (via module imports)</td>
+<td>Dependencies are explicit (via <code>imports: []</code>)</td>
+</tr>
+<tr>
+<td>Tree-shaking at module level</td>
+<td>Tree-shaking at component level (much better!)</td>
+</tr>
+<tr>
+<td>Lazy load requires a module</td>
+<td>Lazy load a single component directly</td>
+</tr>
+<tr>
+<td>Hard to know what a component needs</td>
+<td>Instantly clear — just read its <code>imports</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="4-anatomy-of-a-standalone-component">4. Anatomy of a Standalone Component</h2>
+<pre><code class="language-typescript">import { Component, signal, computed, inject, ChangeDetectionStrategy } from &#39;@angular/core&#39;;
+import { NgClass, DatePipe, CurrencyPipe } from &#39;@angular/common&#39;;
+import { RouterOutlet, RouterLink, RouterLinkActive } from &#39;@angular/router&#39;;
+import { ReactiveFormsModule } from &#39;@angular/forms&#39;;
+import { HeaderComponent } from &#39;./layout/header.component&#39;;
+import { UserService } from &#39;./core/services/user.service&#39;;
+
+@Component({
+  selector: &#39;app-root&#39;,
+  standalone: true, // ← THE KEY FLAG. Removes need for NgModule declaration.
+
+  // ← EXPLICIT imports: Only list what THIS component&#39;s template actually uses.
+  // Prefer specific imports (NgClass) over barrel imports (CommonModule) for
+  // maximum tree-shaking.
+  imports: [
+    NgClass,            // For [ngClass]=&quot;...&quot; in template
+    DatePipe,           // For {{ date | date:&#39;fullDate&#39; }} in template
+    CurrencyPipe,       // For {{ price | currency }} in template
+    RouterOutlet,       // For &lt;router-outlet&gt; in template
+    RouterLink,         // For routerLink=&quot;...&quot; in template
+    RouterLinkActive,   // For routerLinkActive=&quot;...&quot; in template
+    ReactiveFormsModule,// For [formGroup]=&quot;...&quot; in template
+    HeaderComponent,    // For &lt;app-header&gt; in template
+  ],
+
+  // ChangeDetectionStrategy.OnPush = major performance gain.
+  // Component only re-renders when:
+  // (a) An @Input reference changes
+  // (b) An event originates from the component
+  // (c) An async pipe resolves
+  // (d) A Signal value changes
+  changeDetection: ChangeDetectionStrategy.OnPush,
+
+  template: `
+    &lt;app-header (logout)=&quot;onLogout()&quot;&gt;&lt;/app-header&gt;
+    &lt;main [ngClass]=&quot;{ &#39;is-dark&#39;: isDark() }&quot;&gt;
+      &lt;p&gt;Today: {{ today | date:&#39;fullDate&#39; }}&lt;/p&gt;
+      &lt;router-outlet&gt;&lt;/router-outlet&gt;
+    &lt;/main&gt;
+  `,
+  styleUrl: &#39;./app.component.scss&#39;
+})
+export class AppComponent {
+  // Modern: use inject() instead of constructor injection
+  private userService = inject(UserService);
+
+  // Reactive state using Signals
+  isDark = signal(false);
+  today = new Date();
+
+  onLogout() {
+    this.userService.logout();
+  }
+}
+</code></pre>
+<h3 id="why-changedetectionstrategyonpush">Why `ChangeDetectionStrategy.OnPush`?</h3>
+<p>In the default strategy, Angular re-checks the entire component tree on every event (button click, timer, HTTP response). <code>OnPush</code> tells Angular to skip this component unless something specifically relevant to it changed. For large apps with dozens of components, this can dramatically reduce CPU usage.</p>
+<p><strong>Use <code>OnPush</code> everywhere by default in scalable apps.</strong></p>
+<hr>
+<h2 id="5-bootstrapping-the-application">5. Bootstrapping the Application</h2>
+<p>Without <code>AppModule</code>, the app needs a new bootstrapping mechanism.</p>
+<h3 id="51-appconfigts-global-configuration">5.1 — `app.config.ts` (Global Configuration)</h3>
+<p>This file is the new <code>AppModule</code>. It&#39;s where you register providers for the entire application.</p>
+<pre><code class="language-typescript">// src/app/app.config.ts
+import { ApplicationConfig, provideZoneChangeDetection } from &#39;@angular/core&#39;;
+import {
+  provideRouter,
+  withComponentInputBinding,  // Auto-binds URL params to @Input() / input()
+  withViewTransitions,         // Native browser View Transitions API
+  withPreloading,              // Preload lazy routes in background
+  PreloadAllModules
+} from &#39;@angular/router&#39;;
+import { provideHttpClient, withFetch, withInterceptors } from &#39;@angular/common/http&#39;;
+import { routes } from &#39;./app.routes&#39;;
+import { authInterceptor } from &#39;./core/interceptors/auth.interceptor&#39;;
+import { loggingInterceptor } from &#39;./core/interceptors/logging.interceptor&#39;;
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // Coalesces multiple rapid events into a single change detection cycle.
+    // Prevents redundant processing (e.g., when both keydown and input fire).
+    provideZoneChangeDetection({ eventCoalescing: true }),
+
+    provideRouter(
+      routes,
+      withComponentInputBinding(),   // Route params → @Input() automatically
+      withViewTransitions(),          // Smooth page transition animations
+      withPreloading(PreloadAllModules) // Load lazy routes when browser is idle
+    ),
+
+    // withFetch() uses the modern Fetch API under the hood (required for SSR edge)
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([authInterceptor, loggingInterceptor])
+    ),
+  ]
+};
+</code></pre>
+<h3 id="52-maints-entry-point">5.2 — `main.ts` (Entry Point)</h3>
+<pre><code class="language-typescript">// src/main.ts
+import { bootstrapApplication } from &#39;@angular/platform-browser&#39;;
+import { AppComponent } from &#39;./app/app.component&#39;;
+import { appConfig } from &#39;./app/app.config&#39;;
+
+bootstrapApplication(AppComponent, appConfig)
+  .catch((err) =&gt; {
+    // In production, send this to your monitoring service (e.g., Sentry)
+    console.error(&#39;Application bootstrap failed:&#39;, err);
+  });
+</code></pre>
+<h3 id="53-approutests-root-route-configuration">5.3 — `app.routes.ts` (Root Route Configuration)</h3>
+<pre><code class="language-typescript">// src/app/app.routes.ts
+import { Routes } from &#39;@angular/router&#39;;
+import { authGuard } from &#39;./core/guards/auth.guard&#39;;
+
+export const routes: Routes = [
+  // Redirect root to /dashboard
+  { path: &#39;&#39;, redirectTo: &#39;dashboard&#39;, pathMatch: &#39;full&#39; },
+
+  // Lazy-load entire feature: no NgModule needed, just loadChildren!
+  {
+    path: &#39;dashboard&#39;,
+    loadChildren: () =&gt; import(&#39;./features/dashboard/dashboard.routes&#39;)
+                          .then(m =&gt; m.DASHBOARD_ROUTES),
+    canActivate: [authGuard]
+  },
+
+  // Lazy-load a single component directly
+  {
+    path: &#39;login&#39;,
+    loadComponent: () =&gt; import(&#39;./features/auth/login.component&#39;)
+                           .then(m =&gt; m.LoginComponent)
+  },
+
+  // 404 catch-all
+  {
+    path: &#39;**&#39;,
+    loadComponent: () =&gt; import(&#39;./shared/components/not-found.component&#39;)
+                           .then(m =&gt; m.NotFoundComponent)
+  }
+];
+</code></pre>
+<hr>
+<h2 id="6-scalable-project-folder-structure">6. Scalable Project Folder Structure</h2>
+<p>This is the most important architectural decision you&#39;ll make. Use a <strong>feature-based</strong> structure:</p>
+<pre><code>src/
+├── app/
+│   ├── core/                    # Singleton services, interceptors, guards — loaded ONCE
+│   │   ├── guards/
+│   │   │   └── auth.guard.ts
+│   │   ├── interceptors/
+│   │   │   ├── auth.interceptor.ts
+│   │   │   └── logging.interceptor.ts
+│   │   ├── services/
+│   │   │   ├── auth.service.ts
+│   │   │   └── user.service.ts
+│   │   └── models/
+│   │       └── user.model.ts
+│   │
+│   ├── features/                # Lazy-loaded feature areas
+│   │   ├── dashboard/
+│   │   │   ├── dashboard.routes.ts   # Feature-level routing
+│   │   │   ├── dashboard.component.ts
+│   │   │   ├── widgets/
+│   │   │   │   └── stats-card.component.ts
+│   │   │   └── services/
+│   │   │       └── stats.service.ts  # Feature-scoped service (not singleton!)
+│   │   │
+│   │   ├── products/
+│   │   │   ├── products.routes.ts
+│   │   │   ├── list/
+│   │   │   │   └── products-list.component.ts
+│   │   │   └── detail/
+│   │   │       └── product-detail.component.ts
+│   │   │
+│   │   └── auth/
+│   │       ├── login.component.ts
+│   │       └── register.component.ts
+│   │
+│   ├── shared/                  # Reusable, dumb/presentational components &amp; pipes
+│   │   ├── components/
+│   │   │   ├── button.component.ts
+│   │   │   ├── modal.component.ts
+│   │   │   └── not-found.component.ts
+│   │   ├── pipes/
+│   │   │   └── truncate.pipe.ts
+│   │   └── directives/
+│   │       └── click-outside.directive.ts
+│   │
+│   ├── app.component.ts         # Root shell component (just router-outlet + header)
+│   ├── app.config.ts            # Global providers
+│   └── app.routes.ts            # Root routes
+│
+├── environments/
+│   ├── environment.ts           # Development config
+│   └── environment.prod.ts      # Production config
+└── styles/
+    ├── _variables.scss
+    └── styles.scss
+</code></pre>
+<h3 id="the-rules-of-this-structure">The Rules of This Structure</h3>
+<ul>
+<li><strong><code>core/</code></strong>: Services here use <code>providedIn: &#39;root&#39;</code>. They are singletons — one instance for the app&#39;s lifetime. Things like <code>AuthService</code>, <code>UserProfileService</code>, interceptors, guards.</li>
+<li><strong><code>features/</code></strong>: Each feature is a self-contained island. It has its own routes, components, and optionally its own services. Features are lazy-loaded so they don&#39;t add to the initial bundle.</li>
+<li><strong><code>shared/</code></strong>: Pure, presentational components that have no knowledge of business logic. A <code>ButtonComponent</code> in <code>shared</code> knows nothing about users or products.</li>
+</ul>
+<hr>
+<h2 id="7-feature-modules-vs-feature-folders">7. Feature Modules vs. Feature Folders</h2>
+<p>You no longer need NgModules for features. Instead, you use <strong>feature routes files</strong> that define a child router configuration.</p>
+<pre><code class="language-typescript">// src/app/features/dashboard/dashboard.routes.ts
+import { Routes } from &#39;@angular/router&#39;;
+
+export const DASHBOARD_ROUTES: Routes = [
+  {
+    // When parent route is &#39;dashboard&#39;, render DashboardComponent
+    path: &#39;&#39;,
+    loadComponent: () =&gt; import(&#39;./dashboard.component&#39;)
+                           .then(m =&gt; m.DashboardComponent),
+    // Provide a feature-scoped service (each user of dashboard gets their own instance)
+    providers: [
+      import(&#39;./services/stats.service&#39;).then(m =&gt; m.StatsService)
+    ]
+  },
+  {
+    path: &#39;analytics&#39;,
+    loadComponent: () =&gt; import(&#39;./analytics/analytics.component&#39;)
+                           .then(m =&gt; m.AnalyticsComponent)
+  }
+];
+</code></pre>
+<hr>
+<h2 id="8-mixing-standalone-ngmodules">8. Mixing Standalone & NgModules</h2>
+<p>You don&#39;t have to rewrite your entire app at once. Standalone components and NgModules coexist perfectly.</p>
+<h3 id="81-importing-an-ngmodule-into-a-standalone-component">8.1 — Importing an NgModule into a Standalone Component</h3>
+<p>If a third-party library (like Angular Material) still uses NgModules internally, you can import the module directly into your standalone component&#39;s <code>imports</code> array.</p>
+<pre><code class="language-typescript">import { Component } from &#39;@angular/core&#39;;
+import { MatButtonModule } from &#39;@angular/material/button&#39;;   // Third-party NgModule
+import { MatTableModule } from &#39;@angular/material/table&#39;;     // Third-party NgModule
+
+@Component({
+  selector: &#39;app-products-table&#39;,
+  standalone: true,
+  imports: [
+    MatButtonModule,  // ✅ Perfectly valid to import an NgModule into a standalone component
+    MatTableModule,
+  ],
+  template: `
+    &lt;table mat-table [dataSource]=&quot;products&quot;&gt;
+      &lt;!-- ... --&gt;
+    &lt;/table&gt;
+    &lt;button mat-raised-button color=&quot;primary&quot;&gt;Add Product&lt;/button&gt;
+  `
+})
+export class ProductsTableComponent {}
+</code></pre>
+<h3 id="82-importing-a-standalone-component-into-an-ngmodule">8.2 — Importing a Standalone Component into an NgModule</h3>
+<p>If you have legacy code using <code>AppModule</code> and want to introduce new standalone components incrementally:</p>
+<pre><code class="language-typescript">import { NgModule } from &#39;@angular/core&#39;;
+import { CommonModule } from &#39;@angular/common&#39;;
+import { NewStandaloneCardComponent } from &#39;./card/card.component&#39;; // Standalone
+
+@NgModule({
+  declarations: [LegacyListComponent],  // Old-style component
+  imports: [
+    CommonModule,
+    NewStandaloneCardComponent  // ✅ Import it in &#39;imports&#39;, NOT &#39;declarations&#39;!
+  ],
+  exports: [LegacyListComponent]
+})
+export class LegacyListModule {}
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>Critical Rule</strong>: A standalone component must NEVER appear in the <code>declarations</code> array of an NgModule. It will throw a fatal compile error. Standalone components go in <code>imports</code>.</p>
+</blockquote>
+<hr>
+<h2 id="9-common-pitfalls">9. Common Pitfalls</h2>
+<h3 id="pitfall-1-forgetting-to-import-what-you-use">Pitfall 1: Forgetting to import what you use</h3>
+<p>In the NgModule world, <code>CommonModule</code> was often globally available. In standalone, you must import every directive and pipe at the component level.</p>
+<pre><code class="language-typescript">// ❌ Template error: &quot;The pipe &#39;date&#39; could not be found&quot;
+@Component({
+  standalone: true,
+  imports: [],  // Forgot to import DatePipe!
+  template: `&lt;p&gt;{{ today | date:&#39;fullDate&#39; }}&lt;/p&gt;`
+})
+
+// ✅ Fix:
+@Component({
+  standalone: true,
+  imports: [DatePipe],  // Import it where you use it
+  template: `&lt;p&gt;{{ today | date:&#39;fullDate&#39; }}&lt;/p&gt;`
+})
+</code></pre>
+<h3 id="pitfall-2-importing-entire-barrels-unnecessarily">Pitfall 2: Importing entire barrels unnecessarily</h3>
+<pre><code class="language-typescript">// ❌ Bad for bundle size — imports ALL of CommonModule
+imports: [CommonModule]
+
+// ✅ Better — tree-shakes everything else out
+imports: [NgClass, AsyncPipe, DatePipe]
+</code></pre>
+<h3 id="pitfall-3-declaring-a-standalone-component-in-ngmodule">Pitfall 3: Declaring a Standalone Component in NgModule</h3>
+<pre><code class="language-typescript">// ❌ FATAL ERROR: &quot;StandaloneComponent is already standalone and cannot be declared&quot;
+@NgModule({
+  declarations: [StandaloneComponent]  // WRONG
+})
+</code></pre>
+<h3 id="pitfall-4-not-using-onpush">Pitfall 4: Not using OnPush</h3>
+<pre><code class="language-typescript">// ❌ Default change detection — re-checks every component on every event
+@Component({ selector: &#39;app-product-card&#39; })
+
+// ✅ Optimal — only re-checks when inputs change or signals update
+@Component({
+  selector: &#39;app-product-card&#39;,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+</code></pre>
+<h3 id="pitfall-5-not-lazy-loading-features">Pitfall 5: Not lazy-loading features</h3>
+<pre><code class="language-typescript">// ❌ Eager loading — all features load at startup, slowing initial load
+import { DashboardComponent } from &#39;./features/dashboard/dashboard.component&#39;;
+{ path: &#39;dashboard&#39;, component: DashboardComponent }
+
+// ✅ Lazy loading — only loads when the user navigates to /dashboard
+{
+  path: &#39;dashboard&#39;,
+  loadComponent: () =&gt; import(&#39;./features/dashboard/dashboard.component&#39;)
+                         .then(m =&gt; m.DashboardComponent)
+}
+</code></pre>
+<hr>
+<h2 id="10-try-it-yourself">10. Try It Yourself</h2>
+<p><strong>Scenario</strong>: You have a standalone <code>NavbarComponent</code> that needs to:</p>
+<ol>
+<li>Use <code>routerLink</code> for navigation</li>
+<li>Use <code>routerLinkActive</code> to highlight the current page link</li>
+<li>Display the current date using the <code>date</code> pipe</li>
+</ol>
+<p><strong>Broken Code:</strong></p>
+<pre><code class="language-typescript">import { Component } from &#39;@angular/core&#39;;
+
+@Component({
+  selector: &#39;app-navbar&#39;,
+  standalone: true,
+  imports: [], // ← FIX THIS
+  template: `
+    &lt;nav&gt;
+      &lt;a routerLink=&quot;/dashboard&quot; routerLinkActive=&quot;active&quot;&gt;Dashboard&lt;/a&gt;
+      &lt;a routerLink=&quot;/settings&quot; routerLinkActive=&quot;active&quot;&gt;Settings&lt;/a&gt;
+      &lt;span&gt;{{ today | date:&#39;shortDate&#39; }}&lt;/span&gt;
+    &lt;/nav&gt;
+  `
+})
+export class NavbarComponent {
+  today = new Date();
+}
+</code></pre>
+<blockquote>
+<p><strong>Hint</strong>: Each directive and pipe you use in a template must be explicitly imported in standalone components. Check which module <code>routerLink</code>, <code>routerLinkActive</code>, and <code>DatePipe</code> come from.</p>
+</blockquote>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Component } from &#39;@angular/core&#39;;
+import { RouterLink, RouterLinkActive } from &#39;@angular/router&#39;; // ← Routing directives
+import { DatePipe } from &#39;@angular/common&#39;;                     // ← DatePipe
+
+@Component({
+  selector: &#39;app-navbar&#39;,
+  standalone: true,
+  imports: [RouterLink, RouterLinkActive, DatePipe], // ← All three are now imported
+  template: `
+    &lt;nav&gt;
+      &lt;a routerLink=&quot;/dashboard&quot; routerLinkActive=&quot;active&quot;&gt;Dashboard&lt;/a&gt;
+      &lt;a routerLink=&quot;/settings&quot; routerLinkActive=&quot;active&quot;&gt;Settings&lt;/a&gt;
+      &lt;span&gt;{{ today | date:&#39;shortDate&#39; }}&lt;/span&gt;
+    &lt;/nav&gt;
+  `
+})
+export class NavbarComponent {
+  today = new Date();
+}
+</code></pre>
+</details><hr>
+<h2 id="11-knowledge-check">11. Knowledge Check</h2>
+<ol>
+<li>What is the core benefit of <code>standalone: true</code> for initial load performance?</li>
+<li>What is the difference between <code>loadComponent</code> and <code>loadChildren</code> in routing?</li>
+<li>In a scalable app, why should feature-level services NOT use <code>providedIn: &#39;root&#39;</code>?</li>
+<li>If <code>provideRouter(routes, withComponentInputBinding())</code> is set up, how does a route param <code>/:id</code> reach the component?</li>
+<li>What is the risk of NOT using <code>ChangeDetectionStrategy.OnPush</code> in a large app?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><strong>Lazy loading is simpler</strong>: You can use <code>loadComponent</code> to lazy-load a single component directly in the router without needing a boilerplate <code>NgModule</code> wrapper. This means smaller initial bundles and faster startup times.</p>
+</li>
+<li><p><strong><code>loadComponent</code></strong> lazy-loads a single standalone component (for simple routes). <strong><code>loadChildren</code></strong> lazy-loads an entire route configuration file (useful for feature areas with multiple nested routes).</p>
+</li>
+<li><p>If a feature service uses <code>providedIn: &#39;root&#39;</code>, it becomes a global singleton. This means its state persists across the app lifetime and could be incorrectly shared between users or features. Feature services should be provided at the feature route level using <code>providers: [FeatureService]</code> in the route definition, so they are created and destroyed with the feature.</p>
+</li>
+<li><p>When <code>withComponentInputBinding()</code> is active, the router automatically reads the route parameter (e.g., <code>id = &#39;42&#39;</code>) and passes it as an <code>@Input()</code> or <code>input()</code> property to the component. No need to manually inject <code>ActivatedRoute</code>.</p>
+</li>
+<li><p>In the default <code>CheckAlways</code> strategy, Angular traverses and re-checks every component in the entire tree on every browser event (click, timer, keystroke). In an app with 50+ components, this causes massive, unnecessary CPU work. <code>OnPush</code> tells Angular to skip the component unless something specific changed, dramatically reducing DOM operations and keeping the UI smooth.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./signals.html">02 - Signals &amp; State Management →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

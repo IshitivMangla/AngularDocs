@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Services & Dependency Injection (DI) - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item active">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-services-dependency-injection-di">Angular: Services & Dependency Injection (DI)</h1>
+<blockquote>
+<p><strong>Goal</strong>: Understand Angular&#39;s DI system deeply enough to design clean, testable, and scalable service architectures — the backbone of any enterprise Angular app.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-what-is-a-service">What is a Service?</a></li>
+<li><a href="#2-the-di-injector-tree">The DI Injector Tree</a></li>
+<li><a href="#3-creating-services">Creating Services — Modern <code>inject()</code> Function</a></li>
+<li><a href="#4-provider-scopes">Provider Scopes</a></li>
+<li><a href="#5-injection-tokens">Injection Tokens — Injecting Non-Classes</a></li>
+<li><a href="#6-multi-providers">Multi-Providers</a></li>
+<li><a href="#7-swapping-implementations">Swapping Implementations (<code>useClass</code>, <code>useFactory</code>)</a></li>
+<li><a href="#8-platform-injector">Platform Injector &amp; Environment Injector</a></li>
+<li><a href="#9-designing-a-scalable-service-layer">Designing a Scalable Service Layer</a></li>
+<li><a href="#10-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#11-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#12-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-what-is-a-service">1. What is a Service?</h2>
+<p>A <strong>service</strong> is a plain TypeScript class decorated with <code>@Injectable()</code>. While components handle the UI, services handle <strong>everything else</strong>:</p>
+<ul>
+<li><strong>Data fetching</strong>: HTTP requests, GraphQL, WebSockets</li>
+<li><strong>Shared state</strong>: Shopping cart, user profile, notification count</li>
+<li><strong>Business logic</strong>: Validation, calculations, transformations</li>
+<li><strong>Side effects</strong>: Analytics, logging, local storage</li>
+</ul>
+<h3 id="the-single-responsibility-principle">The Single Responsibility Principle</h3>
+<p>Each service should do <strong>one thing well</strong>. Don&#39;t create a giant <code>AppService</code> that does everything.</p>
+<pre><code>UserService       — CRUD operations for user data
+AuthService       — authentication state &amp; token management
+CartService       — shopping cart state management
+LoggingService    — centralized error/event logging
+NotificationService — toast/alert UI notifications
+</code></pre>
+<hr>
+<h2 id="2-the-di-injector-tree">2. The DI Injector Tree</h2>
+<p>Angular builds a <strong>hierarchical tree of Injectors</strong> that mirrors your component tree. When a component asks for a service, Angular walks <strong>up</strong> the injector tree until it finds a provider.</p>
+<pre><code>Platform Injector (highest — browser APIs like Document)
+  └── Environment/Root Injector (app-wide singletons from providedIn: &#39;root&#39;)
+        └── Route Injector (providers registered in route&#39;s providers: [])
+              └── Component Injector (providers in @Component.providers: [])
+                    └── Child Component Injector
+</code></pre>
+<h3 id="practical-impact">Practical Impact</h3>
+<pre><code class="language-typescript">// auth.service.ts
+@Injectable({ providedIn: &#39;root&#39; })
+export class AuthService {
+  // ONE instance, shared by EVERY component in the app
+  // All components see the same user state
+}
+</code></pre>
+<pre><code class="language-typescript">// user-dropdown.component.ts
+@Component({
+  selector: &#39;app-user-dropdown&#39;,
+  providers: [DropdownStateService]  // NEW instance for THIS component only
+})
+export class UserDropdownComponent {
+  // Each UserDropdownComponent gets its OWN DropdownStateService
+  // Destroyed when the component is destroyed
+}
+</code></pre>
+<hr>
+<h2 id="3-creating-services-modern-inject-function">3. Creating Services — Modern `inject()` Function</h2>
+<h3 id="step-1-create-the-service">Step 1: Create the Service</h3>
+<pre><code class="language-typescript">// src/app/core/services/user.service.ts
+import { Injectable, inject, signal, computed } from &#39;@angular/core&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+import { Observable, tap, catchError, throwError } from &#39;rxjs&#39;;
+import { User } from &#39;../models/user.model&#39;;
+
+@Injectable({
+  providedIn: &#39;root&#39;  // ← Singleton: one instance for the entire app
+})
+export class UserService {
+  private http = inject(HttpClient);
+
+  // Private writable signal — prevents external mutation
+  private _currentUser = signal&lt;User | null&gt;(null);
+  private _users = signal&lt;User[]&gt;([]);
+  private _isLoading = signal(false);
+
+  // Public read-only signals — what components get to see
+  readonly currentUser = this._currentUser.asReadonly();
+  readonly users = this._users.asReadonly();
+  readonly isLoading = this._isLoading.asReadonly();
+  readonly isLoggedIn = computed(() =&gt; this._currentUser() !== null);
+  readonly userCount = computed(() =&gt; this._users().length);
+
+  // --- HTTP Methods ---
+  loadUsers(): Observable&lt;User[]&gt; {
+    this._isLoading.set(true);
+    return this.http.get&lt;User[]&gt;(&#39;/api/users&#39;).pipe(
+      tap(users =&gt; {
+        this._users.set(users);
+        this._isLoading.set(false);
+      }),
+      catchError(err =&gt; {
+        this._isLoading.set(false);
+        return throwError(() =&gt; err);
+      })
+    );
+  }
+
+  getUserById(id: number): Observable&lt;User&gt; {
+    return this.http.get&lt;User&gt;(`/api/users/${id}`);
+  }
+
+  updateUser(id: number, changes: Partial&lt;User&gt;): Observable&lt;User&gt; {
+    return this.http.patch&lt;User&gt;(`/api/users/${id}`, changes).pipe(
+      tap(updated =&gt; {
+        // Update the local cache
+        this._users.update(users =&gt;
+          users.map(u =&gt; u.id === id ? { ...u, ...updated } : u)
+        );
+      })
+    );
+  }
+
+  // --- State Methods ---
+  setCurrentUser(user: User | null) {
+    this._currentUser.set(user);
+  }
+}
+</code></pre>
+<h3 id="step-2-consume-the-service-in-a-component">Step 2: Consume the Service in a Component</h3>
+<pre><code class="language-typescript">// user-list.component.ts
+import { Component, inject, OnInit } from &#39;@angular/core&#39;;
+import { UserService } from &#39;../../core/services/user.service&#39;;
+import { CurrencyPipe, DatePipe } from &#39;@angular/common&#39;;
+
+@Component({
+  selector: &#39;app-user-list&#39;,
+  standalone: true,
+  imports: [DatePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @if (userService.isLoading()) {
+      &lt;div class=&quot;skeleton-list&quot;&gt;Loading users...&lt;/div&gt;
+    } @else {
+      &lt;p&gt;{{ userService.userCount() }} users found&lt;/p&gt;
+
+      @for (user of userService.users(); track user.id) {
+        &lt;div class=&quot;user-card&quot;&gt;
+          &lt;h3&gt;{{ user.name }}&lt;/h3&gt;
+          &lt;p&gt;{{ user.email }}&lt;/p&gt;
+          &lt;small&gt;Joined: {{ user.createdAt | date:&#39;mediumDate&#39; }}&lt;/small&gt;
+        &lt;/div&gt;
+      } @empty {
+        &lt;p class=&quot;empty-state&quot;&gt;No users yet.&lt;/p&gt;
+      }
+    }
+  `
+})
+export class UserListComponent implements OnInit {
+  // ✅ Modern inject() — cleaner than constructor injection
+  readonly userService = inject(UserService);
+
+  ngOnInit() {
+    // Subscribe to the observable and trigger the HTTP call
+    this.userService.loadUsers().subscribe();
+  }
+}
+</code></pre>
+<h3 id="why-inject-over-constructor-injection">Why `inject()` Over Constructor Injection?</h3>
+<pre><code class="language-typescript">// ❌ OLD: Constructor injection
+export class UserListComponent {
+  constructor(
+    private userService: UserService,
+    private router: Router,
+    private analyticsService: AnalyticsService,
+    private toastService: ToastService
+  ) {
+    // The constructor is bloated with dependency declarations
+  }
+}
+
+// ✅ NEW: inject() — cleaner, works in inheritance, works in functions
+export class UserListComponent {
+  private userService = inject(UserService);
+  private router = inject(Router);
+  private analyticsService = inject(AnalyticsService);
+  private toastService = inject(ToastService);
+  // Constructor can now be empty or omitted entirely
+}
+</code></pre>
+<p><strong>Benefits of <code>inject()</code>:</strong></p>
+<ol>
+<li><strong>Inheritance</strong>: Child class doesn&#39;t need to pass dependencies to <code>super()</code>.</li>
+<li><strong>Reusable Functions</strong>: You can use <code>inject()</code> inside standalone functions (guards, interceptors, resolvers) — not just class constructors.</li>
+<li><strong>Less Boilerplate</strong>: No need to annotate constructor parameters.</li>
+</ol>
+<hr>
+<h2 id="4-provider-scopes">4. Provider Scopes</h2>
+<p>Understanding where to provide a service determines how many instances exist and who shares state.</p>
+<h3 id="scope-1-root-global-singleton">Scope 1: Root (Global Singleton)</h3>
+<pre><code class="language-typescript">@Injectable({ providedIn: &#39;root&#39; })
+export class AuthService { }
+// ONE instance exists for the entire app lifetime.
+// Perfect for: Authentication, user profile, shopping cart, notifications.
+</code></pre>
+<h3 id="scope-2-component-level-local-instance">Scope 2: Component-level (Local Instance)</h3>
+<pre><code class="language-typescript">@Component({
+  selector: &#39;app-accordion&#39;,
+  providers: [AccordionStateService]  // ← New instance per component!
+})
+export class AccordionComponent { }
+// Each AccordionComponent gets its own AccordionStateService.
+// Destroyed when the component is destroyed.
+// Perfect for: UI state, form state, local pagination.
+</code></pre>
+<h3 id="scope-3-feature-level-route-providers">Scope 3: Feature-level (Route Providers)</h3>
+<pre><code class="language-typescript">// products.routes.ts
+export const PRODUCTS_ROUTES: Routes = [
+  {
+    path: &#39;&#39;,
+    loadComponent: () =&gt; import(&#39;./products-list.component&#39;).then(m =&gt; m.ProductsListComponent),
+    // This service is only created when user enters the /products route
+    // Destroyed when user leaves /products
+    providers: [ProductsFilterService, ProductsPaginationService]
+  }
+];
+</code></pre>
+<h3 id="summary">Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Where to Provide</th>
+<th>Instances</th>
+<th>Lifespan</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>providedIn: &#39;root&#39;</code></td>
+<td>1 (global)</td>
+<td>App lifetime</td>
+<td>Auth, cart, user profile</td>
+</tr>
+<tr>
+<td><code>providers</code> in <code>@Component</code></td>
+<td>1 per component</td>
+<td>Component lifetime</td>
+<td>Local UI state</td>
+</tr>
+<tr>
+<td><code>providers</code> in route</td>
+<td>1 per route visit</td>
+<td>Route lifetime</td>
+<td>Feature-scoped state</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="5-injection-tokens-injecting-non-classes">5. Injection Tokens — Injecting Non-Classes</h2>
+<p><code>InjectionToken</code> lets you inject strings, numbers, objects, or functions — anything that isn&#39;t a TypeScript class.</p>
+<h3 id="configuration-tokens">Configuration Tokens</h3>
+<pre><code class="language-typescript">// src/app/core/tokens/app-config.token.ts
+import { InjectionToken } from &#39;@angular/core&#39;;
+
+export interface AppConfig {
+  apiBaseUrl: string;
+  maxUploadSizeMB: number;
+  featureFlags: { darkMode: boolean; betaFeatures: boolean };
+}
+
+// Create a typed token
+export const APP_CONFIG = new InjectionToken&lt;AppConfig&gt;(&#39;APP_CONFIG&#39;);
+</code></pre>
+<pre><code class="language-typescript">// app.config.ts — provide the value
+import { APP_CONFIG } from &#39;./core/tokens/app-config.token&#39;;
+import { environment } from &#39;../environments/environment&#39;;
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    {
+      provide: APP_CONFIG,
+      useValue: {
+        apiBaseUrl: environment.apiUrl,
+        maxUploadSizeMB: 10,
+        featureFlags: { darkMode: true, betaFeatures: !environment.production }
+      }
+    }
+  ]
+};
+</code></pre>
+<pre><code class="language-typescript">// Any service or component — inject and use it
+import { Component, inject } from &#39;@angular/core&#39;;
+import { APP_CONFIG } from &#39;./core/tokens/app-config.token&#39;;
+
+@Component({ ... })
+export class SettingsComponent {
+  private config = inject(APP_CONFIG);
+
+  showBetaFeatures = this.config.featureFlags.betaFeatures;
+  maxUploadSize = this.config.maxUploadSizeMB;
+}
+</code></pre>
+<h3 id="platform-tokens-injecting-browser-apis">Platform Tokens (Injecting Browser APIs)</h3>
+<pre><code class="language-typescript">import { DOCUMENT } from &#39;@angular/common&#39;;
+import { PLATFORM_ID, inject } from &#39;@angular/core&#39;;
+import { isPlatformBrowser } from &#39;@angular/common&#39;;
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class ThemeService {
+  private document = inject(DOCUMENT);
+  private platformId = inject(PLATFORM_ID);
+
+  setTheme(theme: &#39;light&#39; | &#39;dark&#39;) {
+    // Only manipulate the DOM in the browser (not during SSR)
+    if (isPlatformBrowser(this.platformId)) {
+      this.document.documentElement.setAttribute(&#39;data-theme&#39;, theme);
+    }
+  }
+}
+</code></pre>
+<hr>
+<h2 id="6-multi-providers">6. Multi-Providers</h2>
+<p>Multi-providers let multiple classes contribute to the same token, creating an array. This is how Angular&#39;s own <code>HTTP_INTERCEPTORS</code> and validators work internally.</p>
+<pre><code class="language-typescript">// Define the token
+export const ANALYTICS_PLUGINS = new InjectionToken&lt;AnalyticsPlugin[]&gt;(&#39;ANALYTICS_PLUGINS&#39;);
+
+// Provide multiple implementations for the same token
+export const appConfig = {
+  providers: [
+    { provide: ANALYTICS_PLUGINS, useClass: GoogleAnalyticsPlugin, multi: true },
+    { provide: ANALYTICS_PLUGINS, useClass: MixpanelPlugin, multi: true },
+    { provide: ANALYTICS_PLUGINS, useClass: DatadogPlugin, multi: true },
+  ]
+};
+
+// Inject as an array
+@Injectable({ providedIn: &#39;root&#39; })
+export class AnalyticsService {
+  private plugins = inject(ANALYTICS_PLUGINS);  // Type: AnalyticsPlugin[]
+
+  track(event: string, data: any) {
+    // Send to all registered analytics providers simultaneously
+    this.plugins.forEach(plugin =&gt; plugin.track(event, data));
+  }
+}
+</code></pre>
+<hr>
+<h2 id="7-swapping-implementations">7. Swapping Implementations</h2>
+<h3 id="useclass-substitute-a-different-class">`useClass` — Substitute a Different Class</h3>
+<pre><code class="language-typescript">// Perfect for environment-based swapping or testing
+import { LoggerService, ConsoleLogger, CloudLogger } from &#39;./logging&#39;;
+import { environment } from &#39;../environments/environment&#39;;
+
+export const appConfig = {
+  providers: [
+    {
+      provide: LoggerService,
+      // Swap implementations without changing any component code!
+      useClass: environment.production ? CloudLogger : ConsoleLogger
+    }
+  ]
+};
+</code></pre>
+<h3 id="usefactory-dynamic-creation">`useFactory` — Dynamic Creation</h3>
+<pre><code class="language-typescript">// Use a factory function when the implementation depends on runtime conditions
+export const appConfig = {
+  providers: [
+    {
+      provide: StorageService,
+      useFactory: () =&gt; {
+        // Choose implementation based on browser support
+        if (typeof IndexedDB !== &#39;undefined&#39;) {
+          return new IndexedDBStorageService();
+        } else {
+          return new LocalStorageService();
+        }
+      },
+      // Dependencies to inject into the factory function
+      deps: [DOCUMENT, PLATFORM_ID]
+    }
+  ]
+};
+</code></pre>
+<h3 id="useexisting-alias-one-token-to-another">`useExisting` — Alias One Token to Another</h3>
+<pre><code class="language-typescript">// Make both tokens point to the same instance
+export const appConfig = {
+  providers: [
+    UserService,
+    // When someone asks for CurrentUserService, give them the UserService instance
+    { provide: CurrentUserService, useExisting: UserService }
+  ]
+};
+</code></pre>
+<hr>
+<h2 id="8-platform-injector">8. Platform Injector</h2>
+<p>Some APIs need to be different in the browser vs. SSR. Use platform-aware injections:</p>
+<pre><code class="language-typescript">import { Injectable, inject, PLATFORM_ID, InjectionToken } from &#39;@angular/core&#39;;
+import { isPlatformBrowser, isPlatformServer } from &#39;@angular/common&#39;;
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class PlatformService {
+  private platformId = inject(PLATFORM_ID);
+
+  readonly isBrowser = isPlatformBrowser(this.platformId);
+  readonly isServer = isPlatformServer(this.platformId);
+
+  getLocalStorage(): Storage | null {
+    if (this.isBrowser) {
+      return window.localStorage;
+    }
+    return null; // localStorage doesn&#39;t exist in Node.js (SSR)
+  }
+}
+</code></pre>
+<hr>
+<h2 id="9-designing-a-scalable-service-layer">9. Designing a Scalable Service Layer</h2>
+<h3 id="pattern-1-repository-pattern-data-access-layer">Pattern 1: Repository Pattern (Data Access Layer)</h3>
+<p>Separate &quot;what data to fetch&quot; from &quot;how to display it&quot;:</p>
+<pre><code class="language-typescript">// ✅ Repository: Pure data access, no UI concerns
+@Injectable({ providedIn: &#39;root&#39; })
+export class UserRepository {
+  private http = inject(HttpClient);
+
+  findAll(): Observable&lt;User[]&gt; {
+    return this.http.get&lt;User[]&gt;(&#39;/api/users&#39;);
+  }
+
+  findById(id: number): Observable&lt;User&gt; {
+    return this.http.get&lt;User&gt;(`/api/users/${id}`);
+  }
+
+  save(user: Partial&lt;User&gt;): Observable&lt;User&gt; {
+    if (user.id) {
+      return this.http.patch&lt;User&gt;(`/api/users/${user.id}`, user);
+    }
+    return this.http.post&lt;User&gt;(&#39;/api/users&#39;, user);
+  }
+
+  remove(id: number): Observable&lt;void&gt; {
+    return this.http.delete&lt;void&gt;(`/api/users/${id}`);
+  }
+}
+
+// ✅ Service: Business logic, state management
+@Injectable({ providedIn: &#39;root&#39; })
+export class UserFacadeService {
+  private repo = inject(UserRepository);
+  private users = signal&lt;User[]&gt;([]);
+  readonly users$ = this.users.asReadonly();
+
+  loadUsers() {
+    return this.repo.findAll().pipe(tap(users =&gt; this.users.set(users)));
+  }
+
+  deactivateUser(id: number) {
+    return this.repo.save({ id, isActive: false }).pipe(
+      tap(updated =&gt; this.users.update(list =&gt;
+        list.map(u =&gt; u.id === id ? updated : u)
+      ))
+    );
+  }
+}
+</code></pre>
+<h3 id="pattern-2-facade-pattern">Pattern 2: Facade Pattern</h3>
+<p>A facade service is the single public API for a feature, hiding complexity:</p>
+<pre><code class="language-typescript">@Injectable({ providedIn: &#39;root&#39; })
+export class ProductFacade {
+  private productRepo = inject(ProductRepository);
+  private categoryRepo = inject(CategoryRepository);
+  private inventoryService = inject(InventoryService);
+
+  // One method that coordinates multiple services
+  loadProductsPage() {
+    return forkJoin({
+      products: this.productRepo.findAll(),
+      categories: this.categoryRepo.findAll(),
+      lowStock: this.inventoryService.getLowStockAlerts()
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="10-common-pitfalls">10. Common Pitfalls</h2>
+<h3 id="pitfall-1-using-inject-outside-of-injection-context">Pitfall 1: Using `inject()` outside of injection context</h3>
+<pre><code class="language-typescript">// ❌ ERROR: inject() must be called during construction
+@Component({ ... })
+export class DemoComponent {
+  ngOnInit() {
+    const service = inject(UserService);  // Error! Too late.
+  }
+}
+
+// ✅ Use it during construction (property initialization or constructor)
+@Component({ ... })
+export class DemoComponent {
+  private userService = inject(UserService);  // Fine — during construction
+}
+</code></pre>
+<h3 id="pitfall-2-state-leakage-in-ssr">Pitfall 2: State leakage in SSR</h3>
+<pre><code class="language-typescript">// ❌ DANGEROUS: This variable is shared across all users in SSR!
+let globalCache: any[] = [];  // Module-level variable
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class CacheService {
+  getData() { return globalCache; }
+}
+
+// ✅ Safe: State is inside the class instance (isolated per request in SSR)
+@Injectable({ providedIn: &#39;root&#39; })
+export class CacheService {
+  private cache: any[] = [];  // Instance property — per-request in SSR
+  getData() { return this.cache; }
+}
+</code></pre>
+<h3 id="pitfall-3-circular-dependency">Pitfall 3: Circular dependency</h3>
+<pre><code class="language-typescript">// ❌ ServiceA imports ServiceB which imports ServiceA = circular!
+// Angular throws: &quot;Cannot instantiate cyclic dependency!&quot;
+
+// ✅ Extract shared logic into a third service that both use:
+@Injectable({ providedIn: &#39;root&#39; })
+export class SharedLogicService { ... }
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class ServiceA {
+  private shared = inject(SharedLogicService);  // No cycle!
+}
+</code></pre>
+<h3 id="pitfall-4-not-using-asreadonly-for-public-signals-in-services">Pitfall 4: Not using `asReadonly()` for public signals in services</h3>
+<pre><code class="language-typescript">// ❌ Components can directly mutate service state!
+export class CartService {
+  items = signal&lt;CartItem[]&gt;([]);  // Public &amp; writable = chaos!
+}
+
+// ✅ Expose only read-only access
+export class CartService {
+  private _items = signal&lt;CartItem[]&gt;([]);
+  readonly items = this._items.asReadonly();
+
+  addItem(item: CartItem) {
+    this._items.update(i =&gt; [...i, item]);
+  }
+}
+</code></pre>
+<hr>
+<h2 id="11-try-it-yourself">11. Try It Yourself</h2>
+<p>Create a <code>ThemeService</code> that:</p>
+<ol>
+<li>Stores the current theme (<code>&#39;light&#39; | &#39;dark&#39;</code>) in a signal</li>
+<li>Persists the theme to <code>localStorage</code></li>
+<li>Reads the initial value from <code>localStorage</code> on startup (fallback: <code>&#39;light&#39;</code>)</li>
+<li>Has a <code>toggleTheme()</code> method</li>
+<li>Exposes a computed signal <code>isDark</code> for easy template binding</li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Injectable, signal, computed, effect, inject, PLATFORM_ID } from &#39;@angular/core&#39;;
+import { isPlatformBrowser } from &#39;@angular/common&#39;;
+
+type Theme = &#39;light&#39; | &#39;dark&#39;;
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class ThemeService {
+  private platformId = inject(PLATFORM_ID);
+
+  // Read initial theme from localStorage, fallback to &#39;light&#39;
+  private _theme = signal&lt;Theme&gt;(this.getStoredTheme());
+
+  // Expose read-only views
+  readonly theme = this._theme.asReadonly();
+  readonly isDark = computed(() =&gt; this._theme() === &#39;dark&#39;);
+
+  constructor() {
+    // Persist theme to localStorage whenever it changes
+    effect(() =&gt; {
+      const currentTheme = this._theme();
+      if (isPlatformBrowser(this.platformId)) {
+        localStorage.setItem(&#39;theme&#39;, currentTheme);
+        document.documentElement.setAttribute(&#39;data-theme&#39;, currentTheme);
+      }
+    });
+  }
+
+  toggleTheme() {
+    this._theme.update(t =&gt; t === &#39;light&#39; ? &#39;dark&#39; : &#39;light&#39;);
+  }
+
+  setTheme(theme: Theme) {
+    this._theme.set(theme);
+  }
+
+  private getStoredTheme(): Theme {
+    if (isPlatformBrowser(this.platformId)) {
+      return (localStorage.getItem(&#39;theme&#39;) as Theme) ?? &#39;light&#39;;
+    }
+    return &#39;light&#39;;
+  }
+}
+</code></pre>
+<p>Usage in a component:</p>
+<pre><code class="language-typescript">@Component({
+  template: `
+    &lt;button (click)=&quot;themeService.toggleTheme()&quot;&gt;
+      {{ themeService.isDark() ? &#39;☀️ Light Mode&#39; : &#39;🌙 Dark Mode&#39; }}
+    &lt;/button&gt;
+  `
+})
+export class ThemeToggleComponent {
+  readonly themeService = inject(ThemeService);
+}
+</code></pre>
+</details><hr>
+<h2 id="12-knowledge-check">12. Knowledge Check</h2>
+<ol>
+<li>If two sibling components both inject <code>ThemeService</code> with <code>providedIn: &#39;root&#39;</code>, do they share state?</li>
+<li>What is the difference between <code>useValue</code>, <code>useClass</code>, and <code>useFactory</code>?</li>
+<li>Why can&#39;t you call <code>inject()</code> inside <code>ngOnInit()</code>?</li>
+<li>When would you choose to provide a service in <code>@Component.providers</code> instead of <code>providedIn: &#39;root&#39;</code>?</li>
+<li>What is the purpose of <code>InjectionToken</code>, and when is it needed over just providing a class?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><strong>Yes</strong> — <code>providedIn: &#39;root&#39;</code> creates a single singleton instance in the Root Injector. Both components inject the exact same instance, so any state changes in one component are immediately visible in the other.</p>
+</li>
+<li><p><strong><code>useValue</code></strong>: Provide a static, pre-created value (a string, object literal, boolean). <strong><code>useClass</code></strong>: Tell Angular to create an instance of a different class when this token is requested. <strong><code>useFactory</code></strong>: Provide a function that creates the value dynamically at runtime (useful when the implementation depends on other injected values or runtime conditions).</p>
+</li>
+<li><p><code>inject()</code> is only valid during the <strong>construction phase</strong> of a class — i.e., as a class property initializer or inside the <code>constructor()</code>. By the time <code>ngOnInit()</code> runs, Angular&#39;s DI context has already completed. Calling <code>inject()</code> at that point results in a <code>NG0203</code> error.</p>
+</li>
+<li><p>Provide a service in <code>@Component.providers</code> when: (a) Each component instance needs its own isolated state (e.g., each <code>DatePickerComponent</code> has its own <code>DatePickerStateService</code>), or (b) you want the service destroyed when the component is destroyed.</p>
+</li>
+<li><p><code>InjectionToken</code> is needed when you want to inject something that isn&#39;t a TypeScript class — such as a configuration string, a boolean feature flag, a plain object, or a function. Without a class to use as the token, Angular has no way to look up the correct value in the injector hierarchy. <code>InjectionToken</code> provides a unique, type-safe key for the DI system.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./http-rxjs.html">06 - HttpClient &amp; RxJS →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

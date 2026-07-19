@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Custom Form Validators - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item active">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-custom-form-validators">Angular: Custom Form Validators</h1>
+<blockquote>
+<p><strong>Goal</strong>: Build sync and async validators for production-grade forms — from simple field validations to server-side uniqueness checks.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-sync-vs-async-validators">Sync vs Async Validators</a></li>
+<li><a href="#2-building-sync-validators">Building Sync Validators</a></li>
+<li><a href="#3-cross-field-validators">Cross-Field Validators (Group Level)</a></li>
+<li><a href="#4-building-async-validators">Building Async Validators</a></li>
+<li><a href="#5-displaying-validation-errors">Displaying Validation Errors</a></li>
+<li><a href="#6-validator-factories">Validator Factories — Configurable Validators</a></li>
+<li><a href="#7-composing-multiple-validators">Composing Multiple Validators</a></li>
+<li><a href="#8-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#9-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-sync-vs-async-validators">1. Sync vs Async Validators</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Sync Validator</th>
+<th>Async Validator</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>When it runs</strong></td>
+<td>Instantly on every keystroke</td>
+<td>Only after all sync validators pass</td>
+</tr>
+<tr>
+<td><strong>Returns</strong></td>
+<td><code>ValidationErrors | null</code></td>
+<td><code>Observable&lt;ValidationErrors | null&gt;</code> or <code>Promise&lt;...&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Use cases</strong></td>
+<td>Format checks, range checks, cross-field checks</td>
+<td>API calls (unique username, email exists)</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Very fast</td>
+<td>Debounce it! Expensive API calls</td>
+</tr>
+<tr>
+<td><strong>Angular status</strong></td>
+<td>Sets control to <code>INVALID</code> or <code>VALID</code></td>
+<td>Sets control to <code>PENDING</code> while running</td>
+</tr>
+</tbody></table>
+<p><strong>The optimization</strong>: Angular only runs async validators if ALL sync validators have already passed. This prevents sending API calls when the field is already invalid (e.g., empty field won&#39;t trigger the &quot;is username taken?&quot; API call).</p>
+<hr>
+<h2 id="2-building-sync-validators">2. Building Sync Validators</h2>
+<p>A sync validator is a <strong>function that returns another function</strong> (a <code>ValidatorFn</code>).</p>
+<h3 id="pattern-standalone-validator-functions">Pattern: Standalone Validator Functions</h3>
+<pre><code class="language-typescript">// src/app/shared/validators/custom-validators.ts
+import { AbstractControl, ValidationErrors, ValidatorFn } from &#39;@angular/forms&#39;;
+
+// ✅ Validator 1: No whitespace allowed
+export function noWhitespaceValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null =&gt; {
+    const value = control.value ?? &#39;&#39;;
+    return /\s/.test(value) ? { noWhitespace: true } : null;
+  };
+}
+
+// ✅ Validator 2: Strong password (uppercase, lowercase, number, special char)
+export function strongPasswordValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null =&gt; {
+    const val = control.value ?? &#39;&#39;;
+    const errors: ValidationErrors = {};
+
+    if (!/[A-Z]/.test(val)) errors[&#39;missingUppercase&#39;] = true;
+    if (!/[a-z]/.test(val)) errors[&#39;missingLowercase&#39;] = true;
+    if (!/[0-9]/.test(val)) errors[&#39;missingNumber&#39;] = true;
+    if (!/[!@#$%^&amp;*]/.test(val)) errors[&#39;missingSpecial&#39;] = true;
+
+    return Object.keys(errors).length ? errors : null;
+  };
+}
+
+// ✅ Validator 3: URL format validator
+export function urlValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null =&gt; {
+    const value = control.value ?? &#39;&#39;;
+    if (!value) return null; // Don&#39;t validate empty (use Validators.required for that)
+
+    try {
+      new URL(value);
+      return null; // Valid URL
+    } catch {
+      return { invalidUrl: true };
+    }
+  };
+}
+
+// ✅ Validator 4: Must be one of a list of allowed values
+export function allowedValuesValidator(allowed: string[]): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null =&gt; {
+    const value = control.value;
+    if (!value) return null;
+    return allowed.includes(value)
+      ? null
+      : { notAllowed: { value, allowed } };
+  };
+}
+
+// ✅ Validator 5: Date must be in the future
+export const futureDateValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null =&gt; {
+  const value = control.value;
+  if (!value) return null;
+  const date = new Date(value);
+  return date &gt; new Date() ? null : { pastDate: true };
+};
+</code></pre>
+<h3 id="using-sync-validators">Using Sync Validators</h3>
+<pre><code class="language-typescript">const form = this.fb.group({
+  username: [&#39;&#39;, [
+    Validators.required,
+    Validators.minLength(3),
+    noWhitespaceValidator()
+  ]],
+  password: [&#39;&#39;, [
+    Validators.required,
+    Validators.minLength(8),
+    strongPasswordValidator()
+  ]],
+  website: [&#39;&#39;, [urlValidator()]],
+  role: [&#39;&#39;, [allowedValuesValidator([&#39;admin&#39;, &#39;editor&#39;, &#39;viewer&#39;])]],
+  launchDate: [&#39;&#39;, [Validators.required, futureDateValidator]],
+});
+</code></pre>
+<hr>
+<h2 id="3-cross-field-validators-group-level">3. Cross-Field Validators (Group Level)</h2>
+<p>Cross-field validators are attached to the <code>FormGroup</code>, not individual controls. They receive the entire group as the <code>AbstractControl</code>.</p>
+<pre><code class="language-typescript">// Validate that password === confirmPassword
+export const passwordsMatchValidator: ValidatorFn = (group: AbstractControl): ValidationErrors | null =&gt; {
+  const password = group.get(&#39;password&#39;);
+  const confirm = group.get(&#39;confirmPassword&#39;);
+
+  if (!password || !confirm) return null;
+  if (password.value !== confirm.value) {
+    return { passwordsMismatch: true };
+  }
+  return null;
+};
+
+// Validate that end date is after start date
+export const dateRangeValidator: ValidatorFn = (group: AbstractControl): ValidationErrors | null =&gt; {
+  const start = group.get(&#39;startDate&#39;);
+  const end = group.get(&#39;endDate&#39;);
+
+  if (!start?.value || !end?.value) return null;
+
+  const startDate = new Date(start.value);
+  const endDate = new Date(end.value);
+
+  return startDate &lt; endDate ? null : { invalidDateRange: true };
+};
+</code></pre>
+<pre><code class="language-typescript">// Applying group validators
+const registrationForm = this.fb.group({
+  password: [&#39;&#39;, [Validators.required, Validators.minLength(8)]],
+  confirmPassword: [&#39;&#39;, Validators.required],
+}, {
+  validators: [passwordsMatchValidator]  // ← Applied to the GROUP
+});
+
+const bookingForm = this.fb.group({
+  startDate: [&#39;&#39;, Validators.required],
+  endDate: [&#39;&#39;, Validators.required],
+}, {
+  validators: [dateRangeValidator]
+});
+</code></pre>
+<pre><code class="language-html">&lt;!-- Reading group-level errors --&gt;
+@if (form.errors?.[&#39;passwordsMismatch&#39;] &amp;&amp; form.get(&#39;confirmPassword&#39;)?.touched) {
+  &lt;p class=&quot;error&quot;&gt;Passwords do not match!&lt;/p&gt;
+}
+@if (form.errors?.[&#39;invalidDateRange&#39;]) {
+  &lt;p class=&quot;error&quot;&gt;End date must be after start date!&lt;/p&gt;
+}
+</code></pre>
+<hr>
+<h2 id="4-building-async-validators">4. Building Async Validators</h2>
+<p>Async validators make HTTP calls. <strong>Always debounce them</strong> — otherwise you send a request for every single character typed.</p>
+<h3 id="injectable-async-validator-service">Injectable Async Validator Service</h3>
+<pre><code class="language-typescript">// src/app/shared/validators/unique-username.validator.ts
+import { Injectable, inject } from &#39;@angular/core&#39;;
+import { AbstractControl, AsyncValidatorFn, ValidationErrors } from &#39;@angular/forms&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+import { Observable, of, timer } from &#39;rxjs&#39;;
+import { switchMap, map, catchError, first } from &#39;rxjs/operators&#39;;
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class UniqueUsernameValidator {
+  private http = inject(HttpClient);
+
+  validate(): AsyncValidatorFn {
+    return (control: AbstractControl): Observable&lt;ValidationErrors | null&gt; =&gt; {
+      const username = control.value?.trim();
+
+      // Don&#39;t validate empty or too-short values
+      if (!username || username.length &lt; 3) {
+        return of(null);
+      }
+
+      // Debounce: wait 500ms after user stops typing before making API call
+      return timer(500).pipe(
+        switchMap(() =&gt;
+          this.http.get&lt;{ exists: boolean }&gt;(`/api/users/check-username?username=${username}`).pipe(
+            map(response =&gt; response.exists ? { usernameTaken: true } : null),
+            catchError(() =&gt; of(null))  // Network error → treat as valid (don&#39;t block user)
+          )
+        ),
+        first()  // Complete the observable after one emission (prevents hanging)
+      );
+    };
+  }
+}
+
+// Alternative: Standalone function approach (no injection)
+export function uniqueEmailValidator(http: HttpClient): AsyncValidatorFn {
+  return (control: AbstractControl): Observable&lt;ValidationErrors | null&gt; =&gt; {
+    const email = control.value?.trim();
+    if (!email) return of(null);
+
+    return timer(400).pipe(
+      switchMap(() =&gt;
+        http.post&lt;{ available: boolean }&gt;(&#39;/api/auth/check-email&#39;, { email }).pipe(
+          map(res =&gt; res.available ? null : { emailTaken: true }),
+          catchError(() =&gt; of(null))
+        )
+      ),
+      first()
+    );
+  };
+}
+</code></pre>
+<h3 id="using-async-validators">Using Async Validators</h3>
+<pre><code class="language-typescript">import { Component, inject } from &#39;@angular/core&#39;;
+import { FormBuilder, Validators } from &#39;@angular/forms&#39;;
+import { UniqueUsernameValidator } from &#39;./validators/unique-username.validator&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+import { uniqueEmailValidator } from &#39;./validators/unique-email.validator&#39;;
+
+@Component({ ... })
+export class RegistrationComponent {
+  private fb = inject(FormBuilder);
+  private usernameValidator = inject(UniqueUsernameValidator);
+  private http = inject(HttpClient);
+
+  form = this.fb.group({
+    username: [
+      &#39;&#39;,
+      [Validators.required, Validators.minLength(3), Validators.maxLength(20)],  // Sync (2nd arg)
+      [this.usernameValidator.validate()]                                          // Async (3rd arg)
+    ],
+    email: [
+      &#39;&#39;,
+      [Validators.required, Validators.email],
+      [uniqueEmailValidator(this.http)]  // Standalone function approach
+    ]
+  });
+}
+</code></pre>
+<h3 id="showing-async-validation-state">Showing Async Validation State</h3>
+<pre><code class="language-html">&lt;div class=&quot;field&quot;&gt;
+  &lt;label&gt;Username&lt;/label&gt;
+  &lt;input formControlName=&quot;username&quot; placeholder=&quot;Choose a username&quot;&gt;
+
+  &lt;!-- PENDING means async validator is running --&gt;
+  @if (form.controls.username.pending) {
+    &lt;span class=&quot;checking&quot;&gt;⏳ Checking availability...&lt;/span&gt;
+  }
+
+  @if (form.controls.username.invalid &amp;&amp; form.controls.username.touched) {
+    @if (form.controls.username.errors?.[&#39;required&#39;]) {
+      &lt;small class=&quot;error&quot;&gt;Username is required&lt;/small&gt;
+    }
+    @if (form.controls.username.errors?.[&#39;minlength&#39;]) {
+      &lt;small class=&quot;error&quot;&gt;Minimum 3 characters&lt;/small&gt;
+    }
+    @if (form.controls.username.errors?.[&#39;usernameTaken&#39;]) {
+      &lt;small class=&quot;error&quot;&gt;❌ This username is already taken&lt;/small&gt;
+    }
+  }
+
+  @if (form.controls.username.valid &amp;&amp; !form.controls.username.pending) {
+    &lt;span class=&quot;success&quot;&gt;✅ Available!&lt;/span&gt;
+  }
+&lt;/div&gt;
+</code></pre>
+<hr>
+<h2 id="5-displaying-validation-errors">5. Displaying Validation Errors</h2>
+<h3 id="pattern-error-component-for-reusability">Pattern: Error Component for Reusability</h3>
+<pre><code class="language-typescript">// src/app/shared/components/field-error.component.ts
+import { Component, input } from &#39;@angular/core&#39;;
+import { AbstractControl } from &#39;@angular/forms&#39;;
+
+@Component({
+  selector: &#39;app-field-error&#39;,
+  standalone: true,
+  template: `
+    @if (control() &amp;&amp; control()!.invalid &amp;&amp; (control()!.touched || control()!.dirty)) {
+      &lt;div class=&quot;field-errors&quot;&gt;
+        @if (control()!.errors?.[&#39;required&#39;]) {
+          &lt;small&gt;This field is required.&lt;/small&gt;
+        }
+        @if (control()!.errors?.[&#39;email&#39;]) {
+          &lt;small&gt;Please enter a valid email address.&lt;/small&gt;
+        }
+        @if (control()!.errors?.[&#39;minlength&#39;]) {
+          &lt;small&gt;Minimum {{ control()!.errors?.[&#39;minlength&#39;].requiredLength }} characters.&lt;/small&gt;
+        }
+        @if (control()!.errors?.[&#39;maxlength&#39;]) {
+          &lt;small&gt;Maximum {{ control()!.errors?.[&#39;maxlength&#39;].requiredLength }} characters.&lt;/small&gt;
+        }
+        @if (control()!.errors?.[&#39;pattern&#39;]) {
+          &lt;small&gt;Invalid format.&lt;/small&gt;
+        }
+        @if (control()!.errors?.[&#39;noWhitespace&#39;]) {
+          &lt;small&gt;No spaces allowed.&lt;/small&gt;
+        }
+        @if (control()!.errors?.[&#39;usernameTaken&#39;]) {
+          &lt;small&gt;This username is already taken.&lt;/small&gt;
+        }
+        @if (control()!.errors?.[&#39;invalidUrl&#39;]) {
+          &lt;small&gt;Please enter a valid URL (including https://).&lt;/small&gt;
+        }
+      &lt;/div&gt;
+    }
+  `
+})
+export class FieldErrorComponent {
+  control = input&lt;AbstractControl | null&gt;(null);
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- Usage — clean and consistent error display --&gt;
+&lt;div class=&quot;field&quot;&gt;
+  &lt;input formControlName=&quot;username&quot;&gt;
+  &lt;app-field-error [control]=&quot;form.get(&#39;username&#39;)&quot;&gt;&lt;/app-field-error&gt;
+&lt;/div&gt;
+</code></pre>
+<hr>
+<h2 id="6-validator-factories">6. Validator Factories</h2>
+<p>Validators can accept configuration parameters to make them reusable:</p>
+<pre><code class="language-typescript">// A range validator factory
+export function rangeValidator(min: number, max: number): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null =&gt; {
+    const value = Number(control.value);
+    if (isNaN(value)) return { invalidNumber: true };
+    if (value &lt; min || value &gt; max) {
+      return { outOfRange: { min, max, actual: value } };
+    }
+    return null;
+  };
+}
+
+// A max file size validator factory
+export function maxFileSizeValidator(maxMB: number): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null =&gt; {
+    const file = control.value as File | null;
+    if (!file) return null;
+    const maxBytes = maxMB * 1024 * 1024;
+    return file.size &gt; maxBytes ? { fileTooLarge: { maxMB, actualMB: (file.size / 1024 / 1024).toFixed(2) } } : null;
+  };
+}
+</code></pre>
+<pre><code class="language-typescript">// Usage
+const form = this.fb.group({
+  age: [&#39;&#39;, [Validators.required, rangeValidator(18, 120)]],
+  discount: [&#39;&#39;, [rangeValidator(0, 100)]],
+  profilePicture: [null, [maxFileSizeValidator(5)]]  // Max 5MB
+});
+</code></pre>
+<hr>
+<h2 id="7-composing-multiple-validators">7. Composing Multiple Validators</h2>
+<pre><code class="language-typescript">import { Validators, AbstractControl, ValidatorFn } from &#39;@angular/forms&#39;;
+
+// Compose multiple validators into one reusable set
+export const USERNAME_VALIDATORS: ValidatorFn[] = [
+  Validators.required,
+  Validators.minLength(3),
+  Validators.maxLength(20),
+  noWhitespaceValidator(),
+  Validators.pattern(/^[a-zA-Z0-9_-]+$/)  // Only letters, numbers, underscore, hyphen
+];
+
+export const EMAIL_VALIDATORS: ValidatorFn[] = [
+  Validators.required,
+  Validators.email,
+  Validators.maxLength(100)
+];
+
+// Use them consistently across your forms
+const signupForm = this.fb.group({
+  username: [&#39;&#39;, USERNAME_VALIDATORS, [uniqueUsernameValidator]],
+  email: [&#39;&#39;, EMAIL_VALIDATORS, [uniqueEmailValidator]],
+});
+
+const profileForm = this.fb.group({
+  username: [&#39;&#39;, USERNAME_VALIDATORS],  // Same validators, no async check on profile edit
+  email: [&#39;&#39;, EMAIL_VALIDATORS],
+});
+</code></pre>
+<hr>
+<h2 id="8-common-pitfalls">8. Common Pitfalls</h2>
+<h3 id="pitfall-1-reading-cross-field-errors-from-the-wrong-place">Pitfall 1: Reading cross-field errors from the wrong place</h3>
+<pre><code class="language-typescript">// ❌ Error is on the GROUP, not on the control!
+form.get(&#39;confirmPassword&#39;)?.hasError(&#39;passwordsMismatch&#39;)  // Always null!
+
+// ✅ Read group-level errors from the form itself
+form.hasError(&#39;passwordsMismatch&#39;)
+form.errors?.[&#39;passwordsMismatch&#39;]
+</code></pre>
+<h3 id="pitfall-2-async-validator-not-debouncing">Pitfall 2: Async validator not debouncing</h3>
+<pre><code class="language-typescript">// ❌ Sends HTTP request on every single keystroke!
+return (control: AbstractControl) =&gt; {
+  return this.http.get(`/api/check?val=${control.value}`).pipe(
+    map(res =&gt; res.exists ? { taken: true } : null)
+  );
+};
+
+// ✅ Always debounce async validators!
+return (control: AbstractControl) =&gt; {
+  return timer(500).pipe(
+    switchMap(() =&gt; this.http.get(`/api/check?val=${control.value}`))
+  );
+};
+</code></pre>
+<h3 id="pitfall-3-forgetting-to-call-first-on-async-validators">Pitfall 3: Forgetting to call `first()` on async validators</h3>
+<pre><code class="language-typescript">// ❌ Observable never completes — Angular keeps the control in PENDING state!
+return timer(500).pipe(
+  switchMap(() =&gt; this.http.get(&#39;/api/check&#39;))
+);
+
+// ✅ Always complete the observable with first() or take(1)
+return timer(500).pipe(
+  switchMap(() =&gt; this.http.get(&#39;/api/check&#39;)),
+  first()  // Complete after first emission
+);
+</code></pre>
+<h3 id="pitfall-4-showing-async-errors-before-the-check-completes">Pitfall 4: Showing async errors before the check completes</h3>
+<pre><code class="language-html">&lt;!-- ❌ Shows &quot;Username taken&quot; even while the check is still running! --&gt;
+@if (ctrl.errors?.[&#39;usernameTaken&#39;]) {
+  &lt;small&gt;Username taken!&lt;/small&gt;
+}
+
+&lt;!-- ✅ Only show when not pending --&gt;
+@if (ctrl.errors?.[&#39;usernameTaken&#39;] &amp;&amp; !ctrl.pending) {
+  &lt;small&gt;Username taken!&lt;/small&gt;
+}
+</code></pre>
+<hr>
+<h2 id="9-try-it-yourself">9. Try It Yourself</h2>
+<p>Build a <code>creditCardValidator</code> that:</p>
+<ol>
+<li>Accepts only 16-digit numbers (spaces optional: <code>4111 1111 1111 1111</code> is valid)</li>
+<li>Validates using the Luhn algorithm (each second digit from right, doubled; if &gt; 9, subtract 9; sum all; must be divisible by 10)</li>
+<li>Returns <code>{ invalidCreditCard: true }</code> if invalid</li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { AbstractControl, ValidationErrors, ValidatorFn } from &#39;@angular/forms&#39;;
+
+export function creditCardValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null =&gt; {
+    const value = (control.value ?? &#39;&#39;).replace(/\s+/g, &#39;&#39;);  // Remove spaces
+
+    // Must be exactly 16 digits
+    if (!/^\d{16}$/.test(value)) {
+      return { invalidCreditCard: true };
+    }
+
+    // Luhn algorithm
+    let sum = 0;
+    let shouldDouble = false;
+
+    for (let i = value.length - 1; i &gt;= 0; i--) {
+      let digit = parseInt(value[i]);
+
+      if (shouldDouble) {
+        digit *= 2;
+        if (digit &gt; 9) digit -= 9;
+      }
+
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+
+    return sum % 10 === 0 ? null : { invalidCreditCard: true };
+  };
+}
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-typescript">const paymentForm = this.fb.group({
+  cardNumber: [&#39;&#39;, [Validators.required, creditCardValidator()]],
+  expiryDate: [&#39;&#39;, Validators.required],
+  cvv: [&#39;&#39;, [Validators.required, Validators.pattern(/^\d{3,4}$/)]]
+});
+</code></pre>
+</details><hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>In what position in <code>FormBuilder.group()</code>&#39;s control array do async validators go?</li>
+<li>If a field fails <code>Validators.required</code>, does the async validator still run?</li>
+<li>What does Angular set a control&#39;s status to while an async validator is running?</li>
+<li>Why should you always return <code>of(null)</code> in the <code>catchError</code> of an async validator?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>Async validators go in the <strong>third</strong> array element: <code>[&#39;initialValue&#39;, [syncValidators], [asyncValidators]]</code>. This is different from sync validators which go in the second position.</p>
+</li>
+<li><p><strong>No.</strong> Angular only runs async validators after ALL synchronous validators have passed. If <code>Validators.required</code> fails (empty field), the async validator is never called. This is an intentional optimization to prevent unnecessary API calls.</p>
+</li>
+<li><p>Angular sets the control&#39;s <code>status</code> to <strong><code>PENDING</code></strong>. You can check this with <code>control.pending</code> — useful for showing a &quot;Checking...&quot; spinner in the template. The status changes to <code>VALID</code> or <code>INVALID</code> once the async validator resolves.</p>
+</li>
+<li><p>If an async validator&#39;s HTTP request fails (network error, server error), and you don&#39;t catch the error, the control status stays <code>PENDING</code> indefinitely — blocking the user from submitting the form. Returning <code>of(null)</code> on error treats the validation as &quot;passed&quot; (graceful degradation), allowing the user to proceed. Alternatively, you could return a specific error like <code>of({ serverError: true })</code>.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./http-interceptors.html">19 - HTTP Interceptors →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

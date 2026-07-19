@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Global Error Handling & Resilience - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item active">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-global-error-handling-resilience">Angular: Global Error Handling & Resilience</h1>
+<blockquote>
+<p><strong>Goal</strong>: Build production-ready error handling strategies — custom global <code>ErrorHandler</code>, centralized logging, Sentry/Datadog integration, and local RxJS error recovery.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-error-handling-architecture">Error Handling Architecture</a></li>
+<li><a href="#2-global-error-handler-errorhandler">Global Error Handler (<code>ErrorHandler</code>)</a></li>
+<li><a href="#3-zone-safe-error-dispatching">Zone-Safe Error Dispatching</a></li>
+<li><a href="#4-integrating-remote-monitoring-sentry-datadog">Integrating Remote Monitoring (Sentry, Datadog)</a></li>
+<li><a href="#5-local-error-handling-with-rxjs">Local Error Handling with RxJS</a></li>
+<li><a href="#6-http-error-interceptor-vs-global-handler">HTTP Error Interceptor vs Global Handler</a></li>
+<li><a href="#7-user-facing-error-ui-toast--dialog">User-Facing Error UI (Toast &amp; Dialog)</a></li>
+<li><a href="#8-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#9-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-error-handling-architecture">1. Error Handling Architecture</h2>
+<p>A robust Angular app uses a multi-layered error handling strategy:</p>
+<pre><code>Uncaught Exceptions / Runtime Errors / Unhandled Promises
+                         │
+                         ▼
+             [Global ErrorHandler]
+             ├── Logs stack trace to console
+             ├── Sends error report to Sentry / Datadog
+             └── Displays user-friendly Toast/Notification (via NgZone)
+
+HTTP API Errors (4xx, 5xx, Network failure)
+                         │
+                         ▼
+             [HTTP Error Interceptor]
+             ├── Handles 401 (redirect to login)
+             ├── Handles 403 (access denied)
+             ├── Retries transient 5xx errors
+             └── Passes domain errors to feature services
+
+Feature Services / Components
+                         │
+                         ▼
+             [RxJS catchError()]
+             └── Graceful fallback UI (empty state, inline alert)
+</code></pre>
+<hr>
+<h2 id="2-global-error-handler-errorhandler">2. Global Error Handler (`ErrorHandler`)</h2>
+<p>By default, Angular logs uncaught errors to <code>console.error()</code>. Override <code>ErrorHandler</code> to handle uncaught exceptions globally.</p>
+<pre><code class="language-typescript">// src/app/core/errors/global-error-handler.ts
+import { ErrorHandler, Injectable, inject, NgZone } from &#39;@angular/core&#39;;
+import { ToastService } from &#39;../services/toast.service&#39;;
+import { LoggerService } from &#39;../services/logger.service&#39;;
+
+@Injectable()
+export class GlobalErrorHandler implements ErrorHandler {
+  private toastService = inject(ToastService);
+  private logger = inject(LoggerService);
+  private zone = inject(NgZone);
+
+  handleError(error: unknown): void {
+    // 1. Extract error details
+    const message = this.extractMessage(error);
+    const stack = this.extractStack(error);
+
+    // 2. Log locally to console
+    console.error(&#39;[GlobalErrorHandler]&#39;, error);
+
+    // 3. Log to external monitoring (Sentry / Datadog)
+    this.logger.logError({ message, stack, originalError: error });
+
+    // 4. Show user-friendly toast (must be wrapped in zone.run!)
+    this.zone.run(() =&gt; {
+      this.toastService.showError(
+        &#39;An unexpected error occurred. Our engineering team has been notified.&#39;
+      );
+    });
+  }
+
+  private extractMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === &#39;string&#39;) return error;
+    if (typeof error === &#39;object&#39; &amp;&amp; error !== null &amp;&amp; &#39;message&#39; in error) {
+      return String((error as any).message);
+    }
+    return &#39;Unknown error&#39;;
+  }
+
+  private extractStack(error: unknown): string | undefined {
+    return error instanceof Error ? error.stack : undefined;
+  }
+}
+</code></pre>
+<h3 id="register-in-appconfigts">Register in `app.config.ts`</h3>
+<pre><code class="language-typescript">import { ApplicationConfig, ErrorHandler } from &#39;@angular/core&#39;;
+import { GlobalErrorHandler } from &#39;./core/errors/global-error-handler&#39;;
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // Override default ErrorHandler provider
+    { provide: ErrorHandler, useClass: GlobalErrorHandler }
+  ]
+};
+</code></pre>
+<hr>
+<h2 id="3-zone-safe-error-dispatching">3. Zone-Safe Error Dispatching</h2>
+<p>Global errors (especially unhandled Promise rejections) frequently occur <strong>outside Angular&#39;s Change Detection Zone</strong>.</p>
+<p>If you attempt to update UI state or trigger a Toast inside <code>handleError</code> without <code>NgZone.run()</code>, the UI update will be missed until the next user click!</p>
+<pre><code class="language-typescript">// ❌ WRONG: UI might not update immediately
+handleError(error: any) {
+  this.toastService.showError(&#39;Error occurred!&#39;); // Might fail to render!
+}
+
+// ✅ CORRECT: Force change detection by running inside NgZone
+handleError(error: any) {
+  this.zone.run(() =&gt; {
+    this.toastService.showError(&#39;Error occurred!&#39;); // Renders immediately
+  });
+}
+</code></pre>
+<hr>
+<h2 id="4-integrating-remote-monitoring-sentry-datadog">4. Integrating Remote Monitoring (Sentry, Datadog)</h2>
+<pre><code class="language-typescript">// src/app/core/services/logger.service.ts
+import { Injectable, inject, PLATFORM_ID } from &#39;@angular/core&#39;;
+import { isPlatformBrowser } from &#39;@angular/common&#39;;
+
+export interface LogPayload {
+  message: string;
+  stack?: string;
+  originalError?: unknown;
+}
+
+@Injectable({ providedIn: &#39;root&#39; })
+export class LoggerService {
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
+
+  logError(payload: LogPayload): void {
+    if (!this.isBrowser) return;
+
+    // Send to Sentry (if installed)
+    // Sentry.captureException(payload.originalError ?? new Error(payload.message));
+
+    // Send to custom logging endpoint
+    if (location.hostname !== &#39;localhost&#39;) {
+      fetch(&#39;/api/logs/error&#39;, {
+        method: &#39;POST&#39;,
+        headers: { &#39;Content-Type&#39;: &#39;application/json&#39; },
+        body: JSON.stringify({
+          message: payload.message,
+          stack: payload.stack,
+          url: location.href,
+          timestamp: new Date().toISOString()
+        })
+      }).catch(() =&gt; {/* Ignore logging network failures */});
+    }
+  }
+}
+</code></pre>
+<hr>
+<h2 id="5-local-error-handling-with-rxjs">5. Local Error Handling with RxJS</h2>
+<p>Catch and recover from errors at the service or component level.</p>
+<h3 id="graceful-fallback-pattern">Graceful Fallback Pattern</h3>
+<pre><code class="language-typescript">@Injectable({ providedIn: &#39;root&#39; })
+export class ProductService {
+  private http = inject(HttpClient);
+
+  getProducts(): Observable&lt;Product[]&gt; {
+    return this.http.get&lt;Product[]&gt;(&#39;/api/products&#39;).pipe(
+      retry({ count: 2, delay: 1000 }), // Retry up to 2 times with 1s delay
+      catchError(error =&gt; {
+        console.warn(&#39;Failed to load products, returning empty list fallback&#39;, error);
+        // Recover gracefully with an empty list instead of throwing
+        return of([]);
+      })
+    );
+  }
+}
+</code></pre>
+<h3 id="re-throwing-custom-errors">Re-throwing Custom Errors</h3>
+<pre><code class="language-typescript">@Injectable({ providedIn: &#39;root&#39; })
+export class AuthService {
+  private http = inject(HttpClient);
+
+  login(credentials: LoginDto): Observable&lt;AuthResponse&gt; {
+    return this.http.post&lt;AuthResponse&gt;(&#39;/api/auth/login&#39;, credentials).pipe(
+      catchError((error: HttpErrorResponse) =&gt; {
+        if (error.status === 401) {
+          return throwError(() =&gt; new Error(&#39;Invalid email or password.&#39;));
+        }
+        if (error.status === 429) {
+          return throwError(() =&gt; new Error(&#39;Too many login attempts. Please try again later.&#39;));
+        }
+        return throwError(() =&gt; new Error(&#39;Authentication failed. Please try again.&#39;));
+      })
+    );
+  }
+}
+</code></pre>
+<hr>
+<h2 id="6-http-error-interceptor-vs-global-handler">6. HTTP Error Interceptor vs Global Handler</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>HTTP Interceptor</th>
+<th>Global <code>ErrorHandler</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Catches</strong></td>
+<td>HTTP network requests</td>
+<td>Any uncaught runtime JS error</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Network layer</td>
+<td>Entire application</td>
+</tr>
+<tr>
+<td><strong>Examples</strong></td>
+<td>401 Unauthorized, 404, 500</td>
+<td><code>undefined is not a function</code>, template rendering bugs</td>
+</tr>
+<tr>
+<td><strong>Recovery</strong></td>
+<td>Retries, token refresh, redirects</td>
+<td>Reporting, global alert banner</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="7-user-facing-error-ui-toast-dialog">7. User-Facing Error UI (Toast & Dialog)</h2>
+<pre><code class="language-typescript">// toast.service.ts — simple toast state using signals
+@Injectable({ providedIn: &#39;root&#39; })
+export class ToastService {
+  private _toasts = signal&lt;{ id: number; message: string; type: &#39;error&#39; | &#39;success&#39; }[]&gt;([]);
+  readonly toasts = this._toasts.asReadonly();
+
+  showError(message: string) {
+    const id = Date.now();
+    this._toasts.update(list =&gt; [...list, { id, message, type: &#39;error&#39; }]);
+    setTimeout(() =&gt; this.remove(id), 5000);
+  }
+
+  showSuccess(message: string) {
+    const id = Date.now();
+    this._toasts.update(list =&gt; [...list, { id, message, type: &#39;success&#39; }]);
+    setTimeout(() =&gt; this.remove(id), 3000);
+  }
+
+  remove(id: number) {
+    this._toasts.update(list =&gt; list.filter(t =&gt; t.id !== id));
+  }
+}
+</code></pre>
+<hr>
+<h2 id="8-common-pitfalls">8. Common Pitfalls</h2>
+<h3 id="pitfall-1-swallowing-errors-blindly">Pitfall 1: Swallowing errors blindly</h3>
+<pre><code class="language-typescript">// ❌ Error is completely hidden — developer never knows it failed!
+this.http.get(&#39;/api/data&#39;).pipe(
+  catchError(() =&gt; of(null))  // Silent swallow!
+);
+
+// ✅ Log or report the error before returning fallback
+this.http.get(&#39;/api/data&#39;).pipe(
+  tap({ error: err =&gt; console.warn(&#39;Fetch failed&#39;, err) }),
+  catchError(() =&gt; of(null))
+);
+</code></pre>
+<h3 id="pitfall-2-forgetting-ngzonerun-in-global-error-handler">Pitfall 2: Forgetting `NgZone.run()` in global error handler</h3>
+<pre><code class="language-typescript">// ❌ UI toast notification does not update until next user click
+handleError(error: any) {
+  this.toast.show(&#39;Error!&#39;);
+}
+
+// ✅ Wrap UI updates in zone.run()
+handleError(error: any) {
+  this.zone.run(() =&gt; this.toast.show(&#39;Error!&#39;));
+}
+</code></pre>
+<hr>
+<h2 id="9-try-it-yourself">9. Try It Yourself</h2>
+<p>Build a custom <code>ErrorHandler</code> that:</p>
+<ol>
+<li>Filters out benign errors (like <code>ResizeObserver loop limit exceeded</code>)</li>
+<li>Formats and logs all other errors to <code>console.error</code></li>
+<li>Dispatches a toast notification via <code>ToastService</code> inside <code>NgZone</code></li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { ErrorHandler, Injectable, inject, NgZone } from &#39;@angular/core&#39;;
+import { ToastService } from &#39;./toast.service&#39;;
+
+@Injectable()
+export class FilteredErrorHandler implements ErrorHandler {
+  private toast = inject(ToastService);
+  private zone = inject(NgZone);
+
+  // Ignored benign browser messages
+  private ignoredErrors = [
+    &#39;ResizeObserver loop limit exceeded&#39;,
+    &#39;ResizeObserver loop completed with undelivered notifications&#39;
+  ];
+
+  handleError(error: unknown): void {
+    const msg = error instanceof Error ? error.message : String(error);
+
+    // Skip benign errors
+    if (this.ignoredErrors.some(ignored =&gt; msg.includes(ignored))) {
+      return;
+    }
+
+    console.error(&#39;[App Error]&#39;, error);
+
+    this.zone.run(() =&gt; {
+      this.toast.showError(&#39;An unexpected error occurred.&#39;);
+    });
+  }
+}
+</code></pre>
+</details><hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>What is the difference between an HTTP Interceptor error handler and the global <code>ErrorHandler</code>?</li>
+<li>Why is <code>NgZone.run()</code> required when showing UI notifications inside a global <code>ErrorHandler</code>?</li>
+<li>What happens if an RxJS stream catches an error with <code>catchError()</code> and returns <code>of([])</code>? Does the global <code>ErrorHandler</code> get triggered?</li>
+<li>How do you prevent transient network failures from breaking user experience?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>An <strong>HTTP Interceptor</strong> specifically catches outgoing network request failures (401, 403, 500 status codes) and handles network concerns like token refresh. The <strong>global <code>ErrorHandler</code></strong> catches all uncaught JavaScript runtime exceptions (null pointer exceptions, template errors, unhandled promise rejections) across the entire app.</p>
+</li>
+<li><p>Global errors (especially unhandled promise rejections or errors from third-party async callbacks) often execute outside Angular&#39;s change detection zone. Without <code>NgZone.run()</code>, state changes made to UI services won&#39;t trigger change detection immediately, causing toast notifications or dialogs to stay hidden until another event occurs.</p>
+</li>
+<li><p><strong>No.</strong> By catching the error with <code>catchError()</code> and returning a new observable (<code>of([])</code>), you have gracefully recovered from the error and converted the error stream into a successful emission. The error is considered handled locally, so it never reaches the global <code>ErrorHandler</code>.</p>
+</li>
+<li><p>Use the RxJS <code>retry()</code> operator (e.g. <code>retry({ count: 3, delay: 1000 })</code>) on HTTP requests to automatically retry transient network failures before passing errors downstream.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./testing-components.html">21 - Testing Components →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

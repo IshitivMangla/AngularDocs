@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: ContentChild & ContentChildren - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item active">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-contentchild-contentchildren">Angular: ContentChild & ContentChildren</h1>
+<blockquote>
+<p><strong>Goal</strong>: Inspect and interact with projected content inside container components using <code>@ContentChild</code>, <code>@ContentChildren</code>, and modern <code>contentChild()</code> / <code>contentChildren()</code> signal queries.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-view-queries-vs-content-queries">View Queries vs Content Queries</a></li>
+<li><a href="#2-single-content-query-contentchild">Single Content Query: <code>contentChild()</code></a></li>
+<li><a href="#3-multiple-content-queries-contentchildren">Multiple Content Queries: <code>contentChildren()</code></a></li>
+<li><a href="#4-building-a-complex-accordion-component">Building a Complex Accordion Component</a></li>
+<li><a href="#5-building-a-tab-group-component">Building a Tab Group Component</a></li>
+<li><a href="#6-lifecycle-timing--ngaftercontentinit">Lifecycle Timing &amp; <code>ngAfterContentInit</code></a></li>
+<li><a href="#7-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#8-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#9-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-view-queries-vs-content-queries">1. View Queries vs Content Queries</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>View Queries (<code>viewChild</code>)</th>
+<th>Content Queries (<code>contentChild</code>)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Target</strong></td>
+<td>Elements in component&#39;s OWN template</td>
+<td>Elements projected via <code>&lt;ng-content&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Origin</strong></td>
+<td>Declared inside child template</td>
+<td>Declared in PARENT component template</td>
+</tr>
+<tr>
+<td><strong>Lifecycle</strong></td>
+<td><code>ngAfterViewInit</code></td>
+<td><code>ngAfterContentInit</code></td>
+</tr>
+<tr>
+<td><strong>Use cases</strong></td>
+<td>Access DOM inputs, canvas, child component methods</td>
+<td>Building Accordions, Tabs, Steppers, Menus</td>
+</tr>
+</tbody></table>
+<pre><code>Parent Template:
+&lt;app-accordion&gt;
+  &lt;app-panel title=&quot;Step 1&quot;&gt;&lt;/app-panel&gt;   ← PROJECTED CONTENT
+  &lt;app-panel title=&quot;Step 2&quot;&gt;&lt;/app-panel&gt;   ← PROJECTED CONTENT
+&lt;/app-accordion&gt;
+
+Accordion Component uses contentChildren(PanelComponent) to find these panels!
+</code></pre>
+<hr>
+<h2 id="2-single-content-query-contentchild">2. Single Content Query: `contentChild()`</h2>
+<pre><code class="language-typescript">// child-item.component.ts
+@Component({
+  selector: &#39;app-card-header&#39;,
+  standalone: true,
+  template: `&lt;h2&gt;&lt;ng-content&gt;&lt;/ng-content&gt;&lt;/h2&gt;`
+})
+export class CardHeaderComponent { }
+</code></pre>
+<pre><code class="language-typescript">// parent-container.component.ts
+import { Component, contentChild, effect } from &#39;@angular/core&#39;;
+import { CardHeaderComponent } from &#39;./card-header.component&#39;;
+
+@Component({
+  selector: &#39;app-card&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;card&quot; [class.has-header]=&quot;hasHeader()&quot;&gt;
+      &lt;ng-content select=&quot;app-card-header&quot;&gt;&lt;/ng-content&gt;
+      &lt;div class=&quot;card-body&quot;&gt;
+        &lt;ng-content&gt;&lt;/ng-content&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  `
+})
+export class CardComponent {
+  // Query projected CardHeaderComponent
+  header = contentChild(CardHeaderComponent);
+
+  // Derived state checking if header was provided
+  hasHeader = computed(() =&gt; !!this.header());
+
+  constructor() {
+    effect(() =&gt; {
+      console.log(&#39;Card header projected?&#39;, this.hasHeader());
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="3-multiple-content-queries-contentchildren">3. Multiple Content Queries: `contentChildren()`</h2>
+<pre><code class="language-typescript">import { Component, contentChildren, effect } from &#39;@angular/core&#39;;
+import { MenuItemDirective } from &#39;./menu-item.directive&#39;;
+
+@Component({
+  selector: &#39;app-dropdown-menu&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;menu&quot; role=&quot;menu&quot;&gt;
+      &lt;ng-content&gt;&lt;/ng-content&gt;
+    &lt;/div&gt;
+  `
+})
+export class DropdownMenuComponent {
+  // Query all projected elements with [appMenuItem] directive
+  items = contentChildren(MenuItemDirective);
+
+  constructor() {
+    effect(() =&gt; {
+      console.log(`Dropdown contains ${this.items().length} items`);
+    });
+  }
+
+  focusFirstItem() {
+    const first = this.items()[0];
+    first?.focus();
+  }
+}
+</code></pre>
+<hr>
+<h2 id="4-building-a-complex-accordion-component">4. Building a Complex Accordion Component</h2>
+<p>A single-expand accordion where opening one panel automatically closes all others.</p>
+<pre><code class="language-typescript">// accordion-panel.component.ts
+@Component({
+  selector: &#39;app-accordion-panel&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;panel&quot;&gt;
+      &lt;button class=&quot;panel-header&quot; (click)=&quot;toggle()&quot;&gt;
+        &lt;span&gt;{{ title() }}&lt;/span&gt;
+        &lt;span&gt;{{ isOpen() ? &#39;−&#39; : &#39;+&#39; }}&lt;/span&gt;
+      &lt;/button&gt;
+      @if (isOpen()) {
+        &lt;div class=&quot;panel-body&quot;&gt;
+          &lt;ng-content&gt;&lt;/ng-content&gt;
+        &lt;/div&gt;
+      }
+    &lt;/div&gt;
+  `
+})
+export class AccordionPanelComponent {
+  title = input.required&lt;string&gt;();
+  isOpen = signal(false);
+
+  toggle() {
+    this.isOpen.update(o =&gt; !o);
+  }
+
+  close() {
+    this.isOpen.set(false);
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">// accordion.component.ts
+import { Component, contentChildren, effect } from &#39;@angular/core&#39;;
+import { AccordionPanelComponent } from &#39;./accordion-panel.component&#39;;
+
+@Component({
+  selector: &#39;app-accordion&#39;,
+  standalone: true,
+  template: `&lt;ng-content&gt;&lt;/ng-content&gt;`
+})
+export class AccordionComponent {
+  // Query all projected panels
+  panels = contentChildren(AccordionPanelComponent);
+  allowMultiple = input&lt;boolean&gt;(false);
+
+  constructor() {
+    effect(() =&gt; {
+      const panelList = this.panels();
+
+      // Listen to toggle events on each panel
+      panelList.forEach(panel =&gt; {
+        // Enforce single-panel expansion if allowMultiple is false
+      });
+    });
+  }
+
+  closeAllExcept(activePanel: AccordionPanelComponent) {
+    if (this.allowMultiple()) return;
+    this.panels().forEach(panel =&gt; {
+      if (panel !== activePanel) {
+        panel.close();
+      }
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2 id="5-building-a-tab-group-component">5. Building a Tab Group Component</h2>
+<pre><code class="language-typescript">// tab.component.ts
+@Component({
+  selector: &#39;app-tab&#39;,
+  standalone: true,
+  template: `
+    @if (active()) {
+      &lt;div class=&quot;tab-pane&quot;&gt;
+        &lt;ng-content&gt;&lt;/ng-content&gt;
+      &lt;/div&gt;
+    }
+  `
+})
+export class TabComponent {
+  title = input.required&lt;string&gt;();
+  active = signal(false);
+}
+</code></pre>
+<pre><code class="language-typescript">// tab-group.component.ts
+import { Component, contentChildren, effect, signal } from &#39;@angular/core&#39;;
+import { TabComponent } from &#39;./tab.component&#39;;
+
+@Component({
+  selector: &#39;app-tab-group&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;tab-nav&quot;&gt;
+      @for (tab of tabs(); track tab.title; let i = $index) {
+        &lt;button
+          [class.active]=&quot;tab.active()&quot;
+          (click)=&quot;selectTab(tab)&quot;&gt;
+          {{ tab.title() }}
+        &lt;/button&gt;
+      }
+    &lt;/div&gt;
+    &lt;div class=&quot;tab-body&quot;&gt;
+      &lt;ng-content&gt;&lt;/ng-content&gt;
+    &lt;/div&gt;
+  `
+})
+export class TabGroupComponent {
+  // Query all projected tabs
+  tabs = contentChildren(TabComponent);
+
+  constructor() {
+    // Activate the first tab by default
+    effect(() =&gt; {
+      const tabList = this.tabs();
+      if (tabList.length &gt; 0 &amp;&amp; !tabList.some(t =&gt; t.active())) {
+        tabList[0].active.set(true);
+      }
+    });
+  }
+
+  selectTab(selectedTab: TabComponent) {
+    this.tabs().forEach(tab =&gt; {
+      tab.active.set(tab === selectedTab);
+    });
+  }
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- Usage in parent page --&gt;
+&lt;app-tab-group&gt;
+  &lt;app-tab title=&quot;Overview&quot;&gt;
+    &lt;p&gt;General overview details...&lt;/p&gt;
+  &lt;/app-tab&gt;
+  &lt;app-tab title=&quot;Specifications&quot;&gt;
+    &lt;p&gt;Technical specs table...&lt;/p&gt;
+  &lt;/app-tab&gt;
+  &lt;app-tab title=&quot;Reviews&quot;&gt;
+    &lt;p&gt;User review list...&lt;/p&gt;
+  &lt;/app-tab&gt;
+&lt;/app-tab-group&gt;
+</code></pre>
+<hr>
+<h2 id="6-lifecycle-timing-ngaftercontentinit">6. Lifecycle Timing & `ngAfterContentInit`</h2>
+<p>With traditional <code>@ContentChild</code> decorators, content queries resolve during <code>ngAfterContentInit</code>.</p>
+<pre><code class="language-typescript">// Order of lifecycle execution:
+1. constructor()
+2. ngOnInit()
+3. ngAfterContentInit()  ← @ContentChild / @ContentChildren resolved HERE
+4. ngAfterViewInit()     ← @ViewChild / @ViewChildren resolved HERE
+</code></pre>
+<p>With Signal queries (<code>contentChild()</code>, <code>contentChildren()</code>), query values are Signals that update reactively. You can safely read them inside <code>effect()</code> without worrying about lifecycle hook timing!</p>
+<hr>
+<h2 id="7-common-pitfalls">7. Common Pitfalls</h2>
+<h3 id="pitfall-1-using-viewchildren-instead-of-contentchildren">Pitfall 1: Using `viewChildren` instead of `contentChildren`</h3>
+<pre><code class="language-typescript">// ❌ Returns empty array because TabComponent is PROJECTED, not in own template!
+tabs = viewChildren(TabComponent);
+
+// ✅ Use contentChildren for projected content
+tabs = contentChildren(TabComponent);
+</code></pre>
+<h3 id="pitfall-2-querying-elements-not-wrapped-in-">Pitfall 2: Querying elements not wrapped in `<ng-content>`</h3>
+<p>If the parent doesn&#39;t actually project the elements inside <code>&lt;app-container&gt;</code>, <code>contentChildren()</code> returns an empty array.</p>
+<h3 id="pitfall-3-accessing-legacy-contentchild-in-ngoninit">Pitfall 3: Accessing legacy `@ContentChild` in `ngOnInit`</h3>
+<pre><code class="language-typescript">// ❌ Undefined in ngOnInit!
+@ContentChild(TabComponent) tab!: TabComponent;
+ngOnInit() {
+  console.log(this.tab); // undefined!
+}
+
+// ✅ Access in ngAfterContentInit or use signal contentChild()
+</code></pre>
+<hr>
+<h2 id="8-try-it-yourself">8. Try It Yourself</h2>
+<p>Build a <code>ButtonGroupComponent</code> that:</p>
+<ol>
+<li>Projects custom <code>&lt;app-button&gt;</code> components</li>
+<li>Uses <code>contentChildren(ButtonComponent)</code> to query them</li>
+<li>Automatically applies a <code>group-item</code> class to all buttons and disables all buttons if <code>disabled</code> input on the group is true</li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Component, contentChildren, effect, input } from &#39;@angular/core&#39;;
+import { ButtonComponent } from &#39;./button.component&#39;;
+
+@Component({
+  selector: &#39;app-button-group&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;btn-group&quot; [class.disabled]=&quot;disabled()&quot;&gt;
+      &lt;ng-content select=&quot;app-button&quot;&gt;&lt;/ng-content&gt;
+    &lt;/div&gt;
+  `
+})
+export class ButtonGroupComponent {
+  disabled = input(false);
+  buttons = contentChildren(ButtonComponent);
+
+  constructor() {
+    effect(() =&gt; {
+      const isGroupDisabled = this.disabled();
+      this.buttons().forEach(btn =&gt; {
+        btn.isDisabled.set(isGroupDisabled);
+      });
+    });
+  }
+}
+</code></pre>
+</details><hr>
+<h2 id="9-knowledge-check">9. Knowledge Check</h2>
+<ol>
+<li>What is the key structural difference between a view query and a content query?</li>
+<li>In what lifecycle hook do legacy <code>@ContentChild</code> queries resolve?</li>
+<li>What happens if you use <code>contentChildren()</code> to query a component that isn&#39;t wrapped in <code>&lt;ng-content&gt;</code>?</li>
+<li>How do signal-based <code>contentChild()</code> queries improve upon legacy <code>@ContentChild</code> decorators?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>A <strong>view query</strong> (<code>viewChild</code>) queries elements located in the component&#39;s <strong>own template</strong>. A <strong>content query</strong> (<code>contentChild</code>) queries elements that were <strong>projected into the component from a parent</strong> via <code>&lt;ng-content&gt;</code>.</p>
+</li>
+<li><p>Legacy <code>@ContentChild</code> queries resolve during <strong><code>ngAfterContentInit()</code></strong>. They are <code>undefined</code> in <code>ngOnInit()</code>.</p>
+</li>
+<li><p><code>contentChildren()</code> will return an <strong>empty collection</strong> (an empty array signal) because the target components were never projected into the component.</p>
+</li>
+<li><p>Signal-based <code>contentChild()</code> queries return read-only Signals that update <strong>reactively</strong> whenever projected content changes (e.g. when items are added or removed dynamically by the parent). They can be read inside <code>effect()</code> and <code>computed()</code> without relying on lifecycle hook timing rules.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./custom-validators.html">18 - Custom Validators →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

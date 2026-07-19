@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Testing Components - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item active">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-testing-components">Angular: Testing Components</h1>
+<blockquote>
+<p><strong>Goal</strong>: Write effective unit and integration tests for Angular standalone components using <code>TestBed</code>, covering inputs, outputs, DOM interactions, service mocking, and signal-based components.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-testing-pyramid">Testing Pyramid for Angular</a></li>
+<li><a href="#2-setting-up-testbed-and-fixtures">Setting Up: <code>TestBed</code> and Fixtures</a></li>
+<li><a href="#3-testing-inputs--dom">Testing Inputs &amp; DOM</a></li>
+<li><a href="#4-testing-outputs-events">Testing Outputs (Events)</a></li>
+<li><a href="#5-mocking-services">Mocking Services</a></li>
+<li><a href="#6-testing-signal-based-components">Testing Signal-Based Components</a></li>
+<li><a href="#7-testing-with-bycss">Testing with <code>By.css()</code> — The Angular Way</a></li>
+<li><a href="#8-async-tests">Async Tests: HTTP and Observables</a></li>
+<li><a href="#9-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#10-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#11-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-testing-pyramid">1. Testing Pyramid</h2>
+<pre><code>        /\
+       /  \
+      / E2E \        (Cypress, Playwright) — Few, slow, expensive
+     /--------\
+    / Integration \  (TestBed with real services) — Some, moderate
+   /--------------\
+  /   Unit Tests   \  (Jest/Jasmine in isolation) — Many, fast, cheap
+ /------------------\
+</code></pre>
+<p>For Angular components, <strong>integration tests with TestBed</strong> are the sweet spot — you test the component + template together, but mock external dependencies (HTTP, services).</p>
+<hr>
+<h2 id="2-setting-up-testbed-and-fixtures">2. Setting Up: `TestBed` and Fixtures</h2>
+<pre><code class="language-typescript">import { ComponentFixture, TestBed } from &#39;@angular/core/testing&#39;;
+import { ProductCardComponent } from &#39;./product-card.component&#39;;
+import { CurrencyPipe } from &#39;@angular/common&#39;;
+import { UserService } from &#39;../../core/services/user.service&#39;;
+
+describe(&#39;ProductCardComponent&#39;, () =&gt; {
+  let component: ProductCardComponent;
+  let fixture: ComponentFixture&lt;ProductCardComponent&gt;;
+  let userServiceSpy: jasmine.SpyObj&lt;UserService&gt;;
+
+  beforeEach(async () =&gt; {
+    // Create mock service
+    userServiceSpy = jasmine.createSpyObj(&#39;UserService&#39;, [&#39;getCurrentUser&#39;]);
+    userServiceSpy.getCurrentUser.and.returnValue({ id: 1, name: &#39;Alice&#39; });
+
+    await TestBed.configureTestingModule({
+      // Import standalone components directly
+      imports: [ProductCardComponent],
+
+      // Override providers with mocks
+      providers: [
+        { provide: UserService, useValue: userServiceSpy }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ProductCardComponent);
+    component = fixture.componentInstance;
+
+    // First detectChanges() triggers ngOnInit and renders the initial DOM
+    fixture.detectChanges();
+  });
+
+  afterEach(() =&gt; {
+    fixture.destroy();
+  });
+});
+</code></pre>
+<h3 id="the-componentfixture-api">The `ComponentFixture` API</h3>
+<pre><code class="language-typescript">// fixture.componentInstance → Access the TypeScript class directly
+component.somePublicMethod();
+component.someSignal.set(&#39;newValue&#39;);
+
+// fixture.nativeElement → The raw DOM element &lt;app-product-card&gt;
+const el: HTMLElement = fixture.nativeElement;
+el.querySelector(&#39;.price&#39;);
+
+// fixture.debugElement → Angular&#39;s enhanced DOM wrapper
+fixture.debugElement.query(By.css(&#39;.price&#39;));
+fixture.debugElement.query(By.directive(RouterLink));
+
+// fixture.detectChanges() → Runs Angular&#39;s change detection
+// MUST be called after any state change to update the DOM
+fixture.detectChanges();
+
+// fixture.whenStable() → Wait for async operations to complete
+await fixture.whenStable();
+</code></pre>
+<hr>
+<h2 id="3-testing-inputs-dom">3. Testing Inputs & DOM</h2>
+<pre><code class="language-typescript">// product-card.component.ts
+@Component({
+  selector: &#39;app-product-card&#39;,
+  standalone: true,
+  imports: [CurrencyPipe],
+  template: `
+    &lt;div class=&quot;card&quot; [class.featured]=&quot;isFeatured()&quot;&gt;
+      &lt;h3 data-testid=&quot;product-name&quot;&gt;{{ product().name }}&lt;/h3&gt;
+      &lt;span data-testid=&quot;product-price&quot;&gt;{{ product().price | currency }}&lt;/span&gt;
+      @if (isFeatured()) {
+        &lt;span data-testid=&quot;featured-badge&quot;&gt;FEATURED&lt;/span&gt;
+      }
+    &lt;/div&gt;
+  `
+})
+export class ProductCardComponent {
+  product = input.required&lt;{ name: string; price: number; }&gt;();
+  isFeatured = input(false);
+}
+</code></pre>
+<pre><code class="language-typescript">// product-card.component.spec.ts
+describe(&#39;ProductCardComponent&#39;, () =&gt; {
+  let fixture: ComponentFixture&lt;ProductCardComponent&gt;;
+  let component: ProductCardComponent;
+
+  beforeEach(async () =&gt; {
+    await TestBed.configureTestingModule({
+      imports: [ProductCardComponent]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ProductCardComponent);
+    component = fixture.componentInstance;
+  });
+
+  it(&#39;should display product name and price&#39;, () =&gt; {
+    // Set required signal input
+    fixture.componentRef.setInput(&#39;product&#39;, { name: &#39;Angular Shirt&#39;, price: 29.99 });
+    fixture.detectChanges();
+
+    const name = fixture.nativeElement.querySelector(&#39;[data-testid=&quot;product-name&quot;]&#39;);
+    const price = fixture.nativeElement.querySelector(&#39;[data-testid=&quot;product-price&quot;]&#39;);
+
+    expect(name.textContent).toContain(&#39;Angular Shirt&#39;);
+    expect(price.textContent).toContain(&#39;$29.99&#39;);
+  });
+
+  it(&#39;should show featured badge when isFeatured is true&#39;, () =&gt; {
+    fixture.componentRef.setInput(&#39;product&#39;, { name: &#39;T-Shirt&#39;, price: 10 });
+    fixture.componentRef.setInput(&#39;isFeatured&#39;, true);
+    fixture.detectChanges();
+
+    const badge = fixture.nativeElement.querySelector(&#39;[data-testid=&quot;featured-badge&quot;]&#39;);
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain(&#39;FEATURED&#39;);
+  });
+
+  it(&#39;should NOT show featured badge by default&#39;, () =&gt; {
+    fixture.componentRef.setInput(&#39;product&#39;, { name: &#39;T-Shirt&#39;, price: 10 });
+    fixture.detectChanges();
+
+    const badge = fixture.nativeElement.querySelector(&#39;[data-testid=&quot;featured-badge&quot;]&#39;);
+    expect(badge).toBeNull();
+  });
+
+  it(&#39;should apply .featured class when isFeatured is true&#39;, () =&gt; {
+    fixture.componentRef.setInput(&#39;product&#39;, { name: &#39;T-Shirt&#39;, price: 10 });
+    fixture.componentRef.setInput(&#39;isFeatured&#39;, true);
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector(&#39;.card&#39;);
+    expect(card.classList.contains(&#39;featured&#39;)).toBeTrue();
+  });
+});
+</code></pre>
+<blockquote>
+<p><strong>Best Practice</strong>: Use <code>data-testid</code> attributes as testing hooks — they&#39;re stable and don&#39;t change when you refactor CSS classes or HTML structure.</p>
+</blockquote>
+<hr>
+<h2 id="4-testing-outputs-events">4. Testing Outputs (Events)</h2>
+<pre><code class="language-typescript">// user-card.component.ts
+@Component({
+  selector: &#39;app-user-card&#39;,
+  standalone: true,
+  template: `
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;h3&gt;{{ user().name }}&lt;/h3&gt;
+      &lt;button data-testid=&quot;edit-btn&quot; (click)=&quot;editUser.emit(user())&quot;&gt;Edit&lt;/button&gt;
+      &lt;button data-testid=&quot;delete-btn&quot; (click)=&quot;deleteUser.emit(user().id)&quot;&gt;Delete&lt;/button&gt;
+    &lt;/div&gt;
+  `
+})
+export class UserCardComponent {
+  user = input.required&lt;User&gt;();
+  editUser = output&lt;User&gt;();
+  deleteUser = output&lt;number&gt;();
+}
+</code></pre>
+<pre><code class="language-typescript">describe(&#39;UserCardComponent - outputs&#39;, () =&gt; {
+  let fixture: ComponentFixture&lt;UserCardComponent&gt;;
+  const mockUser: User = { id: 42, name: &#39;Alice&#39;, email: &#39;alice@example.com&#39; };
+
+  beforeEach(async () =&gt; {
+    await TestBed.configureTestingModule({
+      imports: [UserCardComponent]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(UserCardComponent);
+    fixture.componentRef.setInput(&#39;user&#39;, mockUser);
+    fixture.detectChanges();
+  });
+
+  it(&#39;should emit the user when Edit is clicked&#39;, () =&gt; {
+    // Spy on the output
+    const emittedValues: User[] = [];
+    fixture.componentInstance.editUser.subscribe(u =&gt; emittedValues.push(u));
+
+    // Click the button
+    const editBtn: HTMLButtonElement = fixture.nativeElement.querySelector(&#39;[data-testid=&quot;edit-btn&quot;]&#39;);
+    editBtn.click();
+
+    expect(emittedValues.length).toBe(1);
+    expect(emittedValues[0]).toEqual(mockUser);
+  });
+
+  it(&#39;should emit the user ID when Delete is clicked&#39;, () =&gt; {
+    const emittedIds: number[] = [];
+    fixture.componentInstance.deleteUser.subscribe(id =&gt; emittedIds.push(id));
+
+    fixture.nativeElement.querySelector(&#39;[data-testid=&quot;delete-btn&quot;]&#39;).click();
+
+    expect(emittedIds[0]).toBe(42);
+  });
+});
+</code></pre>
+<hr>
+<h2 id="5-mocking-services">5. Mocking Services</h2>
+<pre><code class="language-typescript">// user-list.component.ts — uses UserService
+@Component({
+  selector: &#39;app-user-list&#39;,
+  standalone: true,
+  template: `
+    @if (isLoading()) {
+      &lt;div data-testid=&quot;spinner&quot;&gt;Loading...&lt;/div&gt;
+    } @else {
+      @for (user of users(); track user.id) {
+        &lt;div data-testid=&quot;user-row&quot;&gt;{{ user.name }}&lt;/div&gt;
+      } @empty {
+        &lt;p data-testid=&quot;empty-state&quot;&gt;No users found.&lt;/p&gt;
+      }
+    }
+  `
+})
+export class UserListComponent implements OnInit {
+  private userService = inject(UserService);
+  users = signal&lt;User[]&gt;([]);
+  isLoading = signal(true);
+
+  ngOnInit() {
+    this.userService.getUsers().subscribe({
+      next: (users) =&gt; {
+        this.users.set(users);
+        this.isLoading.set(false);
+      }
+    });
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">import { of, throwError } from &#39;rxjs&#39;;
+
+describe(&#39;UserListComponent&#39;, () =&gt; {
+  let fixture: ComponentFixture&lt;UserListComponent&gt;;
+  let userServiceMock: jasmine.SpyObj&lt;UserService&gt;;
+
+  const mockUsers: User[] = [
+    { id: 1, name: &#39;Alice&#39; },
+    { id: 2, name: &#39;Bob&#39; }
+  ];
+
+  beforeEach(async () =&gt; {
+    userServiceMock = jasmine.createSpyObj(&#39;UserService&#39;, [&#39;getUsers&#39;]);
+
+    await TestBed.configureTestingModule({
+      imports: [UserListComponent],
+      providers: [
+        { provide: UserService, useValue: userServiceMock }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(UserListComponent);
+  });
+
+  it(&#39;should show spinner initially&#39;, () =&gt; {
+    // Return a never-completing observable so component stays in loading state
+    userServiceMock.getUsers.and.returnValue(new Subject&lt;User[]&gt;().asObservable());
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector(&#39;[data-testid=&quot;spinner&quot;]&#39;)).toBeTruthy();
+  });
+
+  it(&#39;should render user rows after loading&#39;, () =&gt; {
+    userServiceMock.getUsers.and.returnValue(of(mockUsers));
+    fixture.detectChanges();  // Triggers ngOnInit + immediate observable emission
+
+    const rows = fixture.nativeElement.querySelectorAll(&#39;[data-testid=&quot;user-row&quot;]&#39;);
+    expect(rows.length).toBe(2);
+    expect(rows[0].textContent).toContain(&#39;Alice&#39;);
+    expect(rows[1].textContent).toContain(&#39;Bob&#39;);
+  });
+
+  it(&#39;should show empty state when no users&#39;, () =&gt; {
+    userServiceMock.getUsers.and.returnValue(of([]));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector(&#39;[data-testid=&quot;empty-state&quot;]&#39;)).toBeTruthy();
+  });
+});
+</code></pre>
+<hr>
+<h2 id="6-testing-signal-based-components">6. Testing Signal-Based Components</h2>
+<pre><code class="language-typescript">// counter.component.ts
+@Component({
+  selector: &#39;app-counter&#39;,
+  standalone: true,
+  template: `
+    &lt;p data-testid=&quot;count&quot;&gt;{{ count() }}&lt;/p&gt;
+    &lt;button data-testid=&quot;increment&quot; (click)=&quot;increment()&quot;&gt;+&lt;/button&gt;
+    &lt;button data-testid=&quot;decrement&quot; (click)=&quot;decrement()&quot;&gt;-&lt;/button&gt;
+    &lt;button data-testid=&quot;reset&quot; (click)=&quot;count.set(0)&quot;&gt;Reset&lt;/button&gt;
+  `
+})
+export class CounterComponent {
+  count = signal(0);
+  increment() { this.count.update(c =&gt; c + 1); }
+  decrement() { this.count.update(c =&gt; Math.max(0, c - 1)); }
+}
+</code></pre>
+<pre><code class="language-typescript">describe(&#39;CounterComponent&#39;, () =&gt; {
+  let fixture: ComponentFixture&lt;CounterComponent&gt;;
+  let component: CounterComponent;
+
+  beforeEach(async () =&gt; {
+    await TestBed.configureTestingModule({
+      imports: [CounterComponent]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CounterComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  function getCount(): string {
+    return fixture.nativeElement.querySelector(&#39;[data-testid=&quot;count&quot;]&#39;).textContent;
+  }
+
+  it(&#39;should start at 0&#39;, () =&gt; {
+    expect(getCount()).toContain(&#39;0&#39;);
+  });
+
+  it(&#39;should increment when + is clicked&#39;, () =&gt; {
+    fixture.nativeElement.querySelector(&#39;[data-testid=&quot;increment&quot;]&#39;).click();
+    fixture.detectChanges();
+    expect(getCount()).toContain(&#39;1&#39;);
+  });
+
+  it(&#39;should not go below 0 when decrement is clicked at 0&#39;, () =&gt; {
+    fixture.nativeElement.querySelector(&#39;[data-testid=&quot;decrement&quot;]&#39;).click();
+    fixture.detectChanges();
+    expect(getCount()).toContain(&#39;0&#39;);
+  });
+
+  it(&#39;should reset to 0 on reset click&#39;, () =&gt; {
+    // Set via signal directly
+    component.count.set(10);
+    fixture.detectChanges();
+    expect(getCount()).toContain(&#39;10&#39;);
+
+    fixture.nativeElement.querySelector(&#39;[data-testid=&quot;reset&quot;]&#39;).click();
+    fixture.detectChanges();
+    expect(getCount()).toContain(&#39;0&#39;);
+  });
+});
+</code></pre>
+<hr>
+<h2 id="7-testing-with-bycss">7. Testing with `By.css()`</h2>
+<p><code>By.css()</code> returns <code>DebugElement</code> which has more Angular context than raw <code>nativeElement.querySelector()</code>.</p>
+<pre><code class="language-typescript">import { By } from &#39;@angular/platform-browser&#39;;
+import { RouterLink } from &#39;@angular/router&#39;;
+
+// Check if a directive is applied to an element
+it(&#39;should have a routerLink on the logo&#39;, () =&gt; {
+  const logoLink = fixture.debugElement.query(By.css(&#39;[data-testid=&quot;logo&quot;]&#39;));
+  expect(logoLink).toBeTruthy();
+
+  // Check if the RouterLink directive is applied to it
+  const routerLink = logoLink.injector.get(RouterLink, null);
+  expect(routerLink).toBeTruthy();
+  expect(routerLink!.routerLink).toEqual([&#39;/home&#39;]);
+});
+
+// Query multiple elements
+const allItems = fixture.debugElement.queryAll(By.css(&#39;.list-item&#39;));
+expect(allItems.length).toBe(3);
+</code></pre>
+<hr>
+<h2 id="8-async-tests">8. Async Tests</h2>
+<pre><code class="language-typescript">import { fakeAsync, tick, flush } from &#39;@angular/core/testing&#39;;
+import { HttpClientTestingModule, HttpTestingController } from &#39;@angular/common/http/testing&#39;;
+
+describe(&#39;SearchComponent (async)&#39;, () =&gt; {
+  let httpMock: HttpTestingController;
+
+  beforeEach(async () =&gt; {
+    await TestBed.configureTestingModule({
+      imports: [SearchComponent, HttpClientTestingModule]
+    }).compileComponents();
+
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() =&gt; {
+    httpMock.verify(); // Verify no outstanding HTTP requests
+  });
+
+  it(&#39;should call the search API with debounce&#39;, fakeAsync(() =&gt; {
+    fixture.detectChanges();
+
+    // Simulate user typing
+    const input: HTMLInputElement = fixture.nativeElement.querySelector(&#39;input&#39;);
+    input.value = &#39;angular&#39;;
+    input.dispatchEvent(new Event(&#39;input&#39;));
+
+    // Advance time by 300ms (debounce time)
+    tick(300);
+    fixture.detectChanges();
+
+    // Expect one HTTP request was made
+    const req = httpMock.expectOne(r =&gt; r.url.includes(&#39;/api/search&#39;));
+    expect(req.request.params.get(&#39;q&#39;)).toBe(&#39;angular&#39;);
+
+    // Flush the request with mock data
+    req.flush([{ id: 1, title: &#39;Angular Guide&#39; }]);
+    fixture.detectChanges();
+
+    // Verify results are displayed
+    const results = fixture.nativeElement.querySelectorAll(&#39;.result&#39;);
+    expect(results.length).toBe(1);
+  }));
+});
+</code></pre>
+<hr>
+<h2 id="9-common-pitfalls">9. Common Pitfalls</h2>
+<h3 id="pitfall-1-forgetting-detectchanges">Pitfall 1: Forgetting `detectChanges()`</h3>
+<pre><code class="language-typescript">// ❌ State changed but DOM not updated!
+component.users.set([{ id: 1, name: &#39;Alice&#39; }]);
+const rows = fixture.nativeElement.querySelectorAll(&#39;.user-row&#39;);
+expect(rows.length).toBe(1);  // FAILS — DOM is stale!
+
+// ✅ Trigger change detection after state change
+component.users.set([{ id: 1, name: &#39;Alice&#39; }]);
+fixture.detectChanges();
+const rows = fixture.nativeElement.querySelectorAll(&#39;.user-row&#39;);
+expect(rows.length).toBe(1);  // PASSES ✅
+</code></pre>
+<h3 id="pitfall-2-using-real-services-with-http">Pitfall 2: Using real services with HTTP</h3>
+<pre><code class="language-typescript">// ❌ Actually makes HTTP calls in tests!
+providers: [UserService]
+
+// ✅ Always mock services that make HTTP calls
+providers: [{ provide: UserService, useValue: userServiceMock }]
+// OR use HttpClientTestingModule + HttpTestingController
+</code></pre>
+<h3 id="pitfall-3-testing-implementation-details-instead-of-behavior">Pitfall 3: Testing implementation details instead of behavior</h3>
+<pre><code class="language-typescript">// ❌ Testing internal implementation — brittle!
+expect(component.filteredUsers.length).toBe(2);
+
+// ✅ Test what the USER sees — resilient to refactoring!
+const visibleRows = fixture.nativeElement.querySelectorAll(&#39;[data-testid=&quot;user-row&quot;]&#39;);
+expect(visibleRows.length).toBe(2);
+</code></pre>
+<hr>
+<h2 id="10-try-it-yourself">10. Try It Yourself</h2>
+<p>Write tests for this <code>ToggleComponent</code>:</p>
+<pre><code class="language-typescript">@Component({
+  selector: &#39;app-toggle&#39;,
+  standalone: true,
+  template: `
+    &lt;button
+      data-testid=&quot;toggle-btn&quot;
+      [class.active]=&quot;isOn()&quot;
+      (click)=&quot;isOn.set(!isOn())&quot;
+      [attr.aria-pressed]=&quot;isOn()&quot;&gt;
+      {{ isOn() ? labelOn() : labelOff() }}
+    &lt;/button&gt;
+  `
+})
+export class ToggleComponent {
+  isOn = model(false);
+  labelOn = input(&#39;ON&#39;);
+  labelOff = input(&#39;OFF&#39;);
+}
+</code></pre>
+<p>Write 4 tests:</p>
+<ol>
+<li>Shows &quot;OFF&quot; text by default</li>
+<li>Shows &quot;ON&quot; text when isOn is true</li>
+<li>Clicking the button toggles the state and emits the new value</li>
+<li>Has <code>aria-pressed=&quot;false&quot;</code> by default and <code>aria-pressed=&quot;true&quot;</code> when toggled</li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">describe(&#39;ToggleComponent&#39;, () =&gt; {
+  let fixture: ComponentFixture&lt;ToggleComponent&gt;;
+  let component: ToggleComponent;
+
+  beforeEach(async () =&gt; {
+    await TestBed.configureTestingModule({
+      imports: [ToggleComponent]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ToggleComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  function getBtn(): HTMLButtonElement {
+    return fixture.nativeElement.querySelector(&#39;[data-testid=&quot;toggle-btn&quot;]&#39;);
+  }
+
+  it(&#39;should show OFF text by default&#39;, () =&gt; {
+    expect(getBtn().textContent?.trim()).toBe(&#39;OFF&#39;);
+  });
+
+  it(&#39;should show ON text when isOn is true&#39;, () =&gt; {
+    fixture.componentRef.setInput(&#39;isOn&#39;, true);
+    fixture.detectChanges();
+    expect(getBtn().textContent?.trim()).toBe(&#39;ON&#39;);
+  });
+
+  it(&#39;clicking button toggles state and emits&#39;, () =&gt; {
+    const emitted: boolean[] = [];
+    component.isOn.subscribe(val =&gt; emitted.push(val));
+
+    getBtn().click();
+    fixture.detectChanges();
+
+    expect(component.isOn()).toBeTrue();
+    expect(emitted).toEqual([false, true]);  // initial false, then toggled true
+    expect(getBtn().textContent?.trim()).toBe(&#39;ON&#39;);
+  });
+
+  it(&#39;should have correct aria-pressed attribute&#39;, () =&gt; {
+    expect(getBtn().getAttribute(&#39;aria-pressed&#39;)).toBe(&#39;false&#39;);
+
+    getBtn().click();
+    fixture.detectChanges();
+
+    expect(getBtn().getAttribute(&#39;aria-pressed&#39;)).toBe(&#39;true&#39;);
+  });
+});
+</code></pre>
+</details><hr>
+<h2 id="11-knowledge-check">11. Knowledge Check</h2>
+<ol>
+<li>Why doesn&#39;t Angular run change detection automatically in tests?</li>
+<li>What is the difference between <code>fixture.nativeElement</code> and <code>fixture.debugElement</code>?</li>
+<li>What does <code>HttpClientTestingModule</code> do, and why is it needed?</li>
+<li>What is <code>fakeAsync()</code> and when should you use it over a regular <code>async</code> test?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>Angular tests run synchronously by default for speed and control. Automatic change detection in tests would be unpredictable — your assertions might run before Angular finishes updating the DOM. By requiring <code>fixture.detectChanges()</code>, you have precise control over when the DOM is updated, making tests deterministic and easy to reason about.</p>
+</li>
+<li><p><code>fixture.nativeElement</code> returns the <strong>raw browser DOM element</strong> (<code>HTMLElement</code>). You use native DOM methods on it (<code>querySelector</code>, <code>click</code>, <code>textContent</code>). <code>fixture.debugElement</code> is Angular&#39;s <strong>wrapper</strong> around the DOM that provides Angular-specific query helpers (<code>query(By.css())</code>, <code>query(By.directive())</code>), and access to the injector for getting service instances.</p>
+</li>
+<li><p><code>HttpClientTestingModule</code> replaces the real HTTP backend with a test-friendly mock. Instead of sending real network requests, you intercept them with <code>HttpTestingController</code>, specify what response to return, and verify the correct URL/params were called. Without it, unit tests would send real HTTP requests, making them slow and unreliable.</p>
+</li>
+<li><p><code>fakeAsync()</code> gives you <strong>synchronous control over async operations</strong> like timers (<code>setTimeout</code>, <code>setInterval</code>, <code>debounceTime</code>) by using <code>tick(ms)</code> to manually advance fake time. Use it when testing code with timers or debounced operators. Use regular <code>async/await</code> with <code>fixture.whenStable()</code> when testing real Promises and Observables without timers.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./testing-services.html">22 - Testing Services →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

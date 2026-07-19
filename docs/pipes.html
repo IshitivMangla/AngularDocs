@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Pipes & Custom Pipes - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item active">Pipes</a>
+<a href="directives.html" class="nav-item ">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-pipes-custom-pipes">Angular: Pipes & Custom Pipes</h1>
+<blockquote>
+<p><strong>Goal</strong>: Use Angular&#39;s built-in pipes for data transformation in templates, and build custom pipes for reusable formatting logic — while understanding performance implications.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-what-is-a-pipe">What is a Pipe?</a></li>
+<li><a href="#2-built-in-pipes-reference">Built-in Pipes Reference</a></li>
+<li><a href="#3-chaining-pipes">Chaining Pipes</a></li>
+<li><a href="#4-the-asyncpipe-deep-dive">The <code>AsyncPipe</code> Deep Dive</a></li>
+<li><a href="#5-pure-vs-impure-pipes">Pure vs Impure Pipes</a></li>
+<li><a href="#6-building-custom-pipes">Building Custom Pipes</a></li>
+<li><a href="#7-pipes-vs-computed-signals">Pipes vs Computed Signals</a></li>
+<li><a href="#8-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#9-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-what-is-a-pipe">1. What is a Pipe?</h2>
+<p>A pipe transforms data <strong>for display in the template only</strong>. It doesn&#39;t modify the underlying TypeScript variable — only how it appears on screen.</p>
+<pre><code>{{ value | pipeName:arg1:arg2 }}
+</code></pre>
+<p>Pipes are excellent for: formatting dates, currencies, percentages, truncating text, and other presentation-layer transformations.</p>
+<hr>
+<h2 id="2-built-in-pipes-reference">2. Built-in Pipes Reference</h2>
+<p>Import these from <code>@angular/common</code> (except <code>AsyncPipe</code> which needs its own import in some contexts):</p>
+<pre><code class="language-typescript">import { DatePipe, CurrencyPipe, DecimalPipe, PercentPipe, UpperCasePipe, LowerCasePipe, TitleCasePipe, JsonPipe, KeyValuePipe, SlicePipe, AsyncPipe } from &#39;@angular/common&#39;;
+</code></pre>
+<pre><code class="language-html">&lt;!-- DatePipe --&gt;
+{{ today | date }}                          &lt;!-- Nov 24, 2024 --&gt;
+{{ today | date:&#39;shortDate&#39; }}              &lt;!-- 11/24/24 --&gt;
+{{ today | date:&#39;fullDate&#39; }}               &lt;!-- Sunday, November 24, 2024 --&gt;
+{{ today | date:&#39;dd/MM/yyyy HH:mm&#39; }}       &lt;!-- 24/11/2024 14:30 --&gt;
+{{ today | date:&#39;mediumDate&#39;:&#39;UTC&#39; }}       &lt;!-- Force UTC timezone --&gt;
+
+&lt;!-- CurrencyPipe --&gt;
+{{ 1234.5 | currency }}                     &lt;!-- $1,234.50 --&gt;
+{{ 1234.5 | currency:&#39;EUR&#39; }}               &lt;!-- €1,234.50 --&gt;
+{{ 1234.5 | currency:&#39;GBP&#39;:&#39;symbol-narrow&#39;:&#39;1.0-0&#39; }}  &lt;!-- £1,235 --&gt;
+
+&lt;!-- DecimalPipe (number) --&gt;
+{{ 3.14159 | number:&#39;1.2-2&#39; }}              &lt;!-- 3.14 (min 1 integer, 2-2 decimal) --&gt;
+{{ 1000000 | number }}                      &lt;!-- 1,000,000 --&gt;
+
+&lt;!-- PercentPipe --&gt;
+{{ 0.25 | percent }}                        &lt;!-- 25% --&gt;
+{{ 0.2568 | percent:&#39;1.0-1&#39; }}             &lt;!-- 25.7% --&gt;
+
+&lt;!-- String Pipes --&gt;
+{{ &#39;hello world&#39; | uppercase }}             &lt;!-- HELLO WORLD --&gt;
+{{ &#39;HELLO WORLD&#39; | lowercase }}             &lt;!-- hello world --&gt;
+{{ &#39;hello world&#39; | titlecase }}             &lt;!-- Hello World --&gt;
+
+&lt;!-- JsonPipe — great for debugging! --&gt;
+{{ debugObject | json }}                    &lt;!-- { &quot;key&quot;: &quot;value&quot;, ... } --&gt;
+
+&lt;!-- SlicePipe — for arrays and strings --&gt;
+{{ [1,2,3,4,5] | slice:1:3 }}              &lt;!-- [2,3] --&gt;
+{{ &#39;Hello World&#39; | slice:0:5 }}            &lt;!-- Hello --&gt;
+
+&lt;!-- KeyValuePipe — iterate over object properties --&gt;
+@for (entry of myObject | keyvalue; track entry.key) {
+  &lt;p&gt;{{ entry.key }}: {{ entry.value }}&lt;/p&gt;
+}
+</code></pre>
+<hr>
+<h2 id="3-chaining-pipes">3. Chaining Pipes</h2>
+<p>You can chain multiple pipes together:</p>
+<pre><code class="language-html">&lt;!-- Apply two pipes sequentially --&gt;
+{{ user.joinDate | date:&#39;fullDate&#39; | uppercase }}
+&lt;!-- &quot;SUNDAY, NOVEMBER 24, 2024&quot; --&gt;
+
+{{ product.description | slice:0:100 | titlecase }}
+&lt;!-- First 100 chars, then title-cased --&gt;
+
+{{ apiResponse | json | slice:0:200 }}
+&lt;!-- First 200 chars of the JSON string representation --&gt;
+</code></pre>
+<hr>
+<h2 id="4-the-asyncpipe-deep-dive">4. The `AsyncPipe` Deep Dive</h2>
+<p><code>AsyncPipe</code> automatically:</p>
+<ol>
+<li><strong>Subscribes</strong> to an Observable or Promise</li>
+<li><strong>Returns</strong> the latest emitted value</li>
+<li><strong>Unsubscribes</strong> when the component is destroyed (no memory leaks!)</li>
+<li><strong>Triggers change detection</strong> when a new value arrives</li>
+</ol>
+<pre><code class="language-typescript">import { Component, inject } from &#39;@angular/core&#39;;
+import { AsyncPipe } from &#39;@angular/common&#39;;
+import { HttpClient } from &#39;@angular/common/http&#39;;
+import { Observable, shareReplay } from &#39;rxjs&#39;;
+
+@Component({
+  selector: &#39;app-notifications&#39;,
+  standalone: true,
+  imports: [AsyncPipe],
+  template: `
+    &lt;!-- AsyncPipe handles subscribe/unsubscribe for you --&gt;
+    @if (notifications$ | async; as notifications) {
+      &lt;span class=&quot;badge&quot;&gt;{{ notifications.length }}&lt;/span&gt;
+
+      @for (n of notifications; track n.id) {
+        &lt;div class=&quot;notification&quot;&gt;{{ n.message }}&lt;/div&gt;
+      }
+    } @else {
+      &lt;p&gt;Loading notifications...&lt;/p&gt;
+    }
+  `
+})
+export class NotificationsComponent {
+  private http = inject(HttpClient);
+
+  // Note: If you use the pipe in multiple places in the template,
+  // use shareReplay(1) to avoid multiple HTTP requests!
+  notifications$: Observable&lt;Notification[]&gt; = this.http.get&lt;Notification[]&gt;(&#39;/api/notifications&#39;).pipe(
+    shareReplay(1)  // Cache the result, prevent duplicate requests
+  );
+}
+</code></pre>
+<h3 id="asyncpipe-vs-tosignal-when-to-use-which">`AsyncPipe` vs `toSignal()` — When to Use Which</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Template Syntax</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>AsyncPipe</code></td>
+<td><code>{{ obs$ | async }}</code></td>
+<td>Simple, single observable binding</td>
+</tr>
+<tr>
+<td><code>toSignal()</code></td>
+<td><code>{{ data() }}</code></td>
+<td>Complex component logic, combining with computed()</td>
+</tr>
+</tbody></table>
+<pre><code class="language-typescript">// With AsyncPipe — good for simple cases
+template$ = this.http.get&lt;Template&gt;(&#39;/api/template&#39;);
+// template: {{ template$ | async | json }}
+
+// With toSignal — better for complex derived state
+template = toSignal(this.http.get&lt;Template&gt;(&#39;/api/template&#39;));
+// In template: {{ template()?.title }}
+processedTitle = computed(() =&gt; this.template()?.title.toUpperCase() ?? &#39;&#39;);
+</code></pre>
+<hr>
+<h2 id="5-pure-vs-impure-pipes">5. Pure vs Impure Pipes</h2>
+<h3 id="pure-pipes-default">Pure Pipes (Default)</h3>
+<p>Angular executes a pure pipe <strong>only</strong> when it detects a &quot;pure change&quot;:</p>
+<ul>
+<li>Primitive: the value itself changes (<code>&#39;a&#39;</code> → <code>&#39;b&#39;</code>)</li>
+<li>Object/Array: the <strong>reference</strong> changes (new object/array)</li>
+</ul>
+<pre><code class="language-typescript">@Pipe({ name: &#39;formatName&#39;, standalone: true })  // pure: true by default
+export class FormatNamePipe implements PipeTransform {
+  transform(user: User): string {
+    return `${user.firstName} ${user.lastName}`;
+  }
+}
+// Only re-runs when the user reference changes, not when user.firstName changes!
+</code></pre>
+<h3 id="impure-pipes-avoid">Impure Pipes (Avoid!)</h3>
+<p>Setting <code>pure: false</code> makes the pipe run on <strong>every single change detection cycle</strong> — every mouse move, every keystroke, every timer tick. This is devastating for performance.</p>
+<pre><code class="language-typescript">// ❌ NEVER do this for performance-critical pipes!
+@Pipe({ name: &#39;liveFilter&#39;, pure: false })
+export class LiveFilterPipe { /* ... */ }
+</code></pre>
+<p>The only built-in impure pipe is <code>AsyncPipe</code> — it needs to be impure because the Observable can emit new values without the Observable reference changing.</p>
+<p><strong>The modern alternative to impure pipes</strong>: Use <code>computed()</code> signals!</p>
+<pre><code class="language-typescript">// ❌ Impure pipe — runs on every change detection
+@Pipe({ name: &#39;filter&#39;, standalone: true, pure: false })
+export class FilterPipe implements PipeTransform {
+  transform(items: Item[], search: string): Item[] {
+    return items.filter(i =&gt; i.name.includes(search));
+  }
+}
+
+// ✅ Computed signal — only re-runs when items or search actually changes
+filteredItems = computed(() =&gt;
+  this.items().filter(i =&gt; i.name.includes(this.search()))
+);
+</code></pre>
+<hr>
+<h2 id="6-building-custom-pipes">6. Building Custom Pipes</h2>
+<h3 id="simple-formatting-pipe">Simple Formatting Pipe</h3>
+<pre><code class="language-typescript">// src/app/shared/pipes/truncate.pipe.ts
+import { Pipe, PipeTransform } from &#39;@angular/core&#39;;
+
+@Pipe({
+  name: &#39;truncate&#39;,
+  standalone: true,
+  // pure: true (default) — only re-runs when input changes
+})
+export class TruncatePipe implements PipeTransform {
+  // transform(value, ...args)
+  // value = what&#39;s on the left of the pipe
+  // args = what&#39;s passed after the colon(s)
+  transform(text: string, maxLength = 100, suffix = &#39;...&#39;): string {
+    if (!text || text.length &lt;= maxLength) {
+      return text ?? &#39;&#39;;
+    }
+    return text.substring(0, maxLength).trimEnd() + suffix;
+  }
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- Usage --&gt;
+{{ article.content | truncate }}                      &lt;!-- Truncates at 100 chars --&gt;
+{{ article.content | truncate:50 }}                   &lt;!-- Truncates at 50 chars --&gt;
+{{ article.content | truncate:50:&#39;... Read more&#39; }}    &lt;!-- Custom suffix --&gt;
+</code></pre>
+<h3 id="relative-time-pipe-3-minutes-ago">Relative Time Pipe ("3 minutes ago")</h3>
+<pre><code class="language-typescript">// src/app/shared/pipes/time-ago.pipe.ts
+import { Pipe, PipeTransform } from &#39;@angular/core&#39;;
+
+@Pipe({ name: &#39;timeAgo&#39;, standalone: true })
+export class TimeAgoPipe implements PipeTransform {
+  transform(value: Date | string): string {
+    const now = new Date();
+    const date = new Date(value);
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds &lt; 60) return `${seconds} seconds ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes &lt; 60) return `${minutes} minute${minutes !== 1 ? &#39;s&#39; : &#39;&#39;} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours &lt; 24) return `${hours} hour${hours !== 1 ? &#39;s&#39; : &#39;&#39;} ago`;
+    const days = Math.floor(hours / 24);
+    if (days &lt; 7) return `${days} day${days !== 1 ? &#39;s&#39; : &#39;&#39;} ago`;
+    return date.toLocaleDateString();
+  }
+}
+</code></pre>
+<pre><code class="language-html">&lt;small&gt;Posted {{ comment.createdAt | timeAgo }}&lt;/small&gt;
+&lt;!-- &quot;Posted 3 minutes ago&quot; --&gt;
+</code></pre>
+<h3 id="byte-size-pipe">Byte Size Pipe</h3>
+<pre><code class="language-typescript">@Pipe({ name: &#39;fileSize&#39;, standalone: true })
+export class FileSizePipe implements PipeTransform {
+  transform(bytes: number, decimals = 2): string {
+    if (bytes === 0) return &#39;0 Bytes&#39;;
+    const k = 1024;
+    const sizes = [&#39;Bytes&#39;, &#39;KB&#39;, &#39;MB&#39;, &#39;GB&#39;, &#39;TB&#39;];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(decimals))} ${sizes[i]}`;
+  }
+}
+</code></pre>
+<pre><code class="language-html">{{ 1536000 | fileSize }}         &lt;!-- 1.46 MB --&gt;
+{{ 1024 | fileSize:0 }}          &lt;!-- 1 KB --&gt;
+</code></pre>
+<h3 id="using-a-custom-pipe-in-a-component">Using a Custom Pipe in a Component</h3>
+<pre><code class="language-typescript">import { Component } from &#39;@angular/core&#39;;
+import { TruncatePipe } from &#39;../../../shared/pipes/truncate.pipe&#39;;
+import { TimeAgoPipe } from &#39;../../../shared/pipes/time-ago.pipe&#39;;
+import { DatePipe, CurrencyPipe } from &#39;@angular/common&#39;;
+
+@Component({
+  selector: &#39;app-article-card&#39;,
+  standalone: true,
+  imports: [TruncatePipe, TimeAgoPipe, DatePipe, CurrencyPipe],  // ← Import your pipes!
+  template: `
+    &lt;article&gt;
+      &lt;h2&gt;{{ article.title }}&lt;/h2&gt;
+      &lt;p&gt;{{ article.body | truncate:150 }}&lt;/p&gt;
+      &lt;time&gt;{{ article.publishedAt | timeAgo }}&lt;/time&gt;
+    &lt;/article&gt;
+  `
+})
+export class ArticleCardComponent { /* ... */ }
+</code></pre>
+<hr>
+<h2 id="7-pipes-vs-computed-signals">7. Pipes vs Computed Signals</h2>
+<table>
+<thead>
+<tr>
+<th>Use Pipes When</th>
+<th>Use Computed Signals When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Formatting a single value for display (date, currency, text)</td>
+<td>Filtering/sorting arrays</td>
+</tr>
+<tr>
+<td>Reusable display transformation across many templates</td>
+<td>Combining multiple signals into one value</td>
+</tr>
+<tr>
+<td>Quick, stateless transformations</td>
+<td>The derived value is needed in TypeScript (not just template)</td>
+</tr>
+<tr>
+<td>Using <code>AsyncPipe</code> for simple observable subscriptions</td>
+<td>Complex async flows with <code>toSignal()</code></td>
+</tr>
+</tbody></table>
+<pre><code class="language-typescript">// ✅ Pipe — good for formatting
+{{ price | currency:&#39;EUR&#39; }}
+{{ joinDate | date:&#39;shortDate&#39; }}
+{{ bio | truncate:200 }}
+
+// ✅ Computed signal — good for filtered/sorted collections
+filteredProducts = computed(() =&gt;
+  this.products().filter(p =&gt; p.category === this.selectedCategory())
+);
+sortedByPrice = computed(() =&gt;
+  [...this.filteredProducts()].sort((a, b) =&gt; a.price - b.price)
+);
+</code></pre>
+<hr>
+<h2 id="8-common-pitfalls">8. Common Pitfalls</h2>
+<h3 id="pitfall-1-mutating-arrays-breaks-pure-pipes">Pitfall 1: Mutating arrays breaks pure pipes</h3>
+<pre><code class="language-typescript">// ❌ Pure pipe won&#39;t re-run — array reference didn&#39;t change!
+this.items.push(newItem);
+// {{ items | myPipe }} → stale result!
+
+// ✅ Create new array — pure pipe detects the reference change
+this.items = [...this.items, newItem];
+// {{ items | myPipe }} → fresh result!
+</code></pre>
+<h3 id="pitfall-2-using-impure-pipes-for-filtering">Pitfall 2: Using impure pipes for filtering</h3>
+<pre><code class="language-typescript">// ❌ Runs on every change detection — will make your app sluggish!
+@Pipe({ name: &#39;filter&#39;, pure: false })
+
+// ✅ Use computed() for reactive filtering
+filteredList = computed(() =&gt; this.list().filter(/* ... */));
+</code></pre>
+<h3 id="pitfall-3-forgetting-to-import-the-pipe">Pitfall 3: Forgetting to import the pipe</h3>
+<pre><code class="language-typescript">// ❌ Template error: &quot;The pipe &#39;truncate&#39; could not be found&quot;
+@Component({
+  standalone: true,
+  imports: [],  // Missing TruncatePipe!
+  template: `{{ text | truncate }}`
+})
+
+// ✅ Import it in the component
+@Component({
+  standalone: true,
+  imports: [TruncatePipe],
+  template: `{{ text | truncate }}`
+})
+</code></pre>
+<h3 id="pitfall-4-using-jsonpipe-in-production-display">Pitfall 4: Using `JsonPipe` in production display</h3>
+<pre><code class="language-html">&lt;!-- ❌ Don&#39;t show raw JSON in production UI — format properly --&gt;
+{{ product | json }}
+
+&lt;!-- ✅ Only use JsonPipe for debugging --&gt;
+@if (isDevMode()) {
+  &lt;pre&gt;{{ debugData | json }}&lt;/pre&gt;
+}
+</code></pre>
+<hr>
+<h2 id="9-try-it-yourself">9. Try It Yourself</h2>
+<p>Build a <code>PhoneNumberPipe</code> that:</p>
+<ul>
+<li>Takes a string of digits like <code>&quot;1234567890&quot;</code></li>
+<li>Returns it formatted as <code>&quot;(123) 456-7890&quot;</code></li>
+<li>Returns the original value unchanged if it&#39;s not exactly 10 digits</li>
+</ul>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Pipe, PipeTransform } from &#39;@angular/core&#39;;
+
+@Pipe({
+  name: &#39;phoneNumber&#39;,
+  standalone: true
+})
+export class PhoneNumberPipe implements PipeTransform {
+  transform(value: string | null | undefined): string {
+    if (!value) return &#39;&#39;;
+
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, &#39;&#39;);
+
+    // Only format if exactly 10 digits
+    if (digits.length !== 10) {
+      return value; // Return original if invalid
+    }
+
+    const area = digits.slice(0, 3);
+    const exchange = digits.slice(3, 6);
+    const subscriber = digits.slice(6);
+
+    return `(${area}) ${exchange}-${subscriber}`;
+  }
+}
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-html">{{ &#39;1234567890&#39; | phoneNumber }}   &lt;!-- (123) 456-7890 --&gt;
+{{ &#39;123-456-7890&#39; | phoneNumber }} &lt;!-- (123) 456-7890 (removes non-digits) --&gt;
+{{ &#39;12345&#39; | phoneNumber }}        &lt;!-- 12345 (invalid — returned as-is) --&gt;
+</code></pre>
+</details><hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>What is the difference between a pure and an impure pipe?</li>
+<li>Why is <code>AsyncPipe</code> impure, and what does it do automatically?</li>
+<li>When should you use a <code>computed()</code> signal instead of a custom pipe?</li>
+<li>If you update an array with <code>.push()</code> and your template uses a pure custom pipe, will the pipe re-run?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p>A <strong>pure pipe</strong> only re-executes when its input value changes by reference (for objects/arrays) or by value (for primitives). Angular caches the result between runs. An <strong>impure pipe</strong> (<code>pure: false</code>) re-executes on every single change detection cycle — every mouse move, keystroke, and timer tick. Impure pipes are a major performance hazard and should be avoided except for <code>AsyncPipe</code>.</p>
+</li>
+<li><p><code>AsyncPipe</code> is impure because it subscribes to an Observable, and Observables can emit new values over time <strong>without the Observable reference itself changing</strong>. A pure pipe would only run once when the Observable is first passed to it, never updating. Being impure ensures it checks for new emissions on every cycle. Automatically: subscribes on first use, updates the template when new values arrive, and unsubscribes when the component is destroyed.</p>
+</li>
+<li><p>Use <code>computed()</code> when: (a) you&#39;re filtering or sorting a collection (pure pipes don&#39;t re-run when array items are mutated), (b) you need the derived value in TypeScript logic (not just the template), (c) the derivation depends on multiple signals, or (d) performance is critical (computed values are lazily evaluated and memoized by signal reference).</p>
+</li>
+<li><p><strong>No.</strong> A pure pipe only re-runs when the input reference changes. <code>.push()</code> mutates the existing array without changing its reference. You must create a new array (<code>this.items = [...this.items, newItem]</code>) to trigger the pure pipe to re-execute.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./directives.html">11 - Directives →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>

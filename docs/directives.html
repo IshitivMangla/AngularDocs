@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular: Directives — Attribute & Custom - Angular Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Angular Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item ">Index</a>
+<a href="architecture-and-standalone.html" class="nav-item ">Architecture And Standalone</a>
+<a href="signals.html" class="nav-item ">Signals</a>
+<a href="control-flow.html" class="nav-item ">Control Flow</a>
+<a href="routing.html" class="nav-item ">Routing</a>
+<a href="services-di.html" class="nav-item ">Services Di</a>
+<a href="http-rxjs.html" class="nav-item ">Http Rxjs</a>
+<a href="reactive-forms.html" class="nav-item ">Reactive Forms</a>
+<a href="component-communication.html" class="nav-item ">Component Communication</a>
+<a href="lifecycle-hooks.html" class="nav-item ">Lifecycle Hooks</a>
+<a href="pipes.html" class="nav-item ">Pipes</a>
+<a href="directives.html" class="nav-item active">Directives</a>
+<a href="content-projection.html" class="nav-item ">Content Projection</a>
+<a href="route-guards-resolvers.html" class="nav-item ">Route Guards Resolvers</a>
+<a href="deferrable-views.html" class="nav-item ">Deferrable Views</a>
+<a href="ssr-hydration.html" class="nav-item ">Ssr Hydration</a>
+<a href="viewchild.html" class="nav-item ">Viewchild</a>
+<a href="contentchild.html" class="nav-item ">Contentchild</a>
+<a href="custom-validators.html" class="nav-item ">Custom Validators</a>
+<a href="http-interceptors.html" class="nav-item ">Http Interceptors</a>
+<a href="error-handling.html" class="nav-item ">Error Handling</a>
+<a href="testing-components.html" class="nav-item ">Testing Components</a>
+<a href="testing-services.html" class="nav-item ">Testing Services</a>
+<a href="zoneless-angular.html" class="nav-item ">Zoneless Angular</a>
+<a href="angular-cli.html" class="nav-item ">Angular Cli</a>
+<a href="environments.html" class="nav-item ">Environments</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper markdown-body">
+                <h1 id="angular-directives-attribute-custom">Angular: Directives — Attribute & Custom</h1>
+<blockquote>
+<p><strong>Goal</strong>: Understand Angular&#39;s directive system, build powerful custom attribute directives, and know when to use them vs. components for reusable DOM behaviors.</p>
+</blockquote>
+<hr>
+<h2 id="-table-of-contents">📋 Table of Contents</h2>
+<ol>
+<li><a href="#1-directive-types">Directive Types</a></li>
+<li><a href="#2-built-in-attribute-directives">Built-in Attribute Directives</a></li>
+<li><a href="#3-building-a-custom-attribute-directive">Building a Custom Attribute Directive</a></li>
+<li><a href="#4-host-bindings-and-host-listeners">Host Bindings and Host Listeners</a></li>
+<li><a href="#5-directive-inputs">Directive Inputs — Making Directives Configurable</a></li>
+<li><a href="#6-directive-composition-api">Directive Composition API (Angular 15+)</a></li>
+<li><a href="#7-directive-vs-component">When to Use a Directive vs a Component</a></li>
+<li><a href="#8-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#9-try-it-yourself">Try It Yourself</a></li>
+<li><a href="#10-knowledge-check">Knowledge Check</a></li>
+</ol>
+<hr>
+<h2 id="1-directive-types">1. Directive Types</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Component</strong></td>
+<td>A directive with its own template</td>
+<td><code>@Component({ template: &#39;...&#39; })</code></td>
+</tr>
+<tr>
+<td><strong>Attribute Directive</strong></td>
+<td>Changes appearance or behavior of an existing element</td>
+<td><code>[ngClass]</code>, <code>[tooltip]</code></td>
+</tr>
+<tr>
+<td><strong>Structural Directive</strong></td>
+<td>Adds/removes DOM elements</td>
+<td><code>*ngIf</code>, <code>*ngFor</code> (replaced by <code>@if</code>, <code>@for</code>)</td>
+</tr>
+</tbody></table>
+<p>In modern Angular, structural directives are largely replaced by the built-in <code>@if</code>, <code>@for</code>, <code>@switch</code> control flow. You&#39;ll mostly build <strong>attribute directives</strong>.</p>
+<hr>
+<h2 id="2-built-in-attribute-directives">2. Built-in Attribute Directives</h2>
+<h3 id="ngclass-dynamic-class-binding">`[ngClass]` — Dynamic Class Binding</h3>
+<pre><code class="language-typescript">// In component — import NgClass specifically for tree-shaking
+imports: [NgClass]
+</code></pre>
+<pre><code class="language-html">&lt;!-- Object syntax — key is class name, value is boolean condition --&gt;
+&lt;div [ngClass]=&quot;{
+  &#39;text-red-500&#39;: hasError(),
+  &#39;text-green-500&#39;: isSuccess(),
+  &#39;opacity-50&#39;: isDisabled()
+}&quot;&gt;
+  Status message
+&lt;/div&gt;
+
+&lt;!-- Array syntax — apply multiple conditional classes --&gt;
+&lt;button [ngClass]=&quot;[
+  isPrimary() ? &#39;btn-primary&#39; : &#39;btn-secondary&#39;,
+  isLarge() ? &#39;btn-lg&#39; : &#39;btn-sm&#39;
+]&quot;&gt;
+  Click me
+&lt;/button&gt;
+
+&lt;!-- String syntax --&gt;
+&lt;div [ngClass]=&quot;currentStatusClass()&quot;&gt;Dynamic class&lt;/div&gt;
+</code></pre>
+<h3 id="ngstyle-dynamic-inline-styles">`[ngStyle]` — Dynamic Inline Styles</h3>
+<pre><code class="language-html">&lt;div [ngStyle]=&quot;{
+  &#39;background-color&#39;: product().color,
+  &#39;font-size.px&#39;: fontSize(),         &lt;!-- .px suffix converts number to px --&gt;
+  &#39;opacity&#39;: isAvailable() ? &#39;1&#39; : &#39;0.5&#39;,
+  &#39;transform&#39;: &#39;rotate(&#39; + rotation() + &#39;deg)&#39;
+}&quot;&gt;
+  Styled element
+&lt;/div&gt;
+</code></pre>
+<blockquote>
+<p><strong>Tip</strong>: Prefer CSS class bindings over <code>ngStyle</code> when possible. CSS classes are more maintainable and allow the browser to optimize rendering.</p>
+</blockquote>
+<hr>
+<h2 id="3-building-a-custom-attribute-directive">3. Building a Custom Attribute Directive</h2>
+<h3 id="example-click-outside-directive">Example: Click Outside Directive</h3>
+<pre><code class="language-typescript">// src/app/shared/directives/click-outside.directive.ts
+import {
+  Directive,
+  ElementRef,
+  output,
+  inject,
+  OnInit,
+  OnDestroy
+} from &#39;@angular/core&#39;;
+
+@Directive({
+  selector: &#39;[appClickOutside]&#39;,
+  standalone: true
+})
+export class ClickOutsideDirective implements OnInit, OnDestroy {
+  private el = inject(ElementRef);
+
+  // Modern output() — emits when click is detected OUTSIDE this element
+  clickOutside = output&lt;void&gt;();
+
+  private handler = (event: MouseEvent) =&gt; {
+    if (!this.el.nativeElement.contains(event.target as Node)) {
+      this.clickOutside.emit();
+    }
+  };
+
+  ngOnInit() {
+    // Add listener to the document, not the element itself!
+    document.addEventListener(&#39;click&#39;, this.handler, true);
+  }
+
+  ngOnDestroy() {
+    // Critical: Always remove the listener to prevent memory leaks!
+    document.removeEventListener(&#39;click&#39;, this.handler, true);
+  }
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- Usage: Close dropdown when user clicks anywhere outside it --&gt;
+&lt;div class=&quot;dropdown&quot; [class.open]=&quot;isOpen()&quot; appClickOutside (clickOutside)=&quot;isOpen.set(false)&quot;&gt;
+  &lt;button (click)=&quot;isOpen.set(!isOpen())&quot;&gt;Menu ▼&lt;/button&gt;
+  &lt;ul class=&quot;dropdown-menu&quot;&gt;
+    &lt;li&gt;Item 1&lt;/li&gt;
+    &lt;li&gt;Item 2&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/div&gt;
+</code></pre>
+<h3 id="example-intersection-observer-directive-lazy-loading-images">Example: Intersection Observer Directive (Lazy Loading Images)</h3>
+<pre><code class="language-typescript">// src/app/shared/directives/lazy-load.directive.ts
+import { Directive, ElementRef, output, inject, OnInit, OnDestroy } from &#39;@angular/core&#39;;
+
+@Directive({
+  selector: &#39;[appLazyLoad]&#39;,
+  standalone: true
+})
+export class LazyLoadDirective implements OnInit, OnDestroy {
+  private el = inject(ElementRef);
+
+  // Emits when the element enters the viewport
+  visible = output&lt;void&gt;();
+
+  private observer!: IntersectionObserver;
+
+  ngOnInit() {
+    this.observer = new IntersectionObserver(
+      (entries) =&gt; {
+        entries.forEach(entry =&gt; {
+          if (entry.isIntersecting) {
+            this.visible.emit();
+            this.observer.disconnect(); // Only fire once!
+          }
+        });
+      },
+      { threshold: 0.1 }  // Trigger when 10% is visible
+    );
+
+    this.observer.observe(this.el.nativeElement);
+  }
+
+  ngOnDestroy() {
+    this.observer.disconnect();
+  }
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- Image loads only when it scrolls into view --&gt;
+&lt;img
+  [src]=&quot;isLoaded() ? product.imageUrl : placeholder&quot;
+  appLazyLoad
+  (visible)=&quot;isLoaded.set(true)&quot;
+  [alt]=&quot;product.name&quot;
+&gt;
+</code></pre>
+<hr>
+<h2 id="4-host-bindings-and-host-listeners">4. Host Bindings and Host Listeners</h2>
+<p><code>@HostListener</code> and <code>@HostBinding</code> let a directive react to events and modify properties on the element it&#39;s attached to.</p>
+<h3 id="using-hostlistener-and-hostbinding">Using `@HostListener` and `@HostBinding`</h3>
+<pre><code class="language-typescript">// src/app/shared/directives/ripple.directive.ts
+import { Directive, ElementRef, HostListener, HostBinding, inject, input } from &#39;@angular/core&#39;;
+
+@Directive({
+  selector: &#39;[appRipple]&#39;,
+  standalone: true
+})
+export class RippleDirective {
+  private el = inject(ElementRef);
+
+  // @HostBinding binds a directive property to the host element&#39;s property
+  @HostBinding(&#39;class.ripple-host&#39;) isRippleHost = true;
+  @HostBinding(&#39;style.position&#39;) position = &#39;relative&#39;;
+  @HostBinding(&#39;style.overflow&#39;) overflow = &#39;hidden&#39;;
+
+  // @HostListener listens to events on the host element
+  @HostListener(&#39;click&#39;, [&#39;$event&#39;])
+  onClick(event: MouseEvent) {
+    this.createRipple(event);
+  }
+
+  private createRipple(event: MouseEvent) {
+    const el = this.el.nativeElement as HTMLElement;
+    const circle = document.createElement(&#39;span&#39;);
+    const diameter = Math.max(el.clientWidth, el.clientHeight);
+    const radius = diameter / 2;
+    const rect = el.getBoundingClientRect();
+
+    Object.assign(circle.style, {
+      width: `${diameter}px`,
+      height: `${diameter}px`,
+      left: `${event.clientX - rect.left - radius}px`,
+      top: `${event.clientY - rect.top - radius}px`,
+      position: &#39;absolute&#39;,
+      borderRadius: &#39;50%&#39;,
+      background: &#39;rgba(255,255,255,0.4)&#39;,
+      transform: &#39;scale(0)&#39;,
+      animation: &#39;ripple 600ms linear&#39;,
+      pointerEvents: &#39;none&#39;
+    });
+
+    el.appendChild(circle);
+    circle.addEventListener(&#39;animationend&#39;, () =&gt; circle.remove());
+  }
+}
+</code></pre>
+<h3 id="using-host-property-in-decorator-modern-approach">Using `host` Property in Decorator (Modern Approach)</h3>
+<pre><code class="language-typescript">@Directive({
+  selector: &#39;[appHighlight]&#39;,
+  standalone: true,
+  host: {
+    // Static class/style bindings
+    &#39;class&#39;: &#39;highlighted-element&#39;,
+    &#39;[class.active]&#39;: &#39;isActive()&#39;,
+
+    // Event listeners
+    &#39;(mouseenter)&#39;: &#39;onMouseEnter()&#39;,
+    &#39;(mouseleave)&#39;: &#39;onMouseLeave()&#39;,
+
+    // Attribute bindings
+    &#39;[attr.aria-label]&#39;: &#39;ariaLabel()&#39;,
+    &#39;[attr.tabindex]&#39;: &#39;0&#39;,
+  }
+})
+export class HighlightDirective {
+  isActive = signal(false);
+  ariaLabel = signal(&#39;Highlighted element&#39;);
+
+  onMouseEnter() { this.isActive.set(true); }
+  onMouseLeave() { this.isActive.set(false); }
+}
+</code></pre>
+<hr>
+<h2 id="5-directive-inputs-making-directives-configurable">5. Directive Inputs — Making Directives Configurable</h2>
+<p>Directives can accept <code>input()</code> values to customize their behavior.</p>
+<pre><code class="language-typescript">// src/app/shared/directives/tooltip.directive.ts
+import { Directive, input, ElementRef, inject, signal, OnInit, OnDestroy, HostListener } from &#39;@angular/core&#39;;
+
+@Directive({
+  selector: &#39;[appTooltip]&#39;,
+  standalone: true,
+  host: {
+    &#39;[attr.title]&#39;: &#39;null&#39;,  // Remove native tooltip so our custom one shows
+    &#39;[attr.aria-describedby]&#39;: &#39;tooltipId()&#39;,
+  }
+})
+export class TooltipDirective implements OnInit, OnDestroy {
+  private el = inject(ElementRef);
+
+  // Input signals for configuration
+  appTooltip = input&lt;string&gt;(&#39;&#39;);          // Used when directive selector IS the input
+  position = input&lt;&#39;top&#39; | &#39;bottom&#39; | &#39;left&#39; | &#39;right&#39;&gt;(&#39;top&#39;);
+  delay = input&lt;number&gt;(300);
+
+  tooltipId = signal(`tooltip-${Math.random().toString(36).slice(2)}`);
+
+  private tooltipEl?: HTMLElement;
+  private showTimer?: ReturnType&lt;typeof setTimeout&gt;;
+
+  @HostListener(&#39;mouseenter&#39;)
+  onMouseEnter() {
+    this.showTimer = setTimeout(() =&gt; this.showTooltip(), this.delay());
+  }
+
+  @HostListener(&#39;mouseleave&#39;)
+  @HostListener(&#39;blur&#39;)
+  onMouseLeave() {
+    clearTimeout(this.showTimer);
+    this.hideTooltip();
+  }
+
+  private showTooltip() {
+    if (!this.appTooltip()) return;
+
+    const tooltip = document.createElement(&#39;div&#39;);
+    tooltip.id = this.tooltipId();
+    tooltip.textContent = this.appTooltip();
+    tooltip.setAttribute(&#39;role&#39;, &#39;tooltip&#39;);
+    Object.assign(tooltip.style, {
+      position: &#39;fixed&#39;,
+      background: &#39;#333&#39;,
+      color: &#39;#fff&#39;,
+      padding: &#39;4px 8px&#39;,
+      borderRadius: &#39;4px&#39;,
+      fontSize: &#39;12px&#39;,
+      zIndex: &#39;9999&#39;,
+      pointerEvents: &#39;none&#39;,
+    });
+
+    document.body.appendChild(tooltip);
+    this.tooltipEl = tooltip;
+    this.positionTooltip(tooltip);
+  }
+
+  private positionTooltip(tooltip: HTMLElement) {
+    const rect = this.el.nativeElement.getBoundingClientRect();
+    const tRect = tooltip.getBoundingClientRect();
+
+    const positions: Record&lt;string, { top: number; left: number }&gt; = {
+      top:    { top: rect.top - tRect.height - 8, left: rect.left + (rect.width - tRect.width) / 2 },
+      bottom: { top: rect.bottom + 8, left: rect.left + (rect.width - tRect.width) / 2 },
+      left:   { top: rect.top + (rect.height - tRect.height) / 2, left: rect.left - tRect.width - 8 },
+      right:  { top: rect.top + (rect.height - tRect.height) / 2, left: rect.right + 8 },
+    };
+
+    const pos = positions[this.position()];
+    tooltip.style.top = `${pos.top}px`;
+    tooltip.style.left = `${pos.left}px`;
+  }
+
+  private hideTooltip() {
+    this.tooltipEl?.remove();
+    this.tooltipEl = undefined;
+  }
+
+  ngOnDestroy() {
+    clearTimeout(this.showTimer);
+    this.hideTooltip();
+  }
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- Usage --&gt;
+&lt;button appTooltip=&quot;Save your changes&quot; position=&quot;top&quot;&gt;Save&lt;/button&gt;
+&lt;button appTooltip=&quot;This action cannot be undone!&quot; position=&quot;bottom&quot; [delay]=&quot;500&quot;&gt;Delete&lt;/button&gt;
+</code></pre>
+<hr>
+<h2 id="6-directive-composition-api">6. Directive Composition API</h2>
+<p>Angular 15 introduced the ability to <strong>compose multiple directives</strong> onto a single component using <code>hostDirectives</code>.</p>
+<pre><code class="language-typescript">// Compose existing directives onto a component
+@Component({
+  selector: &#39;app-button&#39;,
+  standalone: true,
+  hostDirectives: [
+    RippleDirective,        // Apply ripple effect to all app-buttons!
+    { directive: TooltipDirective, inputs: [&#39;appTooltip&#39;], outputs: [] }
+  ],
+  template: `&lt;ng-content&gt;&lt;/ng-content&gt;`
+})
+export class ButtonComponent { }
+</code></pre>
+<pre><code class="language-html">&lt;!-- The button automatically gets ripple AND tooltip! --&gt;
+&lt;app-button appTooltip=&quot;Create new item&quot;&gt;+ New Item&lt;/app-button&gt;
+</code></pre>
+<hr>
+<h2 id="7-directive-vs-component">7. Directive vs Component</h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Use a...</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Add behavior to existing HTML element</td>
+<td>Directive</td>
+</tr>
+<tr>
+<td>Reuse the same behavior across many element types</td>
+<td>Directive</td>
+</tr>
+<tr>
+<td>Need a template (HTML structure)</td>
+<td>Component</td>
+</tr>
+<tr>
+<td>Encapsulate a UI pattern with its own logic</td>
+<td>Component</td>
+</tr>
+<tr>
+<td>Apply styling logic (classes, styles)</td>
+<td>Directive</td>
+</tr>
+<tr>
+<td>Show loading state, skeleton UI</td>
+<td>Component</td>
+</tr>
+</tbody></table>
+<pre><code class="language-typescript">// ✅ Directive: adds copy-to-clipboard behavior to ANY element
+@Directive({ selector: &#39;[appCopyToClipboard]&#39; })
+export class CopyToClipboardDirective { /* ... */ }
+
+// ✅ Component: renders a complete copy-button widget with its own HTML
+@Component({ selector: &#39;app-copy-button&#39;, template: &#39;&lt;button&gt;📋 Copy&lt;/button&gt;&#39; })
+export class CopyButtonComponent { /* ... */ }
+</code></pre>
+<hr>
+<h2 id="8-common-pitfalls">8. Common Pitfalls</h2>
+<h3 id="pitfall-1-manipulating-dom-directly-without-renderer2">Pitfall 1: Manipulating DOM directly without Renderer2</h3>
+<pre><code class="language-typescript">// ❌ Direct DOM manipulation — breaks SSR!
+this.el.nativeElement.style.color = &#39;red&#39;;
+
+// ✅ Use Renderer2 — works in SSR and web workers
+import { Renderer2 } from &#39;@angular/core&#39;;
+private renderer = inject(Renderer2);
+this.renderer.setStyle(this.el.nativeElement, &#39;color&#39;, &#39;red&#39;);
+this.renderer.addClass(this.el.nativeElement, &#39;active&#39;);
+this.renderer.setAttribute(this.el.nativeElement, &#39;aria-expanded&#39;, &#39;true&#39;);
+</code></pre>
+<h3 id="pitfall-2-memory-leaks-not-removing-event-listeners">Pitfall 2: Memory leaks — not removing event listeners</h3>
+<pre><code class="language-typescript">// ❌ Native event listener never removed!
+ngOnInit() {
+  document.addEventListener(&#39;scroll&#39;, this.onScroll);
+}
+// Component destroys → listener still lives in memory!
+
+// ✅ Always remove in ngOnDestroy (or use DestroyRef)
+ngOnInit() {
+  document.addEventListener(&#39;scroll&#39;, this.onScroll);
+  this.destroyRef.onDestroy(() =&gt; document.removeEventListener(&#39;scroll&#39;, this.onScroll));
+}
+</code></pre>
+<h3 id="pitfall-3-not-importing-the-directive-in-standalone-components">Pitfall 3: Not importing the directive in standalone components</h3>
+<pre><code class="language-html">&lt;!-- ❌ Template error: &quot;Can&#39;t bind to &#39;appTooltip&#39; since it isn&#39;t a known property&quot; --&gt;
+</code></pre>
+<pre><code class="language-typescript">// ✅ Import it in the component that uses it
+@Component({
+  imports: [TooltipDirective, RippleDirective],
+  template: `&lt;button appTooltip=&quot;Hello&quot; appRipple&gt;Click&lt;/button&gt;`
+})
+</code></pre>
+<hr>
+<h2 id="9-try-it-yourself">9. Try It Yourself</h2>
+<p>Build an <code>AutoFocusDirective</code> that:</p>
+<ol>
+<li>Automatically focuses the element it&#39;s applied to after the view renders</li>
+<li>Accepts an optional <code>delay</code> input (default: 0ms) before focusing</li>
+<li>Works properly with server-side rendering (only focuses in the browser)</li>
+</ol>
+<details>
+<summary>✅ View Solution</summary><pre><code class="language-typescript">import { Directive, inject, input, OnInit, PLATFORM_ID, ElementRef } from &#39;@angular/core&#39;;
+import { isPlatformBrowser } from &#39;@angular/common&#39;;
+
+@Directive({
+  selector: &#39;[appAutoFocus]&#39;,
+  standalone: true
+})
+export class AutoFocusDirective implements OnInit {
+  private el = inject(ElementRef);
+  private platformId = inject(PLATFORM_ID);
+
+  delay = input&lt;number&gt;(0);
+
+  ngOnInit() {
+    // Only focus in the browser — not during SSR!
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    // AfterViewInit equivalent — use setTimeout(0) to defer after render
+    setTimeout(() =&gt; {
+      this.el.nativeElement.focus();
+    }, this.delay());
+  }
+}
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-html">&lt;!-- Auto-focus when dialog opens --&gt;
+&lt;input appAutoFocus placeholder=&quot;Search...&quot;&gt;
+
+&lt;!-- With delay (e.g., wait for animation to complete) --&gt;
+&lt;input appAutoFocus [delay]=&quot;300&quot; placeholder=&quot;Username&quot;&gt;
+</code></pre>
+</details><hr>
+<h2 id="10-knowledge-check">10. Knowledge Check</h2>
+<ol>
+<li>What is the difference between <code>@HostListener</code> and <code>@HostBinding</code>?</li>
+<li>What does the <code>host</code> property in <code>@Directive()</code> do, and why is it preferred over <code>@HostListener</code>/<code>@HostBinding</code>?</li>
+<li>When building a directive that attaches native DOM event listeners (e.g., <code>document.addEventListener</code>), what must you do to prevent memory leaks?</li>
+<li>What is the Directive Composition API (<code>hostDirectives</code>), and what problem does it solve?</li>
+</ol>
+<details>
+<summary>✅ View Answers</summary><ol>
+<li><p><strong><code>@HostListener</code></strong> listens to <strong>events</strong> on the host element (or document/window) and calls a method when that event fires. <strong><code>@HostBinding</code></strong> <strong>binds</strong> a directive class property to a <strong>property, attribute, or class</strong> on the host element — keeping the DOM in sync with the directive&#39;s state (e.g., <code>@HostBinding(&#39;class.active&#39;) isActive = true</code>).</p>
+</li>
+<li><p>The <code>host</code> property in the <code>@Directive()</code> decorator is a declarative, static alternative to <code>@HostListener</code> and <code>@HostBinding</code>. It&#39;s preferred in modern Angular because it&#39;s more readable (all host interactions in one place), works better with Angular&#39;s build optimizer, and is the approach recommended in official Angular documentation.</p>
+</li>
+<li><p>You must store a reference to the listener function and call <code>removeEventListener</code> with the same function reference in <code>ngOnDestroy()</code> (or register it with <code>DestroyRef.onDestroy()</code>). If you don&#39;t remove the listener, it keeps a reference to the directive/component in memory, preventing garbage collection — a classic memory leak.</p>
+</li>
+<li><p>The Directive Composition API allows a <strong>component</strong> to declare that it should behave as if certain <strong>directives are already applied</strong> to it, by listing them in the <code>hostDirectives</code> array. It solves the problem of having to manually apply the same set of directives to many components. Instead, you compose the behaviors into the component&#39;s definition, so consumers don&#39;t need to know or remember to add them.</p>
+</details></li>
+</ol>
+<hr>
+<p><em>Next: <a href="./content-projection.html">12 - Content Projection →</a></em></p>
+
+            </div>
+        </main>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>
