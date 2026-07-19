@@ -1,0 +1,8 @@
+[build]
+  # The command Netlify runs to build your site
+  command = "npm run build"
+  
+  # The folder Netlify will serve to the web
+  publish = "docs"
+
+
